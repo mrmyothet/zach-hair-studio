@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gold: #c9a84c;
+  --color-gold-light: #e2c97e;
+  --color-gold-dark: #9e7b2f;
+  --color-charcoal: #1a1a2e;
+  --color-charcoal-light: #2d2d44;
+
+  --font-serif: Georgia, Cambria, "Times New Roman", serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.hero-bg {
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #1a1a2e 100%);
+}
+
+.gold-gradient {
+  background: linear-gradient(90deg, #c9a84c, #e2c97e, #c9a84c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(201, 168, 76, 0.2);
+}
+
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #c9a84c;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
