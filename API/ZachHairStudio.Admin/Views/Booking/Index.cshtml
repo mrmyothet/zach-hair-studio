@@ -1,0 +1,91 @@
+@using ZachHairStudio.Shared.Features.Bookings
+@model IEnumerable<Booking>
+
+@{
+    ViewData["Title"] = "Bookings";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3">Booking Requests</h1>
+        <p class="text-muted">Manage incoming appointment requests from the Zach Hair Studio website.</p>
+    </div>
+    <a class="btn btn-secondary" asp-controller="Home" asp-action="Index">Admin Home</a>
+</div>
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-auto">
+        <label class="visually-hidden" for="statusFilter">Status</label>
+        <select class="form-select" id="statusFilter" name="status">
+            <option value="">All statuses</option>
+            @foreach (var value in Enum.GetValues<BookingStatus>())
+            {
+                <option value="@value" selected="@((Context.Request.Query["status"] == value.ToString()) ? "selected" : null)">@value</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">No bookings found.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Booking</th>
+                    <th>Email</th>
+                    <th>Service</th>
+                    <th>Preferred Date</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var booking in Model)
+                {
+                    <tr>
+                        <td>
+                            <strong>@booking.CustomerName</strong><br />
+                            <small class="text-muted">Created @booking.CreatedAt.ToLocalTime():g</small>
+                        </td>
+                        <td>@booking.Email<br /><small class="text-muted">@booking.Phone</small></td>
+                        <td>@booking.Service</td>
+                        <td>@booking.PreferredDate.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            <span class="badge bg-@GetStatusClass(booking.Status)">@booking.Status</span>
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary me-2" asp-action="Details" asp-route-id="@booking.Id">Details</a>
+                            @if (booking.Status == BookingStatus.Pending)
+                            {
+                                <form asp-action="Confirm" asp-route-id="@booking.Id" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success">Confirm</button>
+                                </form>
+                                <form asp-action="Cancel" asp-route-id="@booking.Id" method="post" class="d-inline ms-1">
+                                    <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@functions {
+    private string GetStatusClass(BookingStatus status) => status switch
+    {
+        BookingStatus.Confirmed => "success",
+        BookingStatus.Completed => "secondary",
+        BookingStatus.Cancelled => "danger",
+        _ => "warning"
+    };
+}

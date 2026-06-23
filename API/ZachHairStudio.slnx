@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ZachHairStudio.Admin/ZachHairStudio.Admin.csproj" />
+  <Project Path="ZachHairStudio.Api/ZachHairStudio.Api.csproj" />
+  <Project Path="ZachHairStudio.Shared/ZachHairStudio.Shared.csproj" />
+</Solution>

@@ -1,0 +1,65 @@
+@model ZachHairStudio.Shared.Features.Bookings.Booking
+
+@{
+    ViewData["Title"] = "Booking Details";
+}
+
+<div class="mb-4">
+    <h1 class="h3">Booking Details</h1>
+    <p class="text-muted">Review and manage the request.</p>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-3">Name</dt>
+            <dd class="col-sm-9">@Model.CustomerName</dd>
+
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@Model.Phone</dd>
+
+            <dt class="col-sm-3">Service</dt>
+            <dd class="col-sm-9">@Model.Service</dd>
+
+            <dt class="col-sm-3">Preferred Date</dt>
+            <dd class="col-sm-9">@Model.PreferredDate.ToString("yyyy-MM-dd")</dd>
+
+            <dt class="col-sm-3">Message</dt>
+            <dd class="col-sm-9">@Model.Message ?? "—"</dd>
+
+            <dt class="col-sm-3">Status</dt>
+            <dd class="col-sm-9">
+                <span class="badge bg-@GetStatusClass(Model.Status)">@Model.Status</span>
+            </dd>
+
+            <dt class="col-sm-3">Requested</dt>
+            <dd class="col-sm-9">@Model.CreatedAt.ToLocalTime():g</dd>
+        </dl>
+
+        <div class="mt-4">
+            <a class="btn btn-outline-secondary me-2" asp-action="Index">Back to list</a>
+            @if (Model.Status == ZachHairStudio.Shared.Features.Bookings.BookingStatus.Pending)
+            {
+                <form asp-action="Confirm" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-success">Confirm</button>
+                </form>
+                <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="d-inline ms-2">
+                    <button type="submit" class="btn btn-danger">Cancel</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetStatusClass(ZachHairStudio.Shared.Features.Bookings.BookingStatus status) => status switch
+    {
+        ZachHairStudio.Shared.Features.Bookings.BookingStatus.Confirmed => "success",
+        ZachHairStudio.Shared.Features.Bookings.BookingStatus.Completed => "secondary",
+        ZachHairStudio.Shared.Features.Bookings.BookingStatus.Cancelled => "danger",
+        _ => "warning"
+    };
+}
