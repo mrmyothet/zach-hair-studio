@@ -1,0 +1,6 @@
+@ZachHairStudio.Api_HostAddress = http://localhost:5236
+
+GET {{ZachHairStudio.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
