@@ -1,0 +1,15 @@
+# Pre-commit hooks for zach-hair-studio.
+# Prereq: install the gitleaks binary (winget/scoop/choco/brew) — see README.
+# Install once per clone with:  pre-commit install
+# See specs/tooling.md for details.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      # gitleaks-system runs the gitleaks binary already on PATH (no Go toolchain
+      # needed, unlike the default "gitleaks" hook which builds from source).
+      # pass_filenames:false is required — the upstream gitleaks-system hook omits
+      # it, so pre-commit would otherwise append filenames to `gitleaks git`,
+      # which only accepts a single repo-path argument.
+      - id: gitleaks-system
+        pass_filenames: false

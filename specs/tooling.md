@@ -22,6 +22,18 @@ to the stack (`tech-stack.md`) and the phase it serves (`roadmap.md`).
 | **feature-scaffold** | Create a new feature mirroring `Features/Bookings` + a starter Next.js page. |
 | **openapi-client** | Regenerate the typed TS API client from the OpenAPI doc. |
 
+## Secret scanning
+
+[gitleaks](https://github.com/gitleaks/gitleaks) keeps secrets out of the repo:
+
+| Where | Config | Prereq |
+|---|---|---|
+| **pre-commit hook** (blocks secrets before commit) | `.pre-commit-config.yaml` (`gitleaks-system`) | gitleaks binary on PATH + `pre-commit` framework; run `pre-commit install` once per clone |
+| **CI** (scans every push/PR) | `.github/workflows/gitleaks.yml` | none — uses `gitleaks/gitleaks-action@v2` |
+
+Both use the gitleaks default rule set. Add a `.gitleaks.toml` to allowlist false
+positives if/when one appears.
+
 ## Deferred
 
 - **Stripe MCP** — payments (roadmap Phase 6).

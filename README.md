@@ -99,6 +99,32 @@ npm run dev -- -p 3001
 If you're using Claude Code, the **`dev`** skill launches the API and both
 frontends on the ports above in one step.
 
+## Secret scanning
+
+[gitleaks](https://github.com/gitleaks/gitleaks) scans for hardcoded secrets
+(API keys, tokens, connection strings) so they never reach git history. It runs
+in two places:
+
+- **Locally** as a pre-commit hook (blocks commits that contain secrets).
+- **In CI** via GitHub Actions ([`.github/workflows/gitleaks.yml`](.github/workflows/gitleaks.yml))
+  on every push and pull request.
+
+After cloning, set up the local hook once:
+
+```bash
+# 1. Install the gitleaks binary (the hook runs it from your PATH)
+winget install gitleaks      # or: scoop install gitleaks / choco install gitleaks / brew install gitleaks
+
+# 2. Install the pre-commit framework and wire up the hook
+pip install pre-commit       # or: pipx install pre-commit / winget install pre-commit
+pre-commit install
+```
+
+The hook config lives in [`.pre-commit-config.yaml`](.pre-commit-config.yaml)
+and uses the `gitleaks-system` variant, which runs the binary above (no Go
+toolchain required). To run a manual scan, use `pre-commit run --all-files` to
+scan the working tree, or `gitleaks git .` to audit the full commit history.
+
 ## Repository layout
 
 ```
