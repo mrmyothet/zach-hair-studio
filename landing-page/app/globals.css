@@ -1,25 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  --color-gold: #c9a84c;
-  --color-gold-light: #e2c97e;
-  --color-gold-dark: #9e7b2f;
-  --color-charcoal: #1a1a2e;
-  --color-charcoal-light: #2d2d44;
+  --color-gold: #d4af6a;
+  --color-gold-light: #ecd6a0;
+  --color-gold-dark: #a87f3d;
+  --color-charcoal: #181410;
+  --color-charcoal-light: #241c15;
 
-  --font-serif: Georgia, Cambria, "Times New Roman", serif;
+  --font-serif: var(--font-playfair), Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+/* Elegant display headings */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+}
+
 .hero-bg {
-  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 50%, #1a1a2e 100%);
+  background:
+    radial-gradient(120% 90% at 25% 15%, #2a2017 0%, #181410 55%, #100c08 100%);
 }
 
 .gold-gradient {
-  background: linear-gradient(90deg, #c9a84c, #e2c97e, #c9a84c);
+  background: linear-gradient(90deg, #a87f3d, #ecd6a0, #d4af6a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -31,7 +40,7 @@ html {
 
 .card-hover:hover {
   transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(201, 168, 76, 0.2);
+  box-shadow: 0 20px 40px rgba(212, 175, 106, 0.18);
 }
 
 .nav-link {
@@ -45,7 +54,7 @@ html {
   left: 0;
   width: 0;
   height: 2px;
-  background: #c9a84c;
+  background: #d4af6a;
   transition: width 0.3s ease;
 }
 
