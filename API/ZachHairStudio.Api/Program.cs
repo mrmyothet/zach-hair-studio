@@ -3,12 +3,14 @@ using ZachHairStudio.Shared.Db;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var dataDirectory = Path.Combine(builder.Environment.ContentRootPath, "Data");
-Directory.CreateDirectory(dataDirectory);
-var dbFilePath = Path.Combine(dataDirectory, "bookings.db");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<BookingDbContext>(options =>
-    options.UseSqlite($"Data Source={dbFilePath}"));
+    options.UseSqlServer(connectionString, sqlOptions =>
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 10,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null)));
 
 builder.Services.AddCors(options =>
 {
@@ -19,18 +21,21 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseCors();
