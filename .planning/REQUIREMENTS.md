@@ -9,14 +9,14 @@ Requirements for the current milestone (full services-led platform, specs roadma
 
 ### Platform (cross-cutting)
 
-- [ ] **PLAT-01**: API features are served through a per-feature service layer; controllers do not call `DbContext` directly
-- [ ] **PLAT-02**: Input validation runs through a dedicated validation layer (FluentValidation on the API; Zod on the frontend), not only DataAnnotations
+- [x] **PLAT-01**: API features are served through a per-feature service layer; controllers do not call `DbContext` directly
+- [x] **PLAT-02**: Input validation runs through a dedicated validation layer (FluentValidation on the API; Zod on the frontend), not only DataAnnotations
 
 ### Service Catalog (P1)
 
 - [ ] **CAT-01**: Client can browse a list of services showing name, description, duration, and price
 - [ ] **CAT-02**: Client can open a service detail page for a single service
-- [ ] **CAT-03**: Services are backed by a `Service` entity with list + detail API endpoints
+- [x] **CAT-03**: Services are backed by a `Service` entity with list + detail API endpoints
 
 ### Booking Core (P2)
 
@@ -113,11 +113,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PLAT-01 | Phase 1 | Pending |
-| PLAT-02 | Phase 1 | Pending |
+| PLAT-01 | Phase 1 | Complete |
+| PLAT-02 | Phase 1 | Complete |
 | CAT-01 | Phase 1 | Pending |
 | CAT-02 | Phase 1 | Pending |
-| CAT-03 | Phase 1 | Pending |
+| CAT-03 | Phase 1 | Complete |
 | BOOK-01 | Phase 2 | Pending |
 | BOOK-02 | Phase 2 | Pending |
 | BOOK-03 | Phase 2 | Pending |
@@ -162,4 +162,4 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 ---
 *Requirements defined: 2026-07-07*
-*Last updated: 2026-07-07 after roadmap creation (traceability populated, coverage corrected 34→41)*
+*Last updated: 2026-07-08 after Phase 1 Plan 02 execution (PLAT-01, PLAT-02, CAT-03 marked complete)*
