@@ -1,4 +1,31 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npx gsd-core *)",
+      "Read(.planning/*)",
+      "Write(.planning/*)",
+      "Read(STATE.md)",
+      "Write(STATE.md)",
+      "WebSearch",
+      "Bash(python3 -c \"print\\(1\\)\")",
+      "Bash(python -c \"print\\(1\\)\")",
+      "Bash(cat)",
+      "Read(//tmp/**)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(.secrets)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "playwright",
+    "context7",
+    "github"
+  ],
+  "disabledMcpjsonServers": [
+    "sqlite"
+  ],
   "hooks": {
     "SessionStart": [
       {
@@ -160,19 +187,5 @@
   },
   "worktree": {
     "baseRef": "head"
-  },
-  "permissions": {
-    "allow": [
-      "Bash(npx gsd-core *)",
-      "Read(.planning/*)",
-      "Write(.planning/*)",
-      "Read(STATE.md)",
-      "Write(STATE.md)"
-    ],
-    "deny": [
-      "Read(.env)",
-      "Read(.env.*)",
-      "Read(.secrets)"
-    ]
   }
 }
