@@ -35,7 +35,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Client can open a service detail page for a single service
   3. Submitting invalid service data (e.g., missing name, negative price) returns a clear validation error before it reaches the database
   4. Service catalog requests are handled by a dedicated `ServicesService` layer — controllers never query `BookingDbContext` directly (verified by code inspection)
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 01-01-PLAN.md — Backend test harness + Service domain model + FluentValidation validators (PLAT-02, CAT-03)
+- [ ] 01-02-PLAN.md — ServicesService + endpoints + DI + DbSet/unique-slug/seed migration (PLAT-01, CAT-03)
+- [ ] 01-03-PLAN.md — Public /services list + /services/[slug] detail pages (RSC + ISR + Zod) (CAT-01, CAT-02)
+- [ ] 01-04-PLAN.md — Single source of truth: API-backed homepage subset + Contact dropdown, retire lib/data.ts (D-14)
 **UI hint**: yes
 
 ### Phase 2: Booking Core
@@ -142,7 +147,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Service Catalog | 0/TBD | Not started | - |
+| 1. Service Catalog | 0/4 | Not started | - |
 | 2. Booking Core | 0/TBD | Not started | - |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
