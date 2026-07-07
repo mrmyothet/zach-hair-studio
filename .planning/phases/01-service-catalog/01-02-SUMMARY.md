@@ -192,7 +192,8 @@ These prices and durations are owner-reviewable placeholders per D-15 and can be
 ## Issues Encountered
 
 - `dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api` failed because SQL Server LocalDB could not create an automatic instance in this runtime. The migration is generated and verified, but it still needs to be applied in an environment with working LocalDB/SQL Server.
-- The full API test suite passed: 49 tests green. Separate foreground build commands were backgrounded by the runtime before returning a final build line, but the passing test suite compiled `ZachHairStudio.Shared`, `ZachHairStudio.Api`, and `ZachHairStudio.Api.Tests`.
+- The full API test suite passed: 49 tests green.
+- The delayed backgrounded build checks completed successfully: `dotnet build API/ZachHairStudio.slnx --nologo` and `dotnet build API/ZachHairStudio.Api/ZachHairStudio.Api.csproj --no-restore --nologo`.
 - Existing nullable warnings remain in `API/ZachHairStudio.Shared/Result.cs`; they predate this plan and did not block tests.
 
 ## Known Stubs
@@ -217,6 +218,7 @@ Plan 03 can build the public `/services` list and `/services/[slug]` detail page
 - Task commits found: `5a8b735`, `79e6107`, `b3c992e`.
 - Migration content check passed for `CreateTable`, unique `IX_Services_Slug`, and six seed slugs.
 - Full API test suite passed with 49 tests.
+- Full API solution build and API project build completed successfully.
 
 ---
 *Phase: 01-service-catalog*
