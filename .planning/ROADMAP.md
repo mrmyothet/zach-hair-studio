@@ -37,9 +37,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Service catalog requests are handled by a dedicated `ServicesService` layer — controllers never query `BookingDbContext` directly (verified by code inspection)
 **Plans**: 4 plans
 Plans:
+**Wave 1**
 - [ ] 01-01-PLAN.md — Backend test harness + Service domain model + FluentValidation validators (PLAT-02, CAT-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — ServicesService + endpoints + DI + DbSet/unique-slug/seed migration (PLAT-01, CAT-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 01-03-PLAN.md — Public /services list + /services/[slug] detail pages (RSC + ISR + Zod) (CAT-01, CAT-02)
+
+**Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 01-04-PLAN.md — Single source of truth: API-backed homepage subset + Contact dropdown, retire lib/data.ts (D-14)
 **UI hint**: yes
 
@@ -147,7 +154,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Service Catalog | 0/4 | Not started | - |
+| 1. Service Catalog | 0/4 | Planned (ready to execute) | - |
 | 2. Booking Core | 0/TBD | Not started | - |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
