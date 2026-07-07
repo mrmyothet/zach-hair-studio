@@ -7,7 +7,7 @@ current one works end to end.
 ## Phase 0 — Foundation
 
 - Confirm repo layout: `landing-page/`, `dashboard/`, `API/`.
-- API boots with EF Core + SQLite; one trivial endpoint reachable.
+- API boots with EF Core + SQL Server; one trivial endpoint reachable.
 - Frontend can call the API (one wired-up request round trip).
 
 ## Phase 1 — Service catalog (read-only)
@@ -54,8 +54,8 @@ current one works end to end.
 ## Phase 8 — Polish & launch readiness
 
 - Responsive/mobile pass and visual polish.
-- Production database decision and migration off SQLite.
-- Hosting/deploy, observability, and basic hardening.
+- Production SQL Server configuration, hosting/deploy, observability, and basic
+  hardening.
 
 ---
 

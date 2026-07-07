@@ -10,7 +10,7 @@ to the stack (`tech-stack.md`) and the phase it serves (`roadmap.md`).
 |---|---|---|---|
 | **playwright** | Drive/screenshot/verify the Next.js landing-page & dashboard UIs. | `npx` | 1–3, 8 |
 | **context7** | Live, version-accurate docs (Next.js 15, React 19, EF Core 10, .NET 10). | `npx` (API key optional) | all |
-| **sqlite** | Inspect the schema/data behind `BookingDbContext` (`API/ZachHairStudio.Api/Data/bookings.db`). | `uvx`; DB exists after API runs once | 2, 5, 6 |
+| **sqlserver** | Inspect the schema/data behind `BookingDbContext` in the configured SQL Server database. | SQL Server LocalDB or local SQL Server instance | 2, 5, 6 |
 | **github** | Manage PRs/issues from the agent. | `GITHUB_PERSONAL_ACCESS_TOKEN` (or use the `gh` CLI) | ongoing |
 
 ## Agent skills (`.claude/skills/`)
@@ -37,5 +37,6 @@ positives if/when one appears.
 ## Deferred
 
 - **Stripe MCP** — payments (roadmap Phase 6).
-- **Postgres MCP** — when the production DB decision lands (Phase 8).
+- SQL Server production operations tooling — finalize with the hosting/deploy
+  decision in Phase 8.
 - Auth tooling — pending the auth-provider decision.
