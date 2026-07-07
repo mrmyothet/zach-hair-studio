@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { branches, contactEmail, serviceOptions } from "@/lib/data";
+import { createBooking } from "@/lib/api";
 import { ArrowRightIcon, MapPinIcon } from "./icons";
 
 const inputClass =
@@ -18,6 +19,41 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    const form = new FormData(e.currentTarget);
+    const serviceValue = String(form.get("service") ?? "");
+    // Store the readable service label (with price) rather than the option key.
+    const serviceLabel =
+      serviceOptions.find((o) => o.value === serviceValue)?.label ?? serviceValue;
+
+    try {
+      await createBooking({
+        firstName: String(form.get("firstName") ?? "").trim(),
+        lastName: String(form.get("lastName") ?? "").trim(),
+        email: String(form.get("email") ?? "").trim(),
+        phone: String(form.get("phone") ?? "").trim() || undefined,
+        service: serviceLabel,
+        preferredDate: String(form.get("preferredDate") ?? ""),
+        message: String(form.get("message") ?? "").trim() || undefined,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <section id="contact" className="py-24 bg-charcoal-light">
@@ -100,32 +136,27 @@ export default function Contact() {
                 </p>
               </div>
             ) : (
-              <form
-                className="space-y-5"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSubmitted(true);
-                }}
-              >
+              <form className="space-y-5" onSubmit={handleSubmit}>
                 <div className="grid sm:grid-cols-2 gap-5">
                   <Field label="First Name">
-                    <input type="text" placeholder="Zach" required className={inputClass} />
+                    <input type="text" name="firstName" placeholder="Zach" required className={inputClass} />
                   </Field>
                   <Field label="Last Name">
-                    <input type="text" placeholder="Monroe" required className={inputClass} />
+                    <input type="text" name="lastName" placeholder="Monroe" required className={inputClass} />
                   </Field>
                 </div>
 
                 <Field label="Email Address">
-                  <input type="email" placeholder="you@example.com" required className={inputClass} />
+                  <input type="email" name="email" placeholder="you@example.com" required className={inputClass} />
                 </Field>
 
                 <Field label="Phone Number">
-                  <input type="tel" placeholder="(212) 555-0000" className={inputClass} />
+                  <input type="tel" name="phone" placeholder="(212) 555-0000" className={inputClass} />
                 </Field>
 
                 <Field label="Service">
                   <select
+                    name="service"
                     required
                     defaultValue=""
                     className={`${inputClass} appearance-none cursor-pointer`}
@@ -142,23 +173,34 @@ export default function Contact() {
                 </Field>
 
                 <Field label="Preferred Date">
-                  <input type="date" required className={`${inputClass} [color-scheme:dark]`} />
+                  <input type="date" name="preferredDate" required className={`${inputClass} [color-scheme:dark]`} />
                 </Field>
 
                 <Field label="Message (Optional)">
                   <textarea
+                    name="message"
                     rows={3}
                     placeholder="Tell us about your desired style or any special requests..."
                     className={`${inputClass} resize-none`}
                   />
                 </Field>
 
+                {error && (
+                  <p
+                    role="alert"
+                    className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3"
+                  >
+                    {error}
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full bg-gold hover:bg-gold-dark text-charcoal font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-gold/30 flex items-center justify-center gap-2"
+                  disabled={submitting}
+                  className="w-full bg-gold hover:bg-gold-dark text-charcoal font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-gold/30 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none"
                 >
-                  <span>Request Appointment</span>
-                  <ArrowRightIcon className="w-4 h-4" strokeWidth={2.5} />
+                  <span>{submitting ? "Sending..." : "Request Appointment"}</span>
+                  {!submitting && <ArrowRightIcon className="w-4 h-4" strokeWidth={2.5} />}
                 </button>
               </form>
             )}
