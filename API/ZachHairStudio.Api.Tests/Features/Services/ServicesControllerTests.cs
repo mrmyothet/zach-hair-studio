@@ -17,7 +17,7 @@ public class ServicesControllerTests : IClassFixture<CustomWebApplicationFactory
     }
 
     [Fact]
-    public async Task GetServices_ReturnsOkWithJsonArray()
+    public async Task GetServices_ReturnsOkWithSeededServicesOrderedByDisplayOrder()
     {
         var client = _factory.CreateClient();
 
@@ -25,8 +25,18 @@ public class ServicesControllerTests : IClassFixture<CustomWebApplicationFactory
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.Equal(JsonValueKind.Array, body.RootElement.ValueKind);
+        var services = await response.Content.ReadFromJsonAsync<List<ServiceResponseDto>>();
+        Assert.NotNull(services);
+        Assert.Equal(
+            [
+                "precision-cut",
+                "color-and-highlights",
+                "blowout-and-styling",
+                "keratin-treatment",
+                "scalp-treatment",
+                "full-glam-package"
+            ],
+            services.Select(service => service.Slug));
     }
 
     [Fact]
