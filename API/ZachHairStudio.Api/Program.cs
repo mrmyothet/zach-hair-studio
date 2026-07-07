@@ -1,5 +1,7 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,14 +21,17 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddValidatorsFromAssemblyContaining<ServiceCreateDtoValidator>();
+builder.Services.AddScoped<ServicesService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
     db.Database.Migrate();
 }

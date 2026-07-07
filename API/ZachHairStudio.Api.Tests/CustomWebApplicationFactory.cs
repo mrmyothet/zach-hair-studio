@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ZachHairStudio.Shared.Db;
 
 namespace ZachHairStudio.Api.Tests;
@@ -12,15 +13,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Testing");
+
         builder.ConfigureServices(services =>
         {
-            var descriptor = services.SingleOrDefault(
-                service => service.ServiceType == typeof(DbContextOptions<BookingDbContext>));
-
-            if (descriptor is not null)
-            {
-                services.Remove(descriptor);
-            }
+            services.RemoveAll<DbContextOptions<BookingDbContext>>();
 
             services.AddDbContext<BookingDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));

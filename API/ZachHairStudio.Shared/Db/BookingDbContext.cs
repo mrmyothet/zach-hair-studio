@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Features.Bookings;
+using ZachHairStudio.Shared.Features.Services;
 
 namespace ZachHairStudio.Shared.Db;
 
@@ -11,6 +12,8 @@ public class BookingDbContext : DbContext
     }
 
     public DbSet<Booking> Bookings => Set<Booking>();
+
+    public DbSet<Service> Services => Set<Service>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
