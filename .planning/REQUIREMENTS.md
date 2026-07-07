@@ -113,13 +113,53 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | — | Pending |
+| PLAT-01 | Phase 1 | Pending |
+| PLAT-02 | Phase 1 | Pending |
+| CAT-01 | Phase 1 | Pending |
+| CAT-02 | Phase 1 | Pending |
+| CAT-03 | Phase 1 | Pending |
+| BOOK-01 | Phase 2 | Pending |
+| BOOK-02 | Phase 2 | Pending |
+| BOOK-03 | Phase 2 | Pending |
+| BOOK-04 | Phase 2 | Pending |
+| BOOK-05 | Phase 2 | Pending |
+| BOOK-06 | Phase 2 | Pending |
+| DASH-01 | Phase 3 | Pending |
+| DASH-02 | Phase 3 | Pending |
+| DASH-03 | Phase 3 | Pending |
+| DASH-04 | Phase 3 | Pending |
+| DASH-05 | Phase 3 | Pending |
+| MGMT-01 | Phase 4 | Pending |
+| MGMT-02 | Phase 4 | Pending |
+| MGMT-03 | Phase 4 | Pending |
+| PROD-01 | Phase 5 | Pending |
+| PROD-02 | Phase 5 | Pending |
+| PROD-03 | Phase 5 | Pending |
+| SHOP-01 | Phase 6 | Pending |
+| SHOP-02 | Phase 6 | Pending |
+| SHOP-03 | Phase 6 | Pending |
+| SHOP-04 | Phase 6 | Pending |
+| SHOP-05 | Phase 6 | Pending |
+| SHOP-06 | Phase 6 | Pending |
+| SHOP-07 | Phase 6 | Pending |
+| ACCT-01 | Phase 7 | Pending |
+| ACCT-02 | Phase 7 | Pending |
+| ACCT-03 | Phase 7 | Pending |
+| ACCT-04 | Phase 7 | Pending |
+| ACCT-05 | Phase 7 | Pending |
+| ACCT-06 | Phase 7 | Pending |
+| ACCT-07 | Phase 7 | Pending |
+| LAUNCH-01 | Phase 8 | Pending |
+| LAUNCH-02 | Phase 8 | Pending |
+| LAUNCH-03 | Phase 8 | Pending |
+| LAUNCH-04 | Phase 8 | Pending |
+| LAUNCH-05 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 34 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 34 ⚠️
+- v1 requirements: 41 total (corrected during roadmap creation — the actual v1 list above totals 41 requirements, not the 34 noted when this file was first drafted)
+- Mapped to phases: 41
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-07*
-*Last updated: 2026-07-07 after initial definition*
+*Last updated: 2026-07-07 after roadmap creation (traceability populated, coverage corrected 34→41)*
