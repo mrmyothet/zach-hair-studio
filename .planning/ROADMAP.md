@@ -38,7 +38,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 Plans:
 **Wave 1**
-- [ ] 01-01-PLAN.md — Backend test harness + Service domain model + FluentValidation validators (PLAT-02, CAT-03)
+- [x] 01-01-PLAN.md — Backend test harness + Service domain model + FluentValidation validators (PLAT-02, CAT-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — ServicesService + endpoints + DI + DbSet/unique-slug/seed migration (PLAT-01, CAT-03)
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Service Catalog | 0/4 | Planned (ready to execute) | - |
+| 1. Service Catalog | 1/4 | In Progress | - |
 | 2. Booking Core | 0/TBD | Not started | - |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
