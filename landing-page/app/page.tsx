@@ -11,8 +11,15 @@ import { fetchServices } from "@/lib/services";
 
 const HOMEPAGE_SERVICE_COUNT = 6;
 
-export default async function Home() {
-  const services = await fetchServices();
+type Props = {
+  searchParams: Promise<{ service?: string }>;
+};
+
+export default async function Home({ searchParams }: Props) {
+  const [{ service }, services] = await Promise.all([
+    searchParams,
+    fetchServices(),
+  ]);
   const homepageServices = services
     .toSorted((a, b) => a.displayOrder - b.displayOrder)
     .slice(0, HOMEPAGE_SERVICE_COUNT);
@@ -26,7 +33,7 @@ export default async function Home() {
         <Gallery />
         <Team />
         <Reviews />
-        <Contact />
+        <Contact services={services} initialServiceSlug={service} />
       </main>
       <Footer />
       <BackToTop />
