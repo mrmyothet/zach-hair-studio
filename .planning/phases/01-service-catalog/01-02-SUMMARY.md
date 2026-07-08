@@ -93,14 +93,13 @@ coverage:
         status: pass
     human_judgment: false
   - id: D5
-    description: "The AddServices migration applies to the developer SQL Server database."
+    description: "The AddServices migration applies to a local SQL Server database."
     requirement: CAT-03
     verification:
       - kind: other
-        ref: "dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api"
-        status: fail
-    human_judgment: true
-    rationale: "LocalDB could not create an automatic instance in this runtime; rerun database update where SQL Server LocalDB is available."
+        ref: "dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api --connection Server=(localdb)\\ZachHairStudio2025;Database=ZachHairStudioDev;..."
+        status: pass
+    human_judgment: false
 
 duration: 101min
 completed: 2026-07-08
@@ -191,7 +190,7 @@ These prices and durations are owner-reviewable placeholders per D-15 and can be
 
 ## Issues Encountered
 
-- `dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api` failed because SQL Server LocalDB could not create an automatic instance in this runtime. The migration is generated and verified, but it still needs to be applied in an environment with working LocalDB/SQL Server.
+- The default `MSSQLLocalDB` instance still fails inside the LocalDB API, and SQL Server 2012's `v11.0` instance cannot open the existing newer-format `ZachHairStudio.mdf`. A fresh SQL Server 2025 LocalDB instance named `ZachHairStudio2025` was created and the migration applied successfully to `ZachHairStudioDev`.
 - The full API test suite passed: 49 tests green.
 - The delayed backgrounded build checks completed successfully: `dotnet build API/ZachHairStudio.slnx --nologo` and `dotnet build API/ZachHairStudio.Api/ZachHairStudio.Api.csproj --no-restore --nologo`.
 - Existing nullable warnings remain in `API/ZachHairStudio.Shared/Result.cs`; they predate this plan and did not block tests.
@@ -202,13 +201,13 @@ None. The seeded prices and durations are intentional owner-reviewable placehold
 
 ## User Setup Required
 
-Apply the migration on a machine where SQL Server LocalDB or the configured SQL Server instance is available:
+For this machine, use the working SQL Server 2025 LocalDB instance if running the API before `MSSQLLocalDB` is repaired:
 
-`dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api`
+`ConnectionStrings__DefaultConnection="Server=(localdb)\\ZachHairStudio2025;Database=ZachHairStudioDev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"`
 
 ## Next Phase Readiness
 
-Plan 03 can build the public `/services` list and `/services/[slug]` detail pages against `GET /api/services` and `GET /api/services/{slug}`. The API contract, service-layer pattern, and seeded slugs are ready; database application remains environment-dependent until LocalDB is available.
+Plan 03 can build the public `/services` list and `/services/[slug]` detail pages against `GET /api/services` and `GET /api/services/{slug}`. The API contract, service-layer pattern, seeded slugs, and an applied local SQL Server database are ready.
 
 ## Self-Check: PASSED
 
@@ -219,6 +218,7 @@ Plan 03 can build the public `/services` list and `/services/[slug]` detail page
 - Migration content check passed for `CreateTable`, unique `IX_Services_Slug`, and six seed slugs.
 - Full API test suite passed with 49 tests.
 - Full API solution build and API project build completed successfully.
+- Migration applied successfully to `(localdb)\ZachHairStudio2025`, database `ZachHairStudioDev`.
 
 ---
 *Phase: 01-service-catalog*
