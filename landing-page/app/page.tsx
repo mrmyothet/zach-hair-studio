@@ -7,18 +7,33 @@ import Reviews from "@/components/Reviews";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import BackToTop from "@/components/BackToTop";
+import { fetchServices } from "@/lib/services";
 
-export default function Home() {
+const HOMEPAGE_SERVICE_COUNT = 6;
+
+type Props = {
+  searchParams: Promise<{ service?: string }>;
+};
+
+export default async function Home({ searchParams }: Props) {
+  const [{ service }, services] = await Promise.all([
+    searchParams,
+    fetchServices(),
+  ]);
+  const homepageServices = services
+    .toSorted((a, b) => a.displayOrder - b.displayOrder)
+    .slice(0, HOMEPAGE_SERVICE_COUNT);
+
   return (
     <>
       <Navbar />
       <main>
         <Hero />
-        <Services />
+        <Services services={homepageServices} />
         <Gallery />
         <Team />
         <Reviews />
-        <Contact />
+        <Contact services={services} initialServiceSlug={service} />
       </main>
       <Footer />
       <BackToTop />

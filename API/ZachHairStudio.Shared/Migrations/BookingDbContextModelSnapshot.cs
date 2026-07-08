@@ -73,6 +73,144 @@ namespace ZachHairStudio.Shared.Migrations
 
                     b.ToTable("Bookings");
                 });
+
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Services.Service", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LongDescription")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Services");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "Cuts",
+                            DisplayOrder = 1,
+                            DurationMinutes = 45,
+                            IsActive = true,
+                            LongDescription = "A tailored cut shaped around your face, texture, and daily styling routine. Includes a consultation and finishing touches so your hair leaves polished and easy to maintain.",
+                            Name = "Precision Cut",
+                            Price = 35m,
+                            ShortDescription = "Tailored haircuts designed to complement your face shape and lifestyle perfectly.",
+                            Slug = "precision-cut"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "Color",
+                            DisplayOrder = 2,
+                            DurationMinutes = 90,
+                            IsActive = true,
+                            LongDescription = "Dimensional color and highlight work customized to your skin tone, cut, and maintenance goals. The service uses premium products for glossy color, soft grow-out, and a salon-fresh finish.",
+                            Name = "Color & Highlights",
+                            Price = 80m,
+                            ShortDescription = "Vibrant color treatments and natural-looking highlights using premium products.",
+                            Slug = "color-and-highlights"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "Styling",
+                            DisplayOrder = 3,
+                            DurationMinutes = 45,
+                            IsActive = true,
+                            LongDescription = "A smooth professional blowout or styled finish tailored to the occasion, from everyday polish to event-ready volume. Ideal when you want shine, movement, and a finished look without a full cut or color service.",
+                            Name = "Blowout & Styling",
+                            Price = 55m,
+                            ShortDescription = "Professional blowouts and styling for any occasion — weddings, events, or everyday glam.",
+                            Slug = "blowout-and-styling"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "Treatments",
+                            DisplayOrder = 4,
+                            DurationMinutes = 120,
+                            IsActive = true,
+                            LongDescription = "A smoothing treatment designed to reduce frizz, increase shine, and make daily styling easier. Best for clients looking for a longer-lasting sleek finish and improved manageability between salon visits.",
+                            Name = "Keratin Treatment",
+                            Price = 120m,
+                            ShortDescription = "Smoothing treatments that eliminate frizz and add lasting shine and manageability.",
+                            Slug = "keratin-treatment"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "Treatments",
+                            DisplayOrder = 5,
+                            DurationMinutes = 40,
+                            IsActive = true,
+                            LongDescription = "A restorative scalp-focused service that refreshes, hydrates, and supports a healthier hair environment. Recommended for clients wanting comfort, balance, and a relaxing reset between larger services.",
+                            Name = "Scalp Treatment",
+                            Price = 65m,
+                            ShortDescription = "Revitalizing scalp therapies to promote health, hydration, and hair growth.",
+                            Slug = "scalp-treatment"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "Styling",
+                            DisplayOrder = 6,
+                            DurationMinutes = 210,
+                            IsActive = true,
+                            LongDescription = "The full studio transformation package combining a precision cut, color service, blowout, and scalp treatment. Built for clients who want the complete Zach Hair Studio experience in one coordinated visit.",
+                            Name = "Full Glam Package",
+                            Price = 199m,
+                            ShortDescription = "Cut + Color + Blowout + Scalp treatment. The complete studio experience in one visit.",
+                            Slug = "full-glam-package"
+                        });
+                });
 #pragma warning restore 612, 618
         }
     }

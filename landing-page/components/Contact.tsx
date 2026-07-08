@@ -1,12 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { branches, contactEmail, serviceOptions } from "@/lib/data";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { branches, contactEmail } from "@/lib/data";
 import { createBooking } from "@/lib/api";
+import type { Service } from "@/lib/services";
 import { ArrowRightIcon, MapPinIcon } from "./icons";
 
 const inputClass =
   "w-full bg-charcoal-light border border-white/10 hover:border-gold/30 focus:border-gold rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors";
+
+const priceFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+
+type Props = {
+  services: Service[];
+  initialServiceSlug?: string;
+};
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -17,10 +30,26 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function Contact() {
+function formatServiceOption(service: Service): string {
+  return `${service.name} - ${priceFormatter.format(service.price)}`;
+}
+
+export default function Contact({ services, initialServiceSlug }: Props) {
+  const searchParams = useSearchParams();
+  const servicesBySlug = useMemo(
+    () => new Map(services.map((service) => [service.slug, service])),
+    [services]
+  );
+  const requestedSlug = searchParams.get("service") ?? initialServiceSlug ?? "";
+  const preselectedSlug = servicesBySlug.has(requestedSlug) ? requestedSlug : "";
+  const [selectedSlug, setSelectedSlug] = useState(preselectedSlug);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedSlug(preselectedSlug);
+  }, [preselectedSlug]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,10 +57,11 @@ export default function Contact() {
     setError(null);
 
     const form = new FormData(e.currentTarget);
-    const serviceValue = String(form.get("service") ?? "");
-    // Store the readable service label (with price) rather than the option key.
-    const serviceLabel =
-      serviceOptions.find((o) => o.value === serviceValue)?.label ?? serviceValue;
+    const serviceSlug = String(form.get("service") ?? "");
+    const selectedService = servicesBySlug.get(serviceSlug);
+    const serviceLabel = selectedService
+      ? formatServiceOption(selectedService)
+      : serviceSlug;
 
     try {
       await createBooking({
@@ -158,15 +188,16 @@ export default function Contact() {
                   <select
                     name="service"
                     required
-                    defaultValue=""
+                    value={selectedSlug}
+                    onChange={(event) => setSelectedSlug(event.target.value)}
                     className={`${inputClass} appearance-none cursor-pointer`}
                   >
                     <option value="" disabled className="bg-charcoal">
                       Select a service...
                     </option>
-                    {serviceOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value} className="bg-charcoal">
-                        {opt.label}
+                    {services.map((service) => (
+                      <option key={service.slug} value={service.slug} className="bg-charcoal">
+                        {formatServiceOption(service)}
                       </option>
                     ))}
                   </select>
@@ -196,7 +227,7 @@ export default function Contact() {
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || services.length === 0}
                   className="w-full bg-gold hover:bg-gold-dark text-charcoal font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-gold/30 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none"
                 >
                   <span>{submitting ? "Sending..." : "Request Appointment"}</span>
