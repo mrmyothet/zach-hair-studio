@@ -79,15 +79,15 @@ export default async function ServiceDetailPage({ params }: Props) {
                   </div>
                 </dl>
 
-                <a
-                  href={`/#contact?service=${service.slug}`}
+                <Link
+                  href={`/book?service=${service.slug}`}
                   className="mt-7 inline-flex w-full items-center justify-center bg-gold hover:bg-gold-dark text-charcoal font-bold text-sm uppercase tracking-wider px-6 py-4 rounded-full transition-colors"
                 >
                   Book This Service
-                </a>
+                </Link>
                 <p className="text-gray-500 text-xs leading-relaxed mt-4">
-                  You will be taken to the contact form with this service
-                  selected.
+                  You will be taken to a dedicated booking request page with
+                  this service selected.
                 </p>
               </aside>
             </div>
