@@ -3,3 +3,6 @@
 # The entry below is a SHA-256 file-integrity checksum in a manifest file,
 # not a real secret.
 3be69e3e34e4f2712cb0e19b84b6db62d072a28a:landing-page/.claude/gsd-file-manifest.json:generic-api-key:123
+
+# Ignore the root-level Claude GSD manifest file.
+.claude/gsd-file-manifest.json
