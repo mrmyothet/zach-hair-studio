@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: Service Catalog
 status: in_progress
-stopped_at: Phase 1 Wave 2 complete — ready for 01-03 public services pages
-last_updated: "2026-07-07T19:17:51.000Z"
+stopped_at: Phase 1 Wave 3 complete — ready for 01-04 single-source homepage/contact
+last_updated: "2026-07-08T05:34:00.000Z"
 last_activity: 2026-07-08
-last_activity_desc: Phase 1 Plan 02 complete — Services API, service layer, and seed migration ready
+last_activity_desc: Phase 1 Plan 03 complete — public services pages and dedicated booking route ready
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -29,29 +29,29 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 1 of 8 (Service Catalog)
-Plan: 2 of 4 in current phase
-Status: Executing Wave 3 next
-Last activity: 2026-07-08 — Phase 1 Plan 02 complete — Services API, service layer, and seed migration ready
+Plan: 3 of 4 in current phase
+Status: Executing Wave 4 next
+Last activity: 2026-07-08 — Phase 1 Plan 03 complete — public services pages and dedicated booking route ready
 
-Progress: [█████░░░░░] 50%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2
-- Average duration: 87 min
-- Total execution time: 2h 53m
+- Total plans completed: 3
+- Average duration: 75 min
+- Total execution time: 3h 44m
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Service Catalog | 2 | 2h 53m | 87 min |
+| 1. Service Catalog | 3 | 3h 44m | 75 min |
 
 **Recent Trend:**
 
-- Last 5 plans: 72m, 101m
+- Last 5 plans: 72m, 101m, 51m
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -72,6 +72,7 @@ Recent decisions affecting current work:
 - Phase 1 Plan 02: ServicesController injects ServicesService and validators only; all Services DbContext access lives in ServicesService.
 - Phase 1 Plan 02: Service write endpoints use controller-shaped ProblemDetails plus defensive service-layer FluentValidation.
 - Phase 1 Plan 02: Services seed data uses EF Core HasData through AddServices migration; no UseSeeding/UseAsyncSeeding.
+- Phase 1 Plan 03: Service detail booking CTA uses dedicated `/book?service={slug}` route, not the homepage contact anchor.
 
 ### Pending Todos
 
@@ -82,7 +83,7 @@ None yet.
 - REQUIREMENTS.md header/coverage text said "34 requirements" but the actual v1 list totals 41 — corrected in the Traceability/Coverage section during roadmap creation; worth a quick sanity check with the user.
 - Phase 2 (Booking Core), Phase 6 (Cart & Checkout), and Phase 7 (Accounts & Retention) are flagged for a deeper per-phase research pass before planning (see ROADMAP.md Research flag annotations and research/SUMMARY.md Research Flags section).
 - Payment provider (Phase 6) and auth provider/session strategy (Phase 7) remain open decisions per PROJECT.md Key Decisions — confirm before planning those phases.
-- LocalDB could not create an automatic instance in this runtime during Plan 02; rerun `dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api` where SQL Server LocalDB is available.
+- Default `MSSQLLocalDB` still fails on this machine, but Phase 1 migrations are applied to `(localdb)\ZachHairStudio2025`, database `ZachHairStudioDev`. Use `ConnectionStrings__DefaultConnection` override for local API runs until default LocalDB is repaired.
 
 ## Deferred Items
 
@@ -94,6 +95,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T19:17:51.000Z
-Stopped at: Phase 1 Wave 2 complete — ready for 01-03 public services pages
-Resume file: .planning/phases/01-service-catalog/01-03-PLAN.md
+Last session: 2026-07-08T05:34:00.000Z
+Stopped at: Phase 1 Wave 3 complete — ready for 01-04 single-source homepage/contact
+Resume file: .planning/phases/01-service-catalog/01-04-PLAN.md
