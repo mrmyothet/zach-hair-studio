@@ -10,7 +10,8 @@
       "Bash(python3 -c \"print\\(1\\)\")",
       "Bash(python -c \"print\\(1\\)\")",
       "Bash(cat)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(chmod +x /home/myothet/repos/vct/zach-hair-studio/.claude/hooks/*.sh)"
     ],
     "deny": [
       "Read(.env)",
