@@ -13,7 +13,8 @@
     "next": "^15.3.0",
     "playwright": "^1.61.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.0",
