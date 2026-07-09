@@ -23,9 +23,9 @@ Requirements for the current milestone (full services-led platform, specs roadma
 - [ ] **BOOK-01**: Client can see real open appointment slots for a chosen service, reflecting stylist working hours and existing bookings
 - [ ] **BOOK-02**: Client can book an appointment by picking a service, then an open slot, then confirming
 - [ ] **BOOK-03**: Client receives an on-screen and email confirmation for a booked appointment
-- [ ] **BOOK-04**: The system prevents double-booking a stylist for the same slot, enforced server-side with a database-level guarantee
-- [ ] **BOOK-05**: Appointment and availability times are stored with timezone-aware types (`DateTimeOffset`) against a configured salon timezone
-- [ ] **BOOK-06**: Client can choose a preferred stylist during booking (slots filtered by stylist)
+- [x] **BOOK-04**: The system prevents double-booking a stylist for the same slot, enforced server-side with a database-level guarantee
+- [x] **BOOK-05**: Appointment and availability times are stored with timezone-aware types (`DateTimeOffset`) against a configured salon timezone
+- [x] **BOOK-06**: Client can choose a preferred stylist during booking (slots filtered by stylist)
 
 ### Staff Dashboard — Schedule (P3)
 
@@ -121,9 +121,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | BOOK-01 | Phase 2 | Pending |
 | BOOK-02 | Phase 2 | Pending |
 | BOOK-03 | Phase 2 | Pending |
-| BOOK-04 | Phase 2 | Pending |
-| BOOK-05 | Phase 2 | Pending |
-| BOOK-06 | Phase 2 | Pending |
+| BOOK-04 | Phase 2 | Complete |
+| BOOK-05 | Phase 2 | Complete |
+| BOOK-06 | Phase 2 | Complete |
 | DASH-01 | Phase 3 | Pending |
 | DASH-02 | Phase 3 | Pending |
 | DASH-03 | Phase 3 | Pending |
