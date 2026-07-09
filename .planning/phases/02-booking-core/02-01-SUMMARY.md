@@ -201,3 +201,9 @@ None - no external service configuration required. This plan only touches `appse
 ---
 *Phase: 02-booking-core*
 *Completed: 2026-07-09*
+
+## Self-Check: PASSED
+
+- All 12 created files verified present on disk (entities, DTO/mapper, service/controller, test, migration).
+- All 3 deleted-file claims verified absent (Booking.cs, BookingsController.cs, Admin BookingController.cs).
+- All 4 task/summary commit hashes (`59f2081`, `83182b6`, `45e4747`, `ee6ea9b`) verified present in `git log --oneline --all`.
