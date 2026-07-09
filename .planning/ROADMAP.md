@@ -61,7 +61,7 @@ Plans:
 
 ### Phase 2: Booking Core
 
-**Goal**: A client can pick a service, see truly open slots for a stylist, and book an appointment that is guaranteed not to double-book, with all times stored correctly against the salon's configured timezone.
+**Goal**: As a client, I want to pick a service and book a real open slot with my chosen stylist, so that my appointment is confirmed and never double-booked.
 **Mode:** mvp
 **Depends on**: Phase 1 (needs `Service.DurationMinutes`/price for slot math and receipts)
 **Requirements**: BOOK-01, BOOK-02, BOOK-03, BOOK-04, BOOK-05, BOOK-06
