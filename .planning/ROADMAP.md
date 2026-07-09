@@ -47,7 +47,7 @@ Plans:
 - [x] 01-03-PLAN.md — Public /services list + /services/[slug] detail pages (RSC + ISR + Zod) (CAT-01, CAT-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 01-04-PLAN.md — Single source of truth: API-backed homepage subset + Contact dropdown, retire lib/data.ts (D-14)
+- [x] 01-04-PLAN.md — Single source of truth: API-backed homepage subset + Contact dropdown, retire lib/data.ts (D-14)
 **UI hint**: yes
 
 ### Phase 2: Booking Core
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Service Catalog | 3/4 | In Progress | - |
+| 1. Service Catalog | 4/4 | In Progress (awaiting 01-04 human verify) | - |
 | 2. Booking Core | 0/TBD | Not started | - |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
