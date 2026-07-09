@@ -1,6 +1,8 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Services;
 using ZachHairStudio.Shared.Features.Stylists;
 
@@ -26,6 +28,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<ServiceCreateDtoValidator>(
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<StylistsService>();
 builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon"));
+// Bridge IOptions<SalonOptions> -> plain SalonOptions so Shared-project services
+// (SlotService) can depend on it directly without referencing Microsoft.Extensions.Options.
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SalonOptions>>().Value);
+builder.Services.AddScoped<SlotService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
@@ -56,14 +62,4 @@ app.Run();
 
 public partial class Program
 {
-}
-
-/// <summary>
-/// Salon-wide configuration bound from the "Salon" section (appsettings.json).
-/// The IANA timezone id is the single source of truth every DateTimeOffset
-/// conversion in the booking domain resolves against (D-16).
-/// </summary>
-public class SalonOptions
-{
-    public string IanaTimeZoneId { get; set; } = "America/New_York";
 }

@@ -20,7 +20,7 @@ Requirements for the current milestone (full services-led platform, specs roadma
 
 ### Booking Core (P2)
 
-- [ ] **BOOK-01**: Client can see real open appointment slots for a chosen service, reflecting stylist working hours and existing bookings
+- [x] **BOOK-01**: Client can see real open appointment slots for a chosen service, reflecting stylist working hours and existing bookings
 - [ ] **BOOK-02**: Client can book an appointment by picking a service, then an open slot, then confirming
 - [ ] **BOOK-03**: Client receives an on-screen and email confirmation for a booked appointment
 - [x] **BOOK-04**: The system prevents double-booking a stylist for the same slot, enforced server-side with a database-level guarantee
@@ -118,7 +118,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | CAT-01 | Phase 1 | Complete |
 | CAT-02 | Phase 1 | Complete |
 | CAT-03 | Phase 1 | Complete |
-| BOOK-01 | Phase 2 | Pending |
+| BOOK-01 | Phase 2 | Complete |
 | BOOK-02 | Phase 2 | Pending |
 | BOOK-03 | Phase 2 | Pending |
 | BOOK-04 | Phase 2 | Complete |
