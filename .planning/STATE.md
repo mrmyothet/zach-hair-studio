@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 2
 current_phase_name: Booking Core
-status: verifying
-stopped_at: Phase 1 all 4 plans code-complete — 01-04 human-verify checkpoint (Task 4) outstanding
+status: ready
+stopped_at: Phase 1 complete and verified — Phase 2 (Booking Core) not yet started; needs its flagged research pass before planning
 last_updated: "2026-07-09T04:24:53.064Z"
 last_activity: 2026-07-09
 last_activity_desc: Phase 01 complete, transitioned to Phase 2
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 1: Service Catalog
+**Current focus:** Phase 2: Booking Core
 
 ## Current Position
 
 Phase: 2 of 8 (Booking Core)
 Plan: Not started
-Status: All plans code-complete — blocked on 01-04 Task 4 human verification before phase verify
+Status: Phase 1 complete and verified (UAT 16/16, VERIFICATION.md passed) — Phase 2 awaiting research pass before planning
 Last activity: 2026-07-09 — Phase 01 complete, transitioned to Phase 2
 
-Progress: [██████████] 100% (code) — phase not yet verified
+Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 
 ## Performance Metrics
 
@@ -81,14 +81,15 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- **Phase 1 Plan 04, Task 4 — human-verify checkpoint (blocking).** Run the `dev` skill, then confirm: homepage subset renders from the DB and links to `/services`; Contact dropdown lists API services; `?service={slug}` preselects; a test booking still submits. See `01-04-SUMMARY.md` → Outstanding.
+- **REQUIREMENTS.md doc-sync (non-blocking).** CAT-01/CAT-02 were still marked `[ ]` Pending at Phase 1 verification despite being functionally complete — noted in `01-VERIFICATION.md` as a documentation-sync item, not a code gap.
 
 ### Blockers/Concerns
 
 - REQUIREMENTS.md header/coverage text said "34 requirements" but the actual v1 list totals 41 — corrected in the Traceability/Coverage section during roadmap creation; worth a quick sanity check with the user.
 - Phase 2 (Booking Core), Phase 6 (Cart & Checkout), and Phase 7 (Accounts & Retention) are flagged for a deeper per-phase research pass before planning (see ROADMAP.md Research flag annotations and research/SUMMARY.md Research Flags section).
 - Payment provider (Phase 6) and auth provider/session strategy (Phase 7) remain open decisions per PROJECT.md Key Decisions — confirm before planning those phases.
-- Default `MSSQLLocalDB` still fails on this machine, but Phase 1 migrations are applied to `(localdb)\ZachHairStudio2025`, database `ZachHairStudioDev`. Use `ConnectionStrings__DefaultConnection` override for local API runs until default LocalDB is repaired.
+- ~~Default `MSSQLLocalDB` fails on this machine~~ — **resolved 2026-07-09.** The corrupted automatic instance was deleted and recreated (now v17.0.4025.3); migrations apply cleanly to `(localdb)\MSSQLLocalDB`, database `ZachHairStudio`. The API also runs against Azure SQL (`zachhairstudio.database.windows.net`) via a `ConnectionStrings__DefaultConnection` env-var override — note the Azure SQL firewall must allow the client IP.
+- `appsettings.json` `DefaultConnection` is `Server=localhost;...`, which disagrees with the `(localdb)\MSSQLLocalDB` documented in CLAUDE.md. Use `dotnet user-secrets` (not `appsettings.json`) for any connection string carrying a password — gitleaks scanning is wired to the pre-commit hook.
 
 ## Deferred Items
 
@@ -100,8 +101,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T00:00:00.000Z
-Stopped at: Phase 1 all 4 plans code-complete — 01-04 human-verify checkpoint (Task 4) outstanding
-Resume file: .planning/phases/01-service-catalog/01-04-SUMMARY.md
+Last session: 2026-07-09T04:24:53.064Z
+Stopped at: Phase 1 complete and verified — ready to start Phase 2 (Booking Core)
+Resume file: .planning/phases/01-service-catalog/01-VERIFICATION.md
 
-Next action: complete the 01-04 Task 4 human verification, then run phase verification (`/gsd-verify-work`) before starting Phase 2. Phase 2 also needs its flagged research pass before planning.
+Next action: run the flagged research pass for Phase 2 (Booking Core), then `/gsd-plan-phase 2`. Phase 2 is the highest-correctness-risk phase — DB-level double-booking constraint design, `DateTimeOffset`/timezone strategy, and the seeded-availability model shape all need research before planning.
