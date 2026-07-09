@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Services;
+using ZachHairStudio.Shared.Features.Stylists;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddValidatorsFromAssemblyContaining<ServiceCreateDtoValidator>();
 builder.Services.AddScoped<ServicesService>();
+builder.Services.AddScoped<StylistsService>();
+builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon"));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
@@ -53,4 +56,14 @@ app.Run();
 
 public partial class Program
 {
+}
+
+/// <summary>
+/// Salon-wide configuration bound from the "Salon" section (appsettings.json).
+/// The IANA timezone id is the single source of truth every DateTimeOffset
+/// conversion in the booking domain resolves against (D-16).
+/// </summary>
+public class SalonOptions
+{
+    public string IanaTimeZoneId { get; set; } = "America/New_York";
 }
