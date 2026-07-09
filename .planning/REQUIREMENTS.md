@@ -14,8 +14,8 @@ Requirements for the current milestone (full services-led platform, specs roadma
 
 ### Service Catalog (P1)
 
-- [ ] **CAT-01**: Client can browse a list of services showing name, description, duration, and price
-- [ ] **CAT-02**: Client can open a service detail page for a single service
+- [x] **CAT-01**: Client can browse a list of services showing name, description, duration, and price
+- [x] **CAT-02**: Client can open a service detail page for a single service
 - [x] **CAT-03**: Services are backed by a `Service` entity with list + detail API endpoints
 
 ### Booking Core (P2)
@@ -115,8 +115,8 @@ Which phases cover which requirements. Populated during roadmap creation.
 |-------------|-------|--------|
 | PLAT-01 | Phase 1 | Complete |
 | PLAT-02 | Phase 1 | Complete |
-| CAT-01 | Phase 1 | Pending |
-| CAT-02 | Phase 1 | Pending |
+| CAT-01 | Phase 1 | Complete |
+| CAT-02 | Phase 1 | Complete |
 | CAT-03 | Phase 1 | Complete |
 | BOOK-01 | Phase 2 | Pending |
 | BOOK-02 | Phase 2 | Pending |
@@ -156,6 +156,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | LAUNCH-05 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 41 total (corrected during roadmap creation — the actual v1 list above totals 41 requirements, not the 34 noted when this file was first drafted)
 - Mapped to phases: 41
 - Unmapped: 0 ✓
