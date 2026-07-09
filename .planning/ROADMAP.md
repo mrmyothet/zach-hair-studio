@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 ### Phase 1: Service Catalog
-**Goal**: Clients can browse the salon's services and see everything they need to decide what to book; the API is built on a dedicated per-feature service layer and validation layer from the very first feature, not retrofitted later.
+**Goal**: As a client, I want to browse the salon's services and see everything I need to know about them, so that I can decide what to book.
 **Mode:** mvp
 **Depends on**: Nothing new (builds on the shipped Phase 0 foundation)
 **Requirements**: PLAT-01, PLAT-02, CAT-01, CAT-02, CAT-03
