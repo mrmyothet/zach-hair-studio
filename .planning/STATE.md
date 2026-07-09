@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 2
 current_phase_name: Booking Core
 status: ready
-stopped_at: Phase 1 complete and verified — Phase 2 (Booking Core) not yet started; needs its flagged research pass before planning
-last_updated: "2026-07-09T04:24:53.064Z"
+stopped_at: Phase 2 context gathered
+last_updated: "2026-07-09T04:53:33.996Z"
 last_activity: 2026-07-09
 last_activity_desc: Phase 01 complete, transitioned to Phase 2
 progress:
@@ -101,8 +101,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T04:24:53.064Z
-Stopped at: Phase 1 complete and verified — ready to start Phase 2 (Booking Core)
-Resume file: .planning/phases/01-service-catalog/01-VERIFICATION.md
+Last session: 2026-07-09T04:53:33.975Z
+Stopped at: Phase 2 context gathered
+Resume file: .planning/phases/02-booking-core/02-CONTEXT.md
 
 Next action: run the flagged research pass for Phase 2 (Booking Core), then `/gsd-plan-phase 2`. Phase 2 is the highest-correctness-risk phase — DB-level double-booking constraint design, `DateTimeOffset`/timezone strategy, and the seeded-availability model shape all need research before planning.
