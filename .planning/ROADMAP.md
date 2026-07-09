@@ -73,8 +73,30 @@ Plans:
   4. Two near-simultaneous booking attempts for the same stylist/slot result in exactly one success and one clear "slot taken" rejection, enforced by a database-level uniqueness/overlap guarantee, not just an app-level check
   5. Appointment and availability times are stored as `DateTimeOffset` against a configured salon IANA timezone, verified correct across a DST-transition date
 
-**Plans**: TBD
-**Research flag**: yes — highest-correctness-risk phase in the roadmap; run a focused research pass on DB-level uniqueness/overlap constraint design, DateTimeOffset/timezone strategy, and seeded-availability-model shape before planning
+**Plans**: 6 plans
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Booking domain foundation + Stylist read slice + [BLOCKING] AddBookingCore migration (unfiltered unique index) + retire legacy Booking wholesale, API+Admin (BOOK-04, BOOK-05, BOOK-06)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 02-02-PLAN.md — Testability prerequisites: Resend account/domain/key human checkpoint + real SQL Server LocalDB test fixture (BOOK-03, BOOK-04, BOOK-05)
+- [ ] 02-03-PLAN.md — Open-slot query slice with DST-safe time math: SlotService + GET /api/appointments/slots (BOOK-01, BOOK-05, BOOK-06)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 02-04-PLAN.md — Booking confirm slice: AppointmentsService retry loop + 409 guarantee + best-effort Resend email + SC4 concurrency & SC5 DST round-trip proofs (BOOK-02, BOOK-03, BOOK-04, BOOK-06)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 02-05-PLAN.md — Public /book progressive-reveal UI + on-screen confirmation + 409 recovery + homepage repoint + frontend Booking teardown (BOOK-02, BOOK-03, BOOK-06)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 02-06-PLAN.md — Human-verify: drive /book in a browser, confirm real email delivery + 409 recovery (BOOK-02..BOOK-06)
+
+**Research flag**: yes — highest-correctness-risk phase in the roadmap; run a focused research pass on DB-level uniqueness/overlap constraint design, DateTimeOffset/timezone strategy, and seeded-availability-model shape before planning (research complete — see 02-RESEARCH.md)
 **UI hint**: yes
 
 ### Phase 3: Staff Dashboard (Schedule)
@@ -185,7 +207,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 0/TBD | Not started | - |
+| 2. Booking Core | 0/6 | Not started | - |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
