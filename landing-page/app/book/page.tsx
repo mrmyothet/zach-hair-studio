@@ -1,8 +1,9 @@
+import AppointmentBookingForm from "@/components/AppointmentBookingForm";
 import BackToTop from "@/components/BackToTop";
-import BookingRequestForm from "@/components/BookingRequestForm";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import SectionHeading from "@/components/SectionHeading";
+import { fetchStylists } from "@/lib/appointments";
 import { fetchServices } from "@/lib/services";
 
 type Props = {
@@ -10,9 +11,10 @@ type Props = {
 };
 
 export default async function BookPage({ searchParams }: Props) {
-  const [{ service }, services] = await Promise.all([
+  const [{ service }, services, stylists] = await Promise.all([
     searchParams,
     fetchServices(),
+    fetchStylists(),
   ]);
 
   return (
@@ -23,9 +25,9 @@ export default async function BookPage({ searchParams }: Props) {
           <div className="max-w-4xl mx-auto px-6">
             <SectionHeading
               eyebrow="Book A Service"
-              title="Request Your"
+              title="Book Your"
               highlight="Appointment"
-              subtitle="Choose your service and preferred date. We'll confirm the appointment details with you directly."
+              subtitle="Pick a service, choose an open time, and confirm — your appointment is reserved the moment you submit."
             />
 
             {services.length === 0 ? (
@@ -39,8 +41,9 @@ export default async function BookPage({ searchParams }: Props) {
                 </p>
               </div>
             ) : (
-              <BookingRequestForm
+              <AppointmentBookingForm
                 services={services}
+                stylists={stylists}
                 initialServiceSlug={service}
               />
             )}

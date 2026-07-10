@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using ZachHairStudio.Shared.Features.Bookings;
+using ZachHairStudio.Shared.Features.Appointments;
+using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Services;
+using ZachHairStudio.Shared.Features.Stylists;
 
 namespace ZachHairStudio.Shared.Db;
 
@@ -11,26 +13,20 @@ public class BookingDbContext : DbContext
     {
     }
 
-    public DbSet<Booking> Bookings => Set<Booking>();
-
     public DbSet<Service> Services => Set<Service>();
+
+    public DbSet<Stylist> Stylists => Set<Stylist>();
+
+    public DbSet<StylistWorkingHours> StylistWorkingHours => Set<StylistWorkingHours>();
+
+    public DbSet<StylistTimeOff> StylistTimeOff => Set<StylistTimeOff>();
+
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+
+    public DbSet<AppointmentSlot> AppointmentSlots => Set<AppointmentSlot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Booking>(entity =>
-        {
-            entity.Property(e => e.Status)
-                  .HasConversion<string>()
-                  .HasMaxLength(50);
-
-            entity.Property(e => e.FirstName).HasMaxLength(100);
-            entity.Property(e => e.LastName).HasMaxLength(100);
-            entity.Property(e => e.Email).HasMaxLength(150);
-            entity.Property(e => e.Phone).HasMaxLength(30);
-            entity.Property(e => e.Service).HasMaxLength(200);
-            entity.Property(e => e.Message).HasMaxLength(1000);
-        });
-
         modelBuilder.Entity<Service>(entity =>
         {
             entity.Property(e => e.Slug).HasMaxLength(150);
@@ -128,6 +124,78 @@ public class BookingDbContext : DbContext
                     IsActive = true,
                     DisplayOrder = 6,
                 });
+        });
+
+        modelBuilder.Entity<Stylist>(entity =>
+        {
+            entity.Property(e => e.Slug).HasMaxLength(150);
+            entity.Property(e => e.Name).HasMaxLength(150);
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+
+            // Seeded from landing-page/lib/data.ts `team` array (owner-editable content).
+            entity.HasData(
+                new Stylist { Id = 1, Slug = "mr-zachary", Name = "Mr. Zachary", IsActive = true, DisplayOrder = 1 },
+                new Stylist { Id = 2, Slug = "aria-chen", Name = "Aria Chen", IsActive = true, DisplayOrder = 2 },
+                new Stylist { Id = 3, Slug = "marcus-lee", Name = "Marcus Lee", IsActive = true, DisplayOrder = 3 },
+                new Stylist { Id = 4, Slug = "sofia-reyes", Name = "Sofia Reyes", IsActive = true, DisplayOrder = 4 });
+        });
+
+        modelBuilder.Entity<StylistWorkingHours>(entity =>
+        {
+            // Owner-reviewable placeholder default schedule (Tue-Sat 09:00-18:00 per active stylist).
+            // Mirrors the seed-price precedent from Phase 1 (D-15) — flag for owner review, not a final schedule.
+            entity.HasData(
+                new StylistWorkingHours { Id = 1, StylistId = 1, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 2, StylistId = 1, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 3, StylistId = 1, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 4, StylistId = 1, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 5, StylistId = 1, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 6, StylistId = 2, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 7, StylistId = 2, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 8, StylistId = 2, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 9, StylistId = 2, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 10, StylistId = 2, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 11, StylistId = 3, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 12, StylistId = 3, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 13, StylistId = 3, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 14, StylistId = 3, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 15, StylistId = 3, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 16, StylistId = 4, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 17, StylistId = 4, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 18, StylistId = 4, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 19, StylistId = 4, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 20, StylistId = 4, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) });
+        });
+
+        modelBuilder.Entity<StylistTimeOff>(entity =>
+        {
+            entity.Property(e => e.Reason).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<Appointment>(entity =>
+        {
+            entity.Property(e => e.Status)
+                  .HasConversion<string>()
+                  .HasMaxLength(50);
+
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.Email).HasMaxLength(150);
+            entity.Property(e => e.Phone).HasMaxLength(30);
+
+            entity.HasMany(a => a.Slots)
+                  .WithOne(s => s.Appointment)
+                  .HasForeignKey(s => s.AppointmentId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AppointmentSlot>(entity =>
+        {
+            // The unfiltered unique index IS the SC4/BOOK-04 double-booking guarantee (D-03, D-04) —
+            // it must have NO HasFilter().
+            entity.HasIndex(s => new { s.StylistId, s.SlotStart }).IsUnique();
+            entity.Property(s => s.SlotStart).HasColumnType("datetimeoffset(0)");
         });
 
         base.OnModelCreating(modelBuilder);

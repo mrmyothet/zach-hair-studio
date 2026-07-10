@@ -10,7 +10,8 @@
       "Bash(python3 -c \"print\\(1\\)\")",
       "Bash(python -c \"print\\(1\\)\")",
       "Bash(cat)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(chmod +x /home/myothet/repos/vct/zach-hair-studio/.claude/hooks/*.sh)"
     ],
     "deny": [
       "Read(.env)",
@@ -32,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-check-update.js"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-check-update.js"
           }
         ]
       },
@@ -51,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
             "timeout": 10
           }
         ]
@@ -61,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-injection-scanner.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-injection-scanner.js",
             "timeout": 5
           }
         ]
@@ -93,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-prompt-guard.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-prompt-guard.js",
             "timeout": 5
           }
         ]
@@ -103,7 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-guard.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-read-guard.js",
             "timeout": 5
           }
         ]
@@ -113,7 +114,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-workflow-guard.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-workflow-guard.js",
             "timeout": 5
           }
         ]
@@ -123,7 +124,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-worktree-path-guard.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-worktree-path-guard.js",
             "timeout": 5
           }
         ]
@@ -144,7 +145,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
             "timeout": 10
           }
         ]
@@ -155,7 +156,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
             "timeout": 10
           }
         ]
@@ -166,7 +167,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-context-monitor.js",
             "timeout": 10
           }
         ]
@@ -178,7 +179,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-config-reload.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gsd-config-reload.js",
             "timeout": 8
           }
         ]

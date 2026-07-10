@@ -34,12 +34,13 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 - ✓ Booking status lifecycle (Pending → Confirmed → Completed → Cancelled) — existing
 - ✓ API surface documented via OpenAPI/Swagger — existing
 - ✓ Frontend ↔ API round trip wired end-to-end (Phase 0 foundation) — existing
+- ✓ **Service catalog (read-only)** — services modeled (slug, name, descriptions, category, duration, price, image, active, display order); list + detail API; public `/services` browse and `/services/[slug]` detail; homepage subset and booking dropdown both database-backed. Validated in Phase 1: Service Catalog (2026-07-09)
+- ✓ **Per-feature service layer + validation layer** — `ServicesService` owns all `BookingDbContext` access; FluentValidation rejects invalid writes before they reach the database. Validated in Phase 1: Service Catalog (2026-07-09)
 
 ### Active
 
 <!-- Current milestone: full specs roadmap P1–8. Hypotheses until shipped and validated. -->
 
-- [ ] **Service catalog (read-only)** — model services (name, description, duration, price); list + detail API; public browse and service detail page
 - [ ] **Booking core** — model appointments and stylist availability; query open slots; pick service → choose slot → confirm appointment (real slot-based booking, not free-text requests)
 - [ ] **Staff dashboard (schedule)** — day/week appointment view; staff view booking details and update status (confirmed, completed, cancelled, no-show)
 - [ ] **Staff management of services & availability** — dashboard CRUD for services; manage stylist availability feeding the slot logic

@@ -1,0 +1,11 @@
+{
+  "orchestrator_root": "C:\\repos\\vct\\zach-hair-studio",
+  "worktrees": [
+    {
+      "agent_id": "a3f595ffef8a6ce7b",
+      "worktree_path": "C:\\repos\\vct\\zach-hair-studio\\.claude\\worktrees\\agent-a3f595ffef8a6ce7b",
+      "branch": "worktree-agent-a3f595ffef8a6ce7b",
+      "expected_base": "65b89f7622cd6adcfa1cb00b324c35fffef2eb38"
+    }
+  ]
+}

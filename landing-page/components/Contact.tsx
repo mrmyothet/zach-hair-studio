@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { branches, contactEmail } from "@/lib/data";
-import { createBooking } from "@/lib/api";
 import type { Service } from "@/lib/services";
 import { ArrowRightIcon, MapPinIcon } from "./icons";
 
@@ -35,6 +34,7 @@ function formatServiceOption(service: Service): string {
 }
 
 export default function Contact({ services, initialServiceSlug }: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const servicesBySlug = useMemo(
     () => new Map(services.map((service) => [service.slug, service])),
@@ -43,46 +43,17 @@ export default function Contact({ services, initialServiceSlug }: Props) {
   const requestedSlug = searchParams.get("service") ?? initialServiceSlug ?? "";
   const preselectedSlug = servicesBySlug.has(requestedSlug) ? requestedSlug : "";
   const [selectedSlug, setSelectedSlug] = useState(preselectedSlug);
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedSlug(preselectedSlug);
   }, [preselectedSlug]);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // The homepage quick form no longer POSTs free text (D-14: the /api/bookings path
+  // is retired). It routes into the real /book flow, preserving the chosen service so
+  // that step 1 is pre-selected there.
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    const form = new FormData(e.currentTarget);
-    const serviceSlug = String(form.get("service") ?? "");
-    const selectedService = servicesBySlug.get(serviceSlug);
-    const serviceLabel = selectedService
-      ? formatServiceOption(selectedService)
-      : serviceSlug;
-
-    try {
-      await createBooking({
-        firstName: String(form.get("firstName") ?? "").trim(),
-        lastName: String(form.get("lastName") ?? "").trim(),
-        email: String(form.get("email") ?? "").trim(),
-        phone: String(form.get("phone") ?? "").trim() || undefined,
-        service: serviceLabel,
-        preferredDate: String(form.get("preferredDate") ?? ""),
-        message: String(form.get("message") ?? "").trim() || undefined,
-      });
-      setSubmitted(true);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again."
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    router.push(selectedSlug ? `/book?service=${selectedSlug}` : "/book");
   }
 
   return (
@@ -96,8 +67,9 @@ export default function Contact({ services, initialServiceSlug }: Props) {
                 Book Your <span className="gold-gradient">Appointment</span>
               </h2>
               <p className="text-gray-400 leading-relaxed">
-                Ready for your transformation? Fill in the form and we&apos;ll reach out to confirm
-                your appointment. Walk-ins are also welcome during business hours.
+                Ready for your transformation? Choose a service and continue to
+                our booking flow to pick a real open time. Walk-ins are also
+                welcome during business hours.
               </p>
             </div>
 
@@ -153,88 +125,50 @@ export default function Contact({ services, initialServiceSlug }: Props) {
           </div>
 
           <div className="bg-charcoal border border-white/5 rounded-2xl p-8">
-            {submitted ? (
-              <div className="text-center py-10">
-                <div className="w-16 h-16 bg-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gold" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="text-white text-xl font-serif mb-2">You&apos;re All Set!</h3>
-                <p className="text-gray-400 text-sm">
-                  We&apos;ve received your request and will confirm your appointment within 24 hours.
-                </p>
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="grid sm:grid-cols-2 gap-5">
+                <Field label="First Name">
+                  <input type="text" name="firstName" placeholder="Zach" className={inputClass} />
+                </Field>
+                <Field label="Last Name">
+                  <input type="text" name="lastName" placeholder="Monroe" className={inputClass} />
+                </Field>
               </div>
-            ) : (
-              <form className="space-y-5" onSubmit={handleSubmit}>
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <Field label="First Name">
-                    <input type="text" name="firstName" placeholder="Zach" required className={inputClass} />
-                  </Field>
-                  <Field label="Last Name">
-                    <input type="text" name="lastName" placeholder="Monroe" required className={inputClass} />
-                  </Field>
-                </div>
 
-                <Field label="Email Address">
-                  <input type="email" name="email" placeholder="you@example.com" required className={inputClass} />
-                </Field>
+              <Field label="Email Address">
+                <input type="email" name="email" placeholder="you@example.com" className={inputClass} />
+              </Field>
 
-                <Field label="Phone Number">
-                  <input type="tel" name="phone" placeholder="(212) 555-0000" className={inputClass} />
-                </Field>
+              <Field label="Phone Number">
+                <input type="tel" name="phone" placeholder="(212) 555-0000" className={inputClass} />
+              </Field>
 
-                <Field label="Service">
-                  <select
-                    name="service"
-                    required
-                    value={selectedSlug}
-                    onChange={(event) => setSelectedSlug(event.target.value)}
-                    className={`${inputClass} appearance-none cursor-pointer`}
-                  >
-                    <option value="" disabled className="bg-charcoal">
-                      Select a service...
-                    </option>
-                    {services.map((service) => (
-                      <option key={service.slug} value={service.slug} className="bg-charcoal">
-                        {formatServiceOption(service)}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label="Preferred Date">
-                  <input type="date" name="preferredDate" required className={`${inputClass} [color-scheme:dark]`} />
-                </Field>
-
-                <Field label="Message (Optional)">
-                  <textarea
-                    name="message"
-                    rows={3}
-                    placeholder="Tell us about your desired style or any special requests..."
-                    className={`${inputClass} resize-none`}
-                  />
-                </Field>
-
-                {error && (
-                  <p
-                    role="alert"
-                    className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3"
-                  >
-                    {error}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitting || services.length === 0}
-                  className="w-full bg-gold hover:bg-gold-dark text-charcoal font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-gold/30 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none"
+              <Field label="Service">
+                <select
+                  name="service"
+                  value={selectedSlug}
+                  onChange={(event) => setSelectedSlug(event.target.value)}
+                  className={`${inputClass} appearance-none cursor-pointer`}
                 >
-                  <span>{submitting ? "Sending..." : "Request Appointment"}</span>
-                  {!submitting && <ArrowRightIcon className="w-4 h-4" strokeWidth={2.5} />}
-                </button>
-              </form>
-            )}
+                  <option value="" disabled className="bg-charcoal">
+                    Select a service...
+                  </option>
+                  {services.map((service) => (
+                    <option key={service.slug} value={service.slug} className="bg-charcoal">
+                      {formatServiceOption(service)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <button
+                type="submit"
+                className="w-full bg-gold hover:bg-gold-dark text-charcoal font-bold text-sm uppercase tracking-wider py-4 rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-gold/30 flex items-center justify-center gap-2"
+              >
+                <span>Continue to Booking</span>
+                <ArrowRightIcon className="w-4 h-4" strokeWidth={2.5} />
+              </button>
+            </form>
           </div>
         </div>
       </div>

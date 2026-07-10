@@ -22,7 +22,7 @@ namespace ZachHairStudio.Shared.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ZachHairStudio.Shared.Features.Bookings.Booking", b =>
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Appointments.Appointment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,8 +30,8 @@ namespace ZachHairStudio.Shared.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -48,30 +48,267 @@ namespace ZachHairStudio.Shared.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Message")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<string>("Phone")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<DateTime>("PreferredDate")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Service")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int>("StylistId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Appointments");
+                });
+
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Appointments.AppointmentSlot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("SlotStart")
+                        .HasColumnType("datetimeoffset(0)");
+
+                    b.Property<int>("StylistId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId");
+
+                    b.HasIndex("StylistId", "SlotStart")
+                        .IsUnique();
+
+                    b.ToTable("AppointmentSlots");
+                });
+
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Availability.StylistTimeOff", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("StylistId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StylistTimeOff");
+                });
+
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Availability.StylistWorkingHours", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("StylistId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StylistWorkingHours");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DayOfWeek = 2,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DayOfWeek = 3,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 1
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DayOfWeek = 4,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 1
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DayOfWeek = 5,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 1
+                        },
+                        new
+                        {
+                            Id = 5,
+                            DayOfWeek = 6,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 1
+                        },
+                        new
+                        {
+                            Id = 6,
+                            DayOfWeek = 2,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 2
+                        },
+                        new
+                        {
+                            Id = 7,
+                            DayOfWeek = 3,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 2
+                        },
+                        new
+                        {
+                            Id = 8,
+                            DayOfWeek = 4,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 2
+                        },
+                        new
+                        {
+                            Id = 9,
+                            DayOfWeek = 5,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 2
+                        },
+                        new
+                        {
+                            Id = 10,
+                            DayOfWeek = 6,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 2
+                        },
+                        new
+                        {
+                            Id = 11,
+                            DayOfWeek = 2,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 3
+                        },
+                        new
+                        {
+                            Id = 12,
+                            DayOfWeek = 3,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 3
+                        },
+                        new
+                        {
+                            Id = 13,
+                            DayOfWeek = 4,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 3
+                        },
+                        new
+                        {
+                            Id = 14,
+                            DayOfWeek = 5,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 3
+                        },
+                        new
+                        {
+                            Id = 15,
+                            DayOfWeek = 6,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 3
+                        },
+                        new
+                        {
+                            Id = 16,
+                            DayOfWeek = 2,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 4
+                        },
+                        new
+                        {
+                            Id = 17,
+                            DayOfWeek = 3,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 4
+                        },
+                        new
+                        {
+                            Id = 18,
+                            DayOfWeek = 4,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 4
+                        },
+                        new
+                        {
+                            Id = 19,
+                            DayOfWeek = 5,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 4
+                        },
+                        new
+                        {
+                            Id = 20,
+                            DayOfWeek = 6,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 4
+                        });
                 });
 
             modelBuilder.Entity("ZachHairStudio.Shared.Features.Services.Service", b =>
@@ -210,6 +447,88 @@ namespace ZachHairStudio.Shared.Migrations
                             ShortDescription = "Cut + Color + Blowout + Scalp treatment. The complete studio experience in one visit.",
                             Slug = "full-glam-package"
                         });
+                });
+
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Stylists.Stylist", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Stylists");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DisplayOrder = 1,
+                            IsActive = true,
+                            Name = "Mr. Zachary",
+                            Slug = "mr-zachary"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DisplayOrder = 2,
+                            IsActive = true,
+                            Name = "Aria Chen",
+                            Slug = "aria-chen"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DisplayOrder = 3,
+                            IsActive = true,
+                            Name = "Marcus Lee",
+                            Slug = "marcus-lee"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DisplayOrder = 4,
+                            IsActive = true,
+                            Name = "Sofia Reyes",
+                            Slug = "sofia-reyes"
+                        });
+                });
+
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Appointments.AppointmentSlot", b =>
+                {
+                    b.HasOne("ZachHairStudio.Shared.Features.Appointments.Appointment", "Appointment")
+                        .WithMany("Slots")
+                        .HasForeignKey("AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
+                });
+
+            modelBuilder.Entity("ZachHairStudio.Shared.Features.Appointments.Appointment", b =>
+                {
+                    b.Navigation("Slots");
                 });
 #pragma warning restore 612, 618
         }
