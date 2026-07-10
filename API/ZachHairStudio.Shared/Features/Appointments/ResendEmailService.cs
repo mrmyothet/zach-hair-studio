@@ -58,9 +58,12 @@ public class ResendEmailService : IEmailService
             using var response = await _httpClient.PostAsJsonAsync("emails", payload);
             if (!response.IsSuccessStatusCode)
             {
+                // Resend puts the actionable reason (unverified domain, bad from-address) in the
+                // body; the status code alone is not diagnosable. The body carries no secret.
+                var reason = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning(
-                    "Resend confirmation email was rejected for appointment {AppointmentId}: {StatusCode}",
-                    appointment.Id, response.StatusCode);
+                    "Resend confirmation email was rejected for appointment {AppointmentId}: {StatusCode} {Reason}",
+                    appointment.Id, response.StatusCode, reason);
             }
         }
         catch (Exception ex)

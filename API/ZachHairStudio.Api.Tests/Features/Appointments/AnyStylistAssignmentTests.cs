@@ -21,9 +21,12 @@ public class AnyStylistAssignmentTests
     // 2026-07-15 is a Wednesday within the 60-day horizon of the test env's "today" (2026-07-10).
     private static readonly DateOnly BookingDate = new(2026, 7, 15);
 
-    // 10:00 salon-local (America/New_York, EDT -04:00 in July) is the authoritative instant.
+    // 10:00 salon-local is the authoritative instant, resolved through the configured salon
+    // zone rather than a hardcoded offset (follows Salon:IanaTimeZoneId).
+    private static readonly SalonTimeZone SalonTz = SalonTimeZone.FromOptions(new SalonOptions());
+
     private static readonly DateTimeOffset SlotInstant =
-        new(2026, 7, 15, 10, 0, 0, TimeSpan.FromHours(-4));
+        SalonTz.ToSalonInstant(new DateTime(2026, 7, 15, 10, 0, 0))!.Value;
 
     private static AppointmentCreateDto AnyStylistRequest() => new()
     {
@@ -110,7 +113,7 @@ public class AnyStylistAssignmentTests
 
         var request = AnyStylistRequest();
         // 03:00 salon-local is outside the seeded 09:00-18:00 working hours — not a real slot.
-        request.StartsAt = new DateTimeOffset(2026, 7, 15, 3, 0, 0, TimeSpan.FromHours(-4));
+        request.StartsAt = SalonTz.ToSalonInstant(new DateTime(2026, 7, 15, 3, 0, 0))!.Value;
 
         var result = await service.CreateAsync(request);
 
@@ -133,7 +136,7 @@ public class AnyStylistAssignmentTests
 
     private static AppointmentsService BuildService(BookingDbContext db, IEmailService? email = null)
     {
-        var salonOptions = new SalonOptions { IanaTimeZoneId = "America/New_York" };
+        var salonOptions = new SalonOptions();
         var slotService = new SlotService(db, salonOptions);
         return new AppointmentsService(
             db,

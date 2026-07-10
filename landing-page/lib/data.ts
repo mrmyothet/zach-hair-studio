@@ -1,12 +1,14 @@
 export type NavLink = { label: string; href: string };
 
+// Root-relative so the nav works from any route (e.g. /book), not just the homepage.
+// A bare "#services" would resolve against the current path and go nowhere off "/".
 export const navLinks: NavLink[] = [
-  { label: "Home", href: "#home" },
-  { label: "Services", href: "#services" },
-  { label: "Gallery", href: "#gallery" },
-  { label: "Team", href: "#team" },
-  { label: "Reviews", href: "#reviews" },
-  { label: "Contact", href: "#contact" },
+  { label: "Home", href: "/#home" },
+  { label: "Services", href: "/#services" },
+  { label: "Gallery", href: "/#gallery" },
+  { label: "Team", href: "/#team" },
+  { label: "Reviews", href: "/#reviews" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export type GalleryItem = {
