@@ -8,6 +8,11 @@ using ZachHairStudio.Shared.Features.Stylists;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// The default host registers user secrets only in Development, but D-12 requires the
+// RESEND_API_KEY to resolve in the Testing environment too (real sends, no fake sender).
+builder.Configuration.AddUserSecrets<Program>(optional: true);
+builder.Configuration.AddEnvironmentVariables();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<BookingDbContext>(options =>

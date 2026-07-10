@@ -18,7 +18,7 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 
 - **Tech stack**: Next.js 15 (App Router) + React 19 + Tailwind 4 for `landing-page/` (public) and `dashboard/` (staff); .NET 10 / ASP.NET Core + EF Core 10 / SQL Server for the API — matches the existing repo; new work aligns unless a deliberate decision updates `specs/tech-stack.md`.
 - **Architecture**: Feature folders on the backend (group by feature, e.g. `Features/Bookings`), not by technical layer. TypeScript everywhere on the frontend. OpenAPI is the source of truth for API clients.
-- **Dev simplicity**: SQL Server LocalDB + `next dev` + `dotnet run` must be enough to run the whole system locally.
+- **Dev simplicity**: SQL Server LocalDB + `next dev` + `dotnet run` must be enough to run the whole system locally. Exception (D-12): `RESEND_API_KEY` is now REQUIRED to run the API and the test suite — real Resend sends occur in Development AND Testing (no fake sender), so both `dotnet run` and `dotnet test` need the key set via `dotnet user-secrets` (D-13, never a tracked file). This knowingly relaxes "LocalDB + next dev + dotnet run is enough."
 - **Sequencing**: Services and the booking flow take priority at every step; product commerce is layered in only after the service experience is solid.
 - **Security/Compliance**: gitleaks secret-scanning is wired via pre-commit hook and CI — keep secrets out of the repo.
 
