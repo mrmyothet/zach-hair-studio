@@ -73,7 +73,7 @@ Plans:
   4. Two near-simultaneous booking attempts for the same stylist/slot result in exactly one success and one clear "slot taken" rejection, enforced by a database-level uniqueness/overlap guarantee, not just an app-level check
   5. Appointment and availability times are stored as `DateTimeOffset` against a configured salon IANA timezone, verified correct across a DST-transition date
 
-**Plans**: 4/6 plans executed
+**Plans**: 5/6 plans executed
 Plans:
 **Wave 1**
 
@@ -90,7 +90,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 02-05-PLAN.md — Public /book progressive-reveal UI + on-screen confirmation + 409 recovery + homepage repoint + frontend Booking teardown (BOOK-02, BOOK-03, BOOK-06)
+- [x] 02-05-PLAN.md — Public /book progressive-reveal UI + on-screen confirmation + 409 recovery + homepage repoint + frontend Booking teardown (BOOK-02, BOOK-03, BOOK-06)
 
 **Wave 5** *(blocked on Wave 4)*
 
@@ -207,7 +207,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 4/6 | In Progress|  |
+| 2. Booking Core | 5/6 | In Progress|  |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
