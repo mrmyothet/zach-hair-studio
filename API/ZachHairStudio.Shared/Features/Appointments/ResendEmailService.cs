@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
@@ -15,9 +16,21 @@ namespace ZachHairStudio.Shared.Features.Appointments;
 /// </summary>
 public class ResendEmailService : IEmailService
 {
+    private static readonly CultureInfo UsCulture = CultureInfo.GetCultureInfo("en-US");
+
     private readonly HttpClient _httpClient;
     private readonly ResendOptions _options;
     private readonly ILogger<ResendEmailService> _logger;
+
+    /// <summary>
+    /// Renders a UTC offset as an unambiguous "GMT+06:30" style label, matching how the
+    /// browser confirmation labels the same instant. Works for any zone, DST or not.
+    /// </summary>
+    private static string FormatZoneLabel(TimeSpan offset)
+    {
+        var sign = offset < TimeSpan.Zero ? "-" : "+";
+        return $"GMT{sign}{offset.Duration():hh\\:mm}";
+    }
 
     public ResendEmailService(HttpClient httpClient, ResendOptions options, ILogger<ResendEmailService> logger)
     {
@@ -38,12 +51,26 @@ public class ResendEmailService : IEmailService
             var stylist = WebUtility.HtmlEncode(stylistName);
 
             // Server-generated, salon-local wall-clock rendered from the stored offset (D-16).
-            var when = appointment.StartsAt.ToString("ddd d MMM yyyy, h:mm tt");
+            // Invariant culture so the server's locale can never reshape the date.
+            var when = appointment.StartsAt.ToString("ddd d MMM yyyy, h:mm tt", CultureInfo.InvariantCulture);
+
+            // The stored offset IS the salon offset — SalonTimeZone resolved it per-instant.
+            // Labelling it explicitly keeps the time unambiguous for a client in any zone (D-16).
+            var zoneLabel = FormatZoneLabel(appointment.StartsAt.Offset);
+            var duration = $"{service.DurationMinutes} min";
+            var price = service.Price.ToString("C0", UsCulture);
 
             var html =
                 $"<p>Hi {firstName} {lastName},</p>" +
                 $"<p>Your <strong>{serviceName}</strong> appointment with {stylist} is confirmed for " +
-                $"<strong>{when}</strong>.</p>" +
+                $"<strong>{when} {zoneLabel}</strong>.</p>" +
+                "<ul>" +
+                $"<li>Service: {serviceName}</li>" +
+                $"<li>Stylist: {stylist}</li>" +
+                $"<li>When: {when} {zoneLabel} (salon local time)</li>" +
+                $"<li>Duration: {duration}</li>" +
+                $"<li>Price: {price}</li>" +
+                "</ul>" +
                 $"<p>A confirmation has been sent to {email}.</p>" +
                 "<p>See you at Zach Hair Studio!</p>";
 

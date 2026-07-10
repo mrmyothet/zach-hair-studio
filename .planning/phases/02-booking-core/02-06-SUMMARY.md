@@ -27,6 +27,7 @@ tech-stack:
 key-files:
   created:
     - .planning/phases/02-booking-core/02-06-SUMMARY.md
+    - API/ZachHairStudio.Api.Tests/Features/Appointments/ResendEmailBodyTests.cs
   modified:
     - API/ZachHairStudio.Api/appsettings.json
     - API/ZachHairStudio.Api/appsettings.Development.json
@@ -137,11 +138,19 @@ configuration-specific.
 
 ## Known Gaps
 
-**The confirmation email body is incomplete.** It contains service, stylist, and
-time, but **no zone label, no duration, and no price**. This plan's check 4
-requires all five. The owner approved with this outstanding. `ServiceResponseDto`
-already carries duration and price, so the fix is a small change to the HTML in
-`ResendEmailService`. Route into a `/gsd-plan-phase 2 --gaps` pass or a follow-up.
+**[CLOSED] The confirmation email body is now complete.** It previously carried
+service, stylist, and time but omitted the zone label, duration, and price —
+failing 02-VALIDATION.md's stated bar for BOOK-03 (line 85), as the phase-goal
+verifier independently confirmed. `ResendEmailService` now renders all five.
+The zone label is derived from `appointment.StartsAt.Offset` — which *is* the
+salon offset, since `SalonTimeZone` resolved it per-instant — so it stays correct
+for any zone with or without DST, without a new dependency. Dates render under
+`InvariantCulture` so server locale cannot reshape them.
+
+Nothing had ever asserted the email HTML, which is why this regressed silently.
+`ResendEmailBodyTests.cs` now pins all five fields plus the salon wall-clock,
+capturing the outgoing Resend payload through a stub `HttpMessageHandler` (no
+network, not the D-12 real-send path).
 
 **`Navbar` renders on `/book`,** so the `Book Now` button is a self-link on that
 page. Cosmetic; not fixed.
