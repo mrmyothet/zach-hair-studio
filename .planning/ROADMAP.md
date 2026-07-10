@@ -73,7 +73,7 @@ Plans:
   4. Two near-simultaneous booking attempts for the same stylist/slot result in exactly one success and one clear "slot taken" rejection, enforced by a database-level uniqueness/overlap guarantee, not just an app-level check
   5. Appointment and availability times are stored as `DateTimeOffset` against a configured salon IANA timezone, verified correct across a DST-transition date
 
-**Plans**: 1/6 plans executed
+**Plans**: 2/6 plans executed
 Plans:
 **Wave 1**
 
@@ -82,7 +82,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1)*
 
 - [ ] 02-02-PLAN.md — Testability prerequisites: Resend account/domain/key human checkpoint + real SQL Server LocalDB test fixture (BOOK-03, BOOK-04, BOOK-05)
-- [ ] 02-03-PLAN.md — Open-slot query slice with DST-safe time math: SlotService + GET /api/appointments/slots (BOOK-01, BOOK-05, BOOK-06)
+- [x] 02-03-PLAN.md — Open-slot query slice with DST-safe time math: SlotService + GET /api/appointments/slots (BOOK-01, BOOK-05, BOOK-06)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -207,7 +207,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 1/6 | In Progress|  |
+| 2. Booking Core | 2/6 | In Progress|  |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
