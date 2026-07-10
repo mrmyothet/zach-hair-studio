@@ -16,7 +16,7 @@ Each phase is a vertical slice (DB → API → UI) that is shippable and verifia
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Service Catalog** - Clients browse services (name, description, duration, price); API built on a real service layer from day one (completed 2026-07-09)
-- [ ] **Phase 2: Booking Core** - Clients pick a service, see real open slots, and confirm a double-booking-safe appointment
+- [x] **Phase 2: Booking Core** - Clients pick a service, see real open slots, and confirm a double-booking-safe appointment (completed 2026-07-10)
 - [ ] **Phase 3: Staff Dashboard (Schedule)** - Staff view the day's/week's appointments and update status behind a staff-only auth gate
 - [ ] **Phase 4: Staff Management (Services & Availability)** - Staff self-serve CRUD for services and stylist availability, conflict-checked against existing bookings
 - [ ] **Phase 5: Product Catalog** - Clients browse a curated product catalog surfaced as stylist-recommended add-ons
@@ -73,7 +73,7 @@ Plans:
   4. Two near-simultaneous booking attempts for the same stylist/slot result in exactly one success and one clear "slot taken" rejection, enforced by a database-level uniqueness/overlap guarantee, not just an app-level check
   5. Appointment and availability times are stored as `DateTimeOffset` against a configured salon IANA timezone, verified correct across a DST-transition date
 
-**Plans**: 5/6 plans executed
+**Plans**: 6/6 plans complete
 Plans:
 **Wave 1**
 
@@ -94,7 +94,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 02-06-PLAN.md — Human-verify: drive /book in a browser, confirm real email delivery + 409 recovery (BOOK-02..BOOK-06)
+- [x] 02-06-PLAN.md — Human-verify: drive /book in a browser, confirm real email delivery + 409 recovery (BOOK-02..BOOK-06)
 
 **Research flag**: yes — highest-correctness-risk phase in the roadmap; run a focused research pass on DB-level uniqueness/overlap constraint design, DateTimeOffset/timezone strategy, and seeded-availability-model shape before planning (research complete — see 02-RESEARCH.md)
 **UI hint**: yes
@@ -207,7 +207,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 5/6 | In Progress|  |
+| 2. Booking Core | 6/6 | Complete   | 2026-07-10 |
 | 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
