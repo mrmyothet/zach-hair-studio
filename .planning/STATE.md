@@ -6,14 +6,14 @@ current_phase: 03
 current_phase_name: staff-dashboard-schedule
 status: executing
 stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-07-11T06:35:22.948Z"
+last_updated: "2026-07-11T06:51:13.840Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 25
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 03 (staff-dashboard-schedule) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 03 execution started
 
@@ -59,6 +59,7 @@ Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 | Phase 02 P04 | 13min | 3 tasks | 16 files |
 | Phase 03 P01 | 14min | 3 tasks | 13 files |
 | Phase 03 P02 | 10min | 3 tasks | 9 files |
+| Phase 03 P03 | 25min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Phase 3 Plan 02: AuthGateTests uses anonymous request objects + JsonDocument response parsing instead of the Shared DTO types, so the RED-phase test file compiles standalone before AuthController/StaffUsersController exist.
 - [Phase 03]: Phase 3 Plan 02: Test JWT signing key injected via WithWebHostBuilder(...).ConfigureAppConfiguration(...) in-memory config, relying on the same mutable ConfigurationManager instance Program.cs's AddJwtBearer closure reads from at request time.
 - [Phase 03]: Phase 3 Plan 02: StaffUsersController uses an explicit [Route("api/staff-users")] (not the [controller] token) since the default token would yield /api/staffusers with no hyphen.
+- [Phase 03]: Phase 3 Plan 03: Global JsonStringEnumConverter registered in Program.cs so enum request/response fields (AppointmentStatusUpdateDto.NewStatus) round-trip as strings, matching AppointmentResponseDto.Status's existing string shape.
+- [Phase 03]: Phase 3 Plan 03: UpdateStatusAsync re-reads the current status from the DB and checks the single AllowedTransitions map before mutating - the one reusable slot-release path for Cancel/NoShow, never a forked copy.
 
 ### Pending Todos
 
@@ -110,7 +113,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T06:35:22.927Z
+Last session: 2026-07-11T06:49:27.192Z
 Stopped at: Completed 03-02-PLAN.md
 Resume file: None
 

@@ -29,10 +29,10 @@ Requirements for the current milestone (full services-led platform, specs roadma
 
 ### Staff Dashboard — Schedule (P3)
 
-- [ ] **DASH-01**: Staff can view the day's and week's appointments in a schedule dashboard
-- [ ] **DASH-02**: Staff can open an appointment to view its details
-- [ ] **DASH-03**: Staff can update an appointment's status (confirmed, completed, cancelled, no-show)
-- [ ] **DASH-04**: "No-show" is a distinct terminal status, separate from "cancelled"
+- [x] **DASH-01**: Staff can view the day's and week's appointments in a schedule dashboard
+- [x] **DASH-02**: Staff can open an appointment to view its details
+- [x] **DASH-03**: Staff can update an appointment's status (confirmed, completed, cancelled, no-show)
+- [x] **DASH-04**: "No-show" is a distinct terminal status, separate from "cancelled"
 - [x] **DASH-05**: The staff dashboard and its API are behind an authentication gate (staff-only; not publicly accessible)
 
 ### Staff Management — Services & Availability (P4)
@@ -124,10 +124,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 | BOOK-04 | Phase 2 | Complete |
 | BOOK-05 | Phase 2 | Complete |
 | BOOK-06 | Phase 2 | Complete |
-| DASH-01 | Phase 3 | Pending |
-| DASH-02 | Phase 3 | Pending |
-| DASH-03 | Phase 3 | Pending |
-| DASH-04 | Phase 3 | Pending |
+| DASH-01 | Phase 3 | Complete |
+| DASH-02 | Phase 3 | Complete |
+| DASH-03 | Phase 3 | Complete |
+| DASH-04 | Phase 3 | Complete |
 | DASH-05 | Phase 3 | Complete |
 | MGMT-01 | Phase 4 | Pending |
 | MGMT-02 | Phase 4 | Pending |
