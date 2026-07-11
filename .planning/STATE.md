@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 02
-current_phase_name: booking-core
+current_phase: 03
+current_phase_name: staff-dashboard-schedule
 status: executing
-stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-07-11T05:54:46.409Z"
-last_activity: 2026-07-09
-last_activity_desc: Phase 02 execution started
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-07-11T06:21:03.381Z"
+last_activity: 2026-07-11
+last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 14
-  completed_plans: 10
+  completed_plans: 11
   percent: 25
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 02 — booking-core
+**Current focus:** Phase 03 — staff-dashboard-schedule
 
 ## Current Position
 
-Phase: 02 (booking-core) — EXECUTING
-Plan: 2 of 6
+Phase: 03 (staff-dashboard-schedule) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-09 — Phase 02 execution started
+Last activity: 2026-07-11 — Phase 03 execution started
 
 Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 
@@ -57,6 +57,7 @@ Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 
 *Updated after each plan completion*
 | Phase 02 P04 | 13min | 3 tasks | 16 files |
+| Phase 03 P01 | 14min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Recent decisions affecting current work:
 - Phase 1 Plan 04: `?service={slug}` preselect is validated against the fetched catalog and falls back to the empty option for unknown slugs (mitigates T-01-09).
 - Phase 1 Plan 04: Booking API contract preserved — `createBooking` still receives a human-readable service string; Phase 2 rebuilds booking against real slots.
 - Phase 1 Plan 04: `lib/data.ts` now holds only presentational site content; catalog data has a single database-backed source (D-14).
+- [Phase ?]: Phase 3 Plan 01: IdentityRole<int> (not string-keyed IdentityRole) is the correct TRole for IdentityDbContext<ApplicationUser, IdentityRole<int>, int> given int-keyed ApplicationUser.
+- [Phase 03]: Phase 3 Plan 01: base.OnModelCreating(modelBuilder) moved to the start of BookingDbContext.OnModelCreating per ASP.NET Core IdentityDbContext convention.
+- [Phase 03]: Phase 3 Plan 01: JwtTokenService uses a custom 'displayName' claim type since ClaimTypes has no built-in slot distinct from ClaimTypes.Name (login UserName).
 
 ### Pending Todos
 
@@ -102,8 +106,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T05:54:46.385Z
-Stopped at: Phase 3 UI-SPEC approved
-Resume file: .planning/phases/03-staff-dashboard-schedule/03-UI-SPEC.md
+Last session: 2026-07-11T06:21:03.347Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
 
 Next action: run the flagged research pass for Phase 2 (Booking Core), then `/gsd-plan-phase 2`. Phase 2 is the highest-correctness-risk phase — DB-level double-booking constraint design, `DateTimeOffset`/timezone strategy, and the seeded-availability model shape all need research before planning.

@@ -204,3 +204,7 @@ No secret values are present in any tracked file — verified via grep across `A
 ---
 *Phase: 03-staff-dashboard-schedule*
 *Completed: 2026-07-11*
+
+## Self-Check: PASSED
+
+All 8 created/key files verified present on disk (`ApplicationUser.cs`, `StaffRoles.cs`, `JwtOptions.cs`, `JwtTokenService.cs`, `IdentitySeeder.cs`, `IdentitySeederTests.cs`, `20260711061327_AddStaffIdentity.cs`, this SUMMARY.md). All 4 commit hashes (`c691076`, `e00f0e1`, `b401a5b`, `9be6d85`) confirmed present in `git log`.

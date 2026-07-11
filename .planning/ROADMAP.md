@@ -113,7 +113,13 @@ Plans:
   4. "No-show" behaves as a distinct terminal status from "cancelled" — queryable and reportable separately, not folded into the same enum meaning
   5. Attempting to reach the dashboard or its API without staff authentication is rejected
 
-**Plans**: TBD
+**Plans**: 1/4 plans executed
+
+- [x] 03-01-PLAN.md
+- [ ] 03-02-PLAN.md
+- [ ] 03-03-PLAN.md
+- [ ] 03-04-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 4: Staff Management (Services & Availability)
@@ -208,7 +214,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
 | 2. Booking Core | 6/6 | Complete   | 2026-07-10 |
-| 3. Staff Dashboard (Schedule) | 0/TBD | Not started | - |
+| 3. Staff Dashboard (Schedule) | 1/4 | In Progress|  |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
 | 6. Cart & Checkout | 0/TBD | Not started | - |
