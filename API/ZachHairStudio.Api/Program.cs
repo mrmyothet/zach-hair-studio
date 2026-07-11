@@ -38,7 +38,12 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
-builder.Services.AddControllers();
+// Status values round-trip as strings elsewhere (AppointmentResponseDto.Status), so
+// accept AppointmentStatus request fields (e.g. AppointmentStatusUpdateDto.NewStatus)
+// as their string names too, rather than requiring the client to send the raw int.
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddValidatorsFromAssemblyContaining<ServiceCreateDtoValidator>();
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<StylistsService>();
