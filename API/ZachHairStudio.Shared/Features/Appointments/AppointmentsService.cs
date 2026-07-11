@@ -201,9 +201,20 @@ public class AppointmentsService
             .Where(stylist => stylistIds.Contains(stylist.Id))
             .ToDictionaryAsync(stylist => stylist.Id);
 
-        var dtos = appointments
-            .Select(appointment => appointment.ToDto(services[appointment.ServiceId], stylists[appointment.StylistId]))
-            .ToList();
+        // No FK constraints back Appointment.ServiceId/StylistId, so a missing referenced
+        // row must surface as a controlled SystemError — never a KeyNotFoundException 500.
+        var dtos = new List<AppointmentResponseDto>(appointments.Count);
+        foreach (var appointment in appointments)
+        {
+            if (!services.TryGetValue(appointment.ServiceId, out var service)
+                || !stylists.TryGetValue(appointment.StylistId, out var stylist))
+            {
+                return Result<IReadOnlyList<AppointmentResponseDto>>.SystemError(
+                    $"Appointment {appointment.Id} references a missing service or stylist.");
+            }
+
+            dtos.Add(appointment.ToDto(service, stylist));
+        }
 
         return Result<IReadOnlyList<AppointmentResponseDto>>.Success(dtos);
     }
@@ -219,8 +230,13 @@ public class AppointmentsService
 
         var service = await _dbContext.Services.FindAsync(appointment.ServiceId);
         var stylist = await _dbContext.Stylists.FindAsync(appointment.StylistId);
+        if (service is null || stylist is null)
+        {
+            return Result<AppointmentResponseDto>.SystemError(
+                $"Appointment {appointment.Id} references a missing service or stylist.");
+        }
 
-        return Result<AppointmentResponseDto>.Success(appointment.ToDto(service!, stylist!));
+        return Result<AppointmentResponseDto>.Success(appointment.ToDto(service, stylist));
     }
 
     /// <summary>
@@ -249,6 +265,16 @@ public class AppointmentsService
                 $"Cannot move an appointment from {appointment.Status} to {newStatus}.");
         }
 
+        // Resolve the referenced rows BEFORE mutating — no FK constraints back these ids,
+        // and a missing row must not commit the status change and then fail the response.
+        var service = await _dbContext.Services.FindAsync(appointment.ServiceId);
+        var stylist = await _dbContext.Stylists.FindAsync(appointment.StylistId);
+        if (service is null || stylist is null)
+        {
+            return Result<AppointmentResponseDto>.SystemError(
+                $"Appointment {appointment.Id} references a missing service or stylist.");
+        }
+
         if (newStatus is AppointmentStatus.Cancelled or AppointmentStatus.NoShow)
         {
             _dbContext.AppointmentSlots.RemoveRange(appointment.Slots);
@@ -260,10 +286,7 @@ public class AppointmentsService
 
         await _dbContext.SaveChangesAsync();
 
-        var service = await _dbContext.Services.FindAsync(appointment.ServiceId);
-        var stylist = await _dbContext.Stylists.FindAsync(appointment.StylistId);
-
-        return Result<AppointmentResponseDto>.Success(appointment.ToDto(service!, stylist!));
+        return Result<AppointmentResponseDto>.Success(appointment.ToDto(service, stylist));
     }
 
     private static bool IsAllowedTransition(AppointmentStatus current, AppointmentStatus next)

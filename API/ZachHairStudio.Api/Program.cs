@@ -69,7 +69,19 @@ builder.Services.AddHttpClient<IEmailService, ResendEmailService>(client =>
 // Staff auth (D-01/D-02/D-03). JWT signing key is read once from configuration
 // (user-secrets/env, D-13-style) — never a tracked appsettings value, and never
 // regenerated per-process (RESEARCH Pitfall 5) so outstanding ~12h tokens survive a restart.
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+// Fail fast when the signing key is missing or too weak (HS256 needs >=256 bits) —
+// an empty JwtOptions.SigningKey default would otherwise only surface on the first
+// authenticated request. ValidateOnStart (not an eager read here) so the check runs
+// after ALL config sources apply, including WebApplicationFactory test overrides.
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection("Jwt"))
+    .Validate(
+        options => !string.IsNullOrWhiteSpace(options.SigningKey)
+            && Encoding.UTF8.GetByteCount(options.SigningKey) >= 32,
+        "Jwt:SigningKey is missing or shorter than 32 bytes (256 bits, the HS256 minimum). "
+        + "Set it via 'dotnet user-secrets set \"Jwt:SigningKey\" \"<random value of 32+ chars>\"' "
+        + "or the Jwt__SigningKey environment variable (D-13 — never a tracked appsettings value).")
+    .ValidateOnStart();
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<JwtOptions>>().Value);
 builder.Services.AddScoped<JwtTokenService>();
 
@@ -88,6 +100,9 @@ builder.Services
     })
     .AddJwtBearer(options =>
     {
+        // Bound lazily (at first JwtBearerOptions resolution, post-start) so test hosts'
+        // late-injected Jwt:* config is honored — an eager read here would capture the
+        // dev user-secrets key before WebApplicationFactory overrides apply.
         var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
         options.TokenValidationParameters = new TokenValidationParameters
         {

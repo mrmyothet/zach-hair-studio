@@ -43,6 +43,11 @@ public class ScheduleController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
+        if (result.IsSystemError())
+        {
+            return InconsistentDataProblem(result.Message);
+        }
+
         return Ok(result.Data);
     }
 
@@ -59,6 +64,11 @@ public class ScheduleController : ControllerBase
                 Detail = result.Message,
                 Status = StatusCodes.Status404NotFound,
             });
+        }
+
+        if (result.IsSystemError())
+        {
+            return InconsistentDataProblem(result.Message);
         }
 
         return Ok(result.Data);
@@ -102,6 +112,22 @@ public class ScheduleController : ControllerBase
             });
         }
 
+        if (result.IsSystemError())
+        {
+            return InconsistentDataProblem(result.Message);
+        }
+
         return Ok(result.Data);
     }
+
+    /// <summary>
+    /// Controlled 500 for appointments whose ServiceId/StylistId no longer resolve —
+    /// no FK constraints back those references, so the service layer reports the
+    /// integrity gap as a SystemError instead of throwing.
+    /// </summary>
+    private ObjectResult InconsistentDataProblem(string detail) =>
+        Problem(
+            title: "Appointment data is inconsistent.",
+            detail: detail,
+            statusCode: StatusCodes.Status500InternalServerError);
 }

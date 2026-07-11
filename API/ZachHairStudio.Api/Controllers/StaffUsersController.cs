@@ -55,7 +55,17 @@ public class StaffUsersController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        await _userManager.AddToRoleAsync(user, StaffRoles.Staff);
+        var roleResult = await _userManager.AddToRoleAsync(user, StaffRoles.Staff);
+        if (!roleResult.Succeeded)
+        {
+            // Roll back the just-created user — leaving a role-less account behind
+            // would make retries fail on duplicate email while the login stays broken.
+            await _userManager.DeleteAsync(user);
+            return Problem(
+                title: "Failed to assign the Staff role.",
+                detail: string.Join(" ", roleResult.Errors.Select(e => e.Description)),
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
 
         var response = new StaffUserResponseDto
         {

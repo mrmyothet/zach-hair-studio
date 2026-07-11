@@ -74,9 +74,11 @@ function readRaw(): AuthSession | null {
 }
 
 function isExpired(session: AuthSession): boolean {
-  if (!session.expiresAt) return false;
+  // Fail closed: a missing or unparsable expiresAt means the stored session
+  // is malformed/tampered, so treat it as expired rather than trusting it.
+  if (!session.expiresAt) return true;
   const expires = Date.parse(session.expiresAt);
-  if (Number.isNaN(expires)) return false;
+  if (Number.isNaN(expires)) return true;
   return Date.now() >= expires;
 }
 

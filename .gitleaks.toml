@@ -3,8 +3,24 @@
 [extend]
 useDefault = true
 
+# Hardcoded test-fixture credentials in the API integration tests: throwaway JWT
+# signing keys ("...-signing-key-at-least-32-bytes-...") and passwords ("...!2026...")
+# for LocalDB-only test accounts — not real secrets.
+#
+# targetRules is load-bearing: a GLOBAL path allowlist makes gitleaks skip matching
+# files wholesale at enumeration time (ignoring condition = "AND"), whereas a
+# rule-targeted allowlist is evaluated per-finding. Combined with condition = "AND",
+# only generic-api-key hits on fixture-patterned lines inside the test project are
+# ignored — a real secret pasted into a test file still gets flagged.
 [[allowlists]]
-description = "Test fixtures with hardcoded throwaway credentials (LocalDB-only test accounts, not real secrets)"
+description = "Throwaway signing keys and passwords in API integration-test fixtures"
+condition = "AND"
+targetRules = ["generic-api-key"]
 paths = [
-    '''API/ZachHairStudio\.Api\.Tests/Features/Identity/IdentitySeederTests\.cs''',
+    '''API/ZachHairStudio\.Api\.Tests/.*\.cs''',
+]
+regexTarget = "line"
+regexes = [
+    '''signing-key-at-least-32-bytes''',
+    '''!2026''',
 ]
