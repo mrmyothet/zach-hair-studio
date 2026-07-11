@@ -1,0 +1,10 @@
+# Gitleaks configuration — extends the default ruleset with repo-specific
+# allowlists. Auto-detected by gitleaks when scanning this repo.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test fixtures with hardcoded throwaway credentials (LocalDB-only test accounts, not real secrets)"
+paths = [
+    '''API/ZachHairStudio\.Api\.Tests/Features/Identity/IdentitySeederTests\.cs''',
+]
