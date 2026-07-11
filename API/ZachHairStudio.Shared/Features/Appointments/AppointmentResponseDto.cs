@@ -20,4 +20,8 @@ public class AppointmentResponseDto
     public string LastName { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string? Phone { get; set; }
+
+    // Minimal status audit (D-12) — null until the first staff-initiated status change.
+    public DateTimeOffset? StatusChangedAt { get; set; }
+    public string? StatusChangedBy { get; set; }
 }

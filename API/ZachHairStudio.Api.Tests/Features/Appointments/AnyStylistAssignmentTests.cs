@@ -142,7 +142,8 @@ public class AnyStylistAssignmentTests
             db,
             new AppointmentCreateDtoValidator(),
             slotService,
-            email ?? new RecordingEmailService());
+            email ?? new RecordingEmailService(),
+            salonOptions);
     }
 
     private static BookingDbContext BuildSeededContext()

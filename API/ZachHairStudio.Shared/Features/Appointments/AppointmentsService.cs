@@ -26,17 +26,31 @@ public class AppointmentsService
     private readonly IValidator<AppointmentCreateDto> _validator;
     private readonly SlotService _slotService;
     private readonly IEmailService _emailService;
+    private readonly SalonTimeZone _salonTimeZone;
+
+    // Confirmed -> {Completed, Cancelled, NoShow}; the three terminal statuses have no
+    // outbound entries. This map is the ONLY place a status transition is decided
+    // (03-PATTERNS: no second transition table/endpoint).
+    private static readonly Dictionary<AppointmentStatus, AppointmentStatus[]> AllowedTransitions = new()
+    {
+        [AppointmentStatus.Confirmed] = new[] { AppointmentStatus.Completed, AppointmentStatus.Cancelled, AppointmentStatus.NoShow },
+        [AppointmentStatus.Completed] = Array.Empty<AppointmentStatus>(),
+        [AppointmentStatus.Cancelled] = Array.Empty<AppointmentStatus>(),
+        [AppointmentStatus.NoShow] = Array.Empty<AppointmentStatus>(),
+    };
 
     public AppointmentsService(
         BookingDbContext dbContext,
         IValidator<AppointmentCreateDto> validator,
         SlotService slotService,
-        IEmailService emailService)
+        IEmailService emailService,
+        SalonOptions salonOptions)
     {
         _dbContext = dbContext;
         _validator = validator;
         _slotService = slotService;
         _emailService = emailService;
+        _salonTimeZone = SalonTimeZone.FromOptions(salonOptions);
     }
 
     public async Task<Result<AppointmentResponseDto>> CreateAsync(AppointmentCreateDto request)
@@ -139,6 +153,121 @@ public class AppointmentsService
         return Result<AppointmentResponseDto>.DuplicateRecordError(
             "This slot was just booked by someone else. Please choose another time.");
     }
+
+    /// <summary>
+    /// Staff schedule read (DASH-01/DASH-04). The window bound resolves through the
+    /// single salon-zone helper — never a hardcoded offset (D-16 pattern) — so a day
+    /// spanning a DST transition still yields correct UTC bounds. Terminal
+    /// (Cancelled/NoShow) appointments are included; hiding them by default is the
+    /// dashboard's D-08 concern, not this query's. Filtering is always on the explicit
+    /// AppointmentStatus enum value, never a derived boolean (DASH-04).
+    /// </summary>
+    public async Task<Result<IReadOnlyList<AppointmentResponseDto>>> ListByDateRangeAsync(
+        DateOnly from, DateOnly to, AppointmentStatus? status)
+    {
+        var start = _salonTimeZone.ToSalonInstant(from.ToDateTime(TimeOnly.MinValue));
+        var end = _salonTimeZone.ToSalonInstant(to.AddDays(1).ToDateTime(TimeOnly.MinValue));
+
+        if (start is null || end is null)
+        {
+            return Result<IReadOnlyList<AppointmentResponseDto>>.ValidationError(
+                "The requested date range falls on an invalid salon-local time.");
+        }
+
+        var query = _dbContext.Appointments
+            .Where(appointment => appointment.StartsAt >= start.Value && appointment.StartsAt < end.Value);
+
+        if (status is not null)
+        {
+            query = query.Where(appointment => appointment.Status == status.Value);
+        }
+
+        var appointments = await query
+            .OrderBy(appointment => appointment.StartsAt)
+            .ToListAsync();
+
+        if (appointments.Count == 0)
+        {
+            return Result<IReadOnlyList<AppointmentResponseDto>>.Success(Array.Empty<AppointmentResponseDto>());
+        }
+
+        var serviceIds = appointments.Select(appointment => appointment.ServiceId).Distinct().ToList();
+        var stylistIds = appointments.Select(appointment => appointment.StylistId).Distinct().ToList();
+
+        var services = await _dbContext.Services
+            .Where(service => serviceIds.Contains(service.Id))
+            .ToDictionaryAsync(service => service.Id);
+        var stylists = await _dbContext.Stylists
+            .Where(stylist => stylistIds.Contains(stylist.Id))
+            .ToDictionaryAsync(stylist => stylist.Id);
+
+        var dtos = appointments
+            .Select(appointment => appointment.ToDto(services[appointment.ServiceId], stylists[appointment.StylistId]))
+            .ToList();
+
+        return Result<IReadOnlyList<AppointmentResponseDto>>.Success(dtos);
+    }
+
+    /// <summary>One appointment's full detail, including the status-audit line (DASH-02, D-12).</summary>
+    public async Task<Result<AppointmentResponseDto>> GetByIdAsync(int id)
+    {
+        var appointment = await _dbContext.Appointments.FindAsync(id);
+        if (appointment is null)
+        {
+            return Result<AppointmentResponseDto>.NotFoundError("Appointment not found.");
+        }
+
+        var service = await _dbContext.Services.FindAsync(appointment.ServiceId);
+        var stylist = await _dbContext.Stylists.FindAsync(appointment.StylistId);
+
+        return Result<AppointmentResponseDto>.Success(appointment.ToDto(service!, stylist!));
+    }
+
+    /// <summary>
+    /// Constrained, server-enforced status transitions (D-10). The CURRENT status is
+    /// always re-read from the DB and checked against the single <see cref="AllowedTransitions"/>
+    /// map — a stale/forged client-echoed status can never force a disallowed transition.
+    /// Cancel/NoShow remove the appointment's AppointmentSlot rows here; this method IS the
+    /// single reusable slot-release path (D-04/D-11), not a copy of the booking-time logic.
+    /// StatusChangedAt/StatusChangedBy record the minimal audit line (D-12).
+    /// </summary>
+    public async Task<Result<AppointmentResponseDto>> UpdateStatusAsync(
+        int id, AppointmentStatus newStatus, string staffDisplayName)
+    {
+        var appointment = await _dbContext.Appointments
+            .Include(appointment => appointment.Slots)
+            .FirstOrDefaultAsync(appointment => appointment.Id == id);
+
+        if (appointment is null)
+        {
+            return Result<AppointmentResponseDto>.NotFoundError("Appointment not found.");
+        }
+
+        if (!IsAllowedTransition(appointment.Status, newStatus))
+        {
+            return Result<AppointmentResponseDto>.ValidationError(
+                $"Cannot move an appointment from {appointment.Status} to {newStatus}.");
+        }
+
+        if (newStatus is AppointmentStatus.Cancelled or AppointmentStatus.NoShow)
+        {
+            _dbContext.AppointmentSlots.RemoveRange(appointment.Slots);
+        }
+
+        appointment.Status = newStatus;
+        appointment.StatusChangedAt = DateTimeOffset.UtcNow;
+        appointment.StatusChangedBy = staffDisplayName;
+
+        await _dbContext.SaveChangesAsync();
+
+        var service = await _dbContext.Services.FindAsync(appointment.ServiceId);
+        var stylist = await _dbContext.Stylists.FindAsync(appointment.StylistId);
+
+        return Result<AppointmentResponseDto>.Success(appointment.ToDto(service!, stylist!));
+    }
+
+    private static bool IsAllowedTransition(AppointmentStatus current, AppointmentStatus next)
+        => AllowedTransitions.TryGetValue(current, out var allowed) && allowed.Contains(next);
 
     private static Appointment BuildAppointment(
         AppointmentCreateDto request, int stylistId, DateTimeOffset instant, int cellsNeeded)
