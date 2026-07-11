@@ -28,5 +28,11 @@ public class Appointment
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    // Minimal status audit (D-12) — the acting staff member's DisplayName, not a full
+    // AppointmentStatusHistory table.
+    public DateTimeOffset? StatusChangedAt { get; set; }
+
+    public string? StatusChangedBy { get; set; }
+
     public List<AppointmentSlot> Slots { get; set; } = new();
 }

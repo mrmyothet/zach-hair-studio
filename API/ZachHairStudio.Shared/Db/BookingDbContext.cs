@@ -1,12 +1,17 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
+using ZachHairStudio.Shared.Features.Identity;
 using ZachHairStudio.Shared.Features.Services;
 using ZachHairStudio.Shared.Features.Stylists;
 
 namespace ZachHairStudio.Shared.Db;
 
-public class BookingDbContext : DbContext
+// Identity tables (AspNetUsers/AspNetRoles/etc.) live in this same schema/migration history
+// as Appointments (D-02, D-12) — int keys, consistent with every other entity's int Id.
+public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int>, int>
 {
     public BookingDbContext(DbContextOptions<BookingDbContext> options)
         : base(options)
@@ -27,6 +32,10 @@ public class BookingDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Identity needs its model configured before ours — ASP.NET Core convention when
+        // inheriting IdentityDbContext.
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Service>(entity =>
         {
             entity.Property(e => e.Slug).HasMaxLength(150);
@@ -183,6 +192,7 @@ public class BookingDbContext : DbContext
             entity.Property(e => e.LastName).HasMaxLength(100);
             entity.Property(e => e.Email).HasMaxLength(150);
             entity.Property(e => e.Phone).HasMaxLength(30);
+            entity.Property(e => e.StatusChangedBy).HasMaxLength(100);
 
             entity.HasMany(a => a.Slots)
                   .WithOne(s => s.Appointment)
@@ -197,7 +207,5 @@ public class BookingDbContext : DbContext
             entity.HasIndex(s => new { s.StylistId, s.SlotStart }).IsUnique();
             entity.Property(s => s.SlotStart).HasColumnType("datetimeoffset(0)");
         });
-
-        base.OnModelCreating(modelBuilder);
     }
 }
