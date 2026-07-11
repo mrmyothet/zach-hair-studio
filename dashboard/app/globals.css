@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gold: #d4af6a;
+  --color-gold-dark: #a87f3d;
+  --color-ink: #241c15;
+  --color-surface: #faf8f4;
+  --color-surface-alt: #efe9df;
+  --color-border: #e2d9c8;
+  --color-muted: #78716c;
+  --color-destructive: #e11d48;
+
+  --font-serif: var(--font-playfair), Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+}

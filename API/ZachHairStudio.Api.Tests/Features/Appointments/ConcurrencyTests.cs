@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Appointments;
+using ZachHairStudio.Shared.Features.Availability;
 
 namespace ZachHairStudio.Api.Tests.Features.Appointments;
 
@@ -19,10 +20,12 @@ public class ConcurrencyTests : IClassFixture<SqlServerWebApplicationFactory>
 {
     private readonly SqlServerWebApplicationFactory _factory;
 
-    // 2026-07-15 is a Wednesday covered by the seeded Tue-Sat working hours; 10:00
-    // salon-local (America/New_York) is EDT -04:00 in July.
+    // 2026-07-15 is a Wednesday covered by the seeded Tue-Sat working hours. The instant is
+    // resolved through the configured salon zone rather than a hardcoded offset, so the test
+    // follows Salon:IanaTimeZoneId instead of silently drifting off-grid when it changes.
     private static readonly DateTimeOffset SlotInstant =
-        new(2026, 7, 15, 10, 0, 0, TimeSpan.FromHours(-4));
+        SalonTimeZone.FromOptions(new SalonOptions())
+            .ToSalonInstant(new DateTime(2026, 7, 15, 10, 0, 0))!.Value;
 
     private const int StylistId = 1; // Mr. Zachary (seeded, active).
 

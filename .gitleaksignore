@@ -4,3 +4,5 @@
 # not real secrets.
 3be69e3e34e4f2712cb0e19b84b6db62d072a28a:landing-page/.claude/gsd-file-manifest.json:generic-api-key:123
 18aec43ad946f75314cf48b790758944d73d764e:.claude/gsd-file-manifest.json:generic-api-key:122
+# Path-level ignores (whole files) live in .gitleaks.toml — this file only
+# accepts exact fingerprints.

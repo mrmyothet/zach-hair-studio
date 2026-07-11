@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { navLinks } from "@/lib/data";
 import { ArrowRightIcon } from "./icons";
 
 function Logo() {
   return (
-    <a href="#home" className="flex items-center gap-3">
+    <Link href="/#home" className="flex items-center gap-3">
       <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center">
         <span className="text-charcoal font-bold text-lg">Z</span>
       </div>
@@ -14,7 +15,7 @@ function Logo() {
         <span className="text-gold font-serif text-xl font-bold tracking-wide">ZACH</span>
         <span className="text-white text-xl ml-1 tracking-widest font-light">HAIR STUDIO</span>
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -40,23 +41,23 @@ export default function Navbar() {
         <ul className="hidden md:flex items-center gap-8 text-sm tracking-wider uppercase">
           {navLinks.map((link) => (
             <li key={link.href}>
-              <a
+              <Link
                 href={link.href}
                 className="nav-link text-gray-300 hover:text-gold transition-colors"
               >
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
 
-        <a
-          href="#contact"
+        <Link
+          href="/book"
           className="hidden md:inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-charcoal font-semibold text-sm px-5 py-2.5 rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-gold/30"
         >
           Book Now
           <ArrowRightIcon className="w-4 h-4" />
-        </a>
+        </Link>
 
         <button
           type="button"
@@ -76,23 +77,23 @@ export default function Navbar() {
           <ul className="flex flex-col px-6 py-4 gap-4 text-sm uppercase tracking-wider">
             {navLinks.map((link) => (
               <li key={link.href}>
-                <a
+                <Link
                   href={link.href}
                   className="text-gray-300 hover:text-gold block transition-colors"
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
             <li>
-              <a
-                href="#contact"
+              <Link
+                href="/book"
                 className="bg-gold text-charcoal font-semibold text-center py-2 rounded-full block"
                 onClick={() => setOpen(false)}
               >
                 Book Now
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

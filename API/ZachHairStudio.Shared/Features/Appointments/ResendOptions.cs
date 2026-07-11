@@ -7,6 +7,6 @@ namespace ZachHairStudio.Shared.Features.Appointments;
 /// </summary>
 public class ResendOptions
 {
-    /// <summary>Verified sending-domain from-address (D-10), e.g. bookings@zachhairstudio.com.</summary>
-    public string FromEmail { get; set; } = "bookings@zachhairstudio.com";
+    /// <summary>Verified sending-domain from-address (D-10), e.g. bookings@media.zachhairstudio.com.</summary>
+    public string FromEmail { get; set; } = "bookings@media.zachhairstudio.com";
 }

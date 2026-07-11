@@ -16,8 +16,8 @@ import { AlertIcon, CheckIcon, ClockIcon } from "./icons";
 // explicit IANA timeZone — never the browser's local zone (D-16). The API hands us
 // a DateTimeOffset carrying the salon offset; formatting with an explicit zone keeps
 // the wall-clock correct for every viewer regardless of their machine timezone.
-const SALON_TIME_ZONE = "America/New_York";
-const SALON_ZONE_CAPTION = "All times shown in salon local time (Eastern)";
+const SALON_TIME_ZONE = "Asia/Yangon";
+const SALON_ZONE_CAPTION = "All times shown in salon local time (Myanmar Time)";
 
 // Owner-reviewable booking window (mirrors AppointmentCreateDtoValidator): same-day
 // through 60 days ahead, no minimum lead time. Flagged for owner review in the SUMMARY.
@@ -327,11 +327,6 @@ export default function AppointmentBookingForm({
             </dd>
           </div>
         </dl>
-
-        <p className="text-gray-500 text-xs mt-4">
-          Save or screenshot this confirmation — email delivery isn&apos;t
-          guaranteed.
-        </p>
       </div>
     );
   }

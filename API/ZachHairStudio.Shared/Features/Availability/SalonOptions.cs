@@ -7,5 +7,5 @@ namespace ZachHairStudio.Shared.Features.Availability;
 /// </summary>
 public class SalonOptions
 {
-    public string IanaTimeZoneId { get; set; } = "America/New_York";
+    public string IanaTimeZoneId { get; set; } = "Asia/Yangon";
 }

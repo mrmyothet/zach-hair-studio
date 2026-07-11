@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ZachHairStudio.Shared.Features.Appointments;
+using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Services;
 
 namespace ZachHairStudio.Api.Tests.Features.Appointments;
@@ -39,8 +40,12 @@ public class AppointmentsControllerTests : IClassFixture<CustomWebApplicationFac
         Phone = null,
     };
 
+    private static readonly SalonTimeZone SalonTz = SalonTimeZone.FromOptions(new SalonOptions());
+
+    // Resolved through the configured salon zone rather than a hardcoded offset, so these
+    // slots follow Salon:IanaTimeZoneId instead of drifting off-grid when it changes.
     private static DateTimeOffset Slot(int hour, int minute = 0)
-        => new(2026, 7, 15, hour, minute, 0, TimeSpan.FromHours(-4));
+        => SalonTz.ToSalonInstant(new DateTime(2026, 7, 15, hour, minute, 0))!.Value;
 
     [Fact]
     public async Task Post_ValidBooking_Returns201WithFullDetails()
@@ -80,7 +85,7 @@ public class AppointmentsControllerTests : IClassFixture<CustomWebApplicationFac
     {
         var client = CreateClientWithEmail(new RecordingEmailService());
 
-        var past = new DateTimeOffset(2020, 1, 7, 10, 0, 0, TimeSpan.FromHours(-5));
+        var past = SalonTz.ToSalonInstant(new DateTime(2020, 1, 7, 10, 0, 0))!.Value;
         var response = await client.PostAsJsonAsync("/api/appointments", ValidRequest(past));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
