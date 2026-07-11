@@ -113,12 +113,24 @@ Plans:
   4. "No-show" behaves as a distinct terminal status from "cancelled" — queryable and reportable separately, not folded into the same enum meaning
   5. Attempting to reach the dashboard or its API without staff authentication is rejected
 
-**Plans**: 3/4 plans executed
+**Plans**: 3/5 plans executed
 
-- [x] 03-01-PLAN.md
-- [x] 03-02-PLAN.md
-- [x] 03-03-PLAN.md
-- [ ] 03-04-PLAN.md
+**Wave 1**
+
+- [x] 03-01-PLAN.md — Identity + JWT foundation + Owner seed + Appointment audit columns (DASH-05)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 03-02-PLAN.md — Auth login + Owner-only staff-user create (DASH-05)
+- [x] 03-03-PLAN.md — Schedule API read + constrained status updates + no-show separability (DASH-01..04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 03-04-PLAN.md — dashboard/ scaffold + OpenAPI client + staff login/guard (DASH-05 frontend)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 03-05-PLAN.md — Day/week schedule UI + detail + status actions + polling + Owner add-staff (DASH-01..04 frontend)
 
 **UI hint**: yes
 

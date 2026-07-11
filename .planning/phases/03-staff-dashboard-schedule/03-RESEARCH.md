@@ -478,22 +478,25 @@ public class AppointmentsController : ControllerBase
 | A5 | Owner-only "add staff" endpoint lives on `AppointmentsController`/a new `StaffUsersController` rather than folding into `AuthController` | Recommended Project Structure | Low — purely an organizational choice left to planning; no functional risk |
 | A6 | `swr`/`@tanstack/react-query` package-name legitimacy: both are genuine, high-download, org-owned packages despite the automated "too-new" SUS flag | Package Legitimacy Audit | Low — corroborated by 12M+/59M+ weekly downloads and matching GitHub org ownership (`vercel/swr`, `TanStack/query`), but flagged here per protocol since the verdict came back SUS |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Identity primary-key type for `ApplicationUser`/`IdentityRole`**
+1. **Identity primary-key type for `ApplicationUser`/`IdentityRole`** — RESOLVED by 03-01
    - What we know: The rest of the schema uses `int` PKs (`Service.Id`, `Appointment.Id`, etc.).
    - What's unclear: Whether to key Identity as `IdentityUser<int>`/`IdentityRole<int>` (consistent with the rest of the schema) or accept Identity's default `string` (GUID) key, which is what most ASP.NET Core samples show out of the box.
    - Recommendation: Default to `int` keys for consistency with the existing schema unless Phase 7's client-account needs (not yet researched) push toward GUIDs; flag this as a planning decision, not something to leave implicit in code.
+   - **Resolution:** `IdentityUser<int>` / `IdentityRole<int>` shipped in plan 03-01.
 
-2. **Where does the day/week date-range endpoint live — `AppointmentsController` or a new `ScheduleController`?**
+2. **Where does the day/week date-range endpoint live — `AppointmentsController` or a new `ScheduleController`?** — RESOLVED by 03-03
    - What we know: CONTEXT.md explicitly leaves this to Claude's discretion, with the one hard constraint being PLAT-01 (service layer boundary) and `Result<T>` → ProblemDetails translation.
    - What's unclear: Whether bundling staff-only endpoints into the existing public `AppointmentsController` (with mixed `[AllowAnonymous]`/`[Authorize]` attributes per action) is cleaner than a separate staff-scoped controller.
    - Recommendation: Lean toward keeping `AppointmentsController` as-is for the public create/slots actions and adding a new `[Authorize]`-by-default controller (e.g., `ScheduleController` or `StaffAppointmentsController`) for the day/week/detail/status-update actions — reduces the risk of an `[AllowAnonymous]` forgotten on a new public action or an `[Authorize]` forgotten on a new staff action. Final call belongs to planning.
+   - **Resolution:** Dedicated `ScheduleController` (`/api/schedule`) with class-level `[Authorize]`; public `AppointmentsController` left anonymous.
 
-3. **Exact JWT claims shape beyond `NameIdentifier`/`Name`/`Role`**
+3. **Exact JWT claims shape beyond `NameIdentifier`/`Name`/`Role`** — RESOLVED by 03-01
    - What we know: `StatusChangedBy` (D-12) needs to record "the authenticated staff user" — likely a display name or username.
    - What's unclear: Whether `StatusChangedBy` should store the Identity user's `Id`, `UserName`, or a friendlier `DisplayName` claim not yet modeled on `ApplicationUser`.
    - Recommendation: Add a `DisplayName` property to `ApplicationUser` (distinct from the Identity `UserName`/login) so the detail view can show "Cancelled by Aria Chen" rather than a raw username/email; confirm this doesn't conflict with any Phase 4 staff-management assumptions.
+   - **Resolution:** `ApplicationUser.DisplayName` + JWT display-name claim; `StatusChangedBy` records that claim value.
 
 ## Environment Availability
 
