@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: staff-dashboard-schedule
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-07-11T06:21:03.381Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-07-11T06:35:22.948Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
   percent: 25
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 03 (staff-dashboard-schedule) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 03 execution started
 
@@ -58,6 +58,7 @@ Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 *Updated after each plan completion*
 | Phase 02 P04 | 13min | 3 tasks | 16 files |
 | Phase 03 P01 | 14min | 3 tasks | 13 files |
+| Phase 03 P02 | 10min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 3 Plan 01: IdentityRole<int> (not string-keyed IdentityRole) is the correct TRole for IdentityDbContext<ApplicationUser, IdentityRole<int>, int> given int-keyed ApplicationUser.
 - [Phase 03]: Phase 3 Plan 01: base.OnModelCreating(modelBuilder) moved to the start of BookingDbContext.OnModelCreating per ASP.NET Core IdentityDbContext convention.
 - [Phase 03]: Phase 3 Plan 01: JwtTokenService uses a custom 'displayName' claim type since ClaimTypes has no built-in slot distinct from ClaimTypes.Name (login UserName).
+- [Phase 03]: Phase 3 Plan 02: AuthGateTests uses anonymous request objects + JsonDocument response parsing instead of the Shared DTO types, so the RED-phase test file compiles standalone before AuthController/StaffUsersController exist.
+- [Phase 03]: Phase 3 Plan 02: Test JWT signing key injected via WithWebHostBuilder(...).ConfigureAppConfiguration(...) in-memory config, relying on the same mutable ConfigurationManager instance Program.cs's AddJwtBearer closure reads from at request time.
+- [Phase 03]: Phase 3 Plan 02: StaffUsersController uses an explicit [Route("api/staff-users")] (not the [controller] token) since the default token would yield /api/staffusers with no hyphen.
 
 ### Pending Todos
 
@@ -106,8 +110,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T06:21:03.347Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-07-11T06:35:22.927Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
 
 Next action: run the flagged research pass for Phase 2 (Booking Core), then `/gsd-plan-phase 2`. Phase 2 is the highest-correctness-risk phase — DB-level double-booking constraint design, `DateTimeOffset`/timezone strategy, and the seeded-availability model shape all need research before planning.
