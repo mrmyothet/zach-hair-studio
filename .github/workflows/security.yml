@@ -1,0 +1,67 @@
+name: security
+# Layered security scan for team projects — ADVISORY first, enforce later.
+#   - secrets: gitleaks (catches leaked API/model keys — the #1 AI-vibecode failure)
+#   - sast:    semgrep community rules (injection, insecure defaults)
+# Dependency scanning is handled separately by Dependabot (.github/dependabot.yml).
+#
+# Both jobs use `continue-on-error: true` so findings are REPORTED but never block a
+# merge while the team is learning to triage. Enforcement flip (ch-8):
+#   1. remove `continue-on-error: true` from the job you want to enforce
+#   2. mark that check "required" in the branch-protection ruleset
+#
+# NOTE: on PUBLIC repos GitHub's own secret scanning + push protection are also FREE —
+# turn them on in Settings > Code security. This workflow is the portable, run-anywhere
+# backup and works locally too.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: secrets (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true          # ch-8: remove to enforce
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0             # full history so gitleaks scans past commits too
+      - name: gitleaks (secrets scan)
+        # Run the gitleaks Docker image directly, NOT gitleaks-action@v2 — the Action
+        # demands a paid GITLEAKS_LICENSE for ORGANIZATION accounts (even public repos).
+        # The image has no license gate. Exits non-zero on findings; continue-on-error
+        # keeps the job green (advisory). Findings appear in the run logs.
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.18.4 \
+            detect --source /repo --redact --verbose
+          # Pinned tag = reproducible + a known `detect` subcommand. Bump the tag
+          # occasionally for fresh secret patterns.
+
+  sast:
+    name: sast (semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true          # ch-8: remove to enforce
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Install semgrep
+        run: python -m pip install --upgrade pip semgrep
+      - name: Run semgrep (community rules)
+        run: semgrep scan --config=auto --error --skip-unknown-extensions .
+        # --config=auto pulls community rules for the languages it detects.
+        # --error exits non-zero on findings; continue-on-error keeps the job green,
+        # so findings are REPORTED IN THE RUN LOGS (open the step to read them).
+        # Expect some false positives — triaging them is the lesson.

@@ -1,0 +1,40 @@
+# Dependabot — free on ALL repos (public + private). Opens PRs when a dependency
+# has a known vulnerability or a newer version. Reviewing/merging these teaches
+# supply-chain hygiene. Enable "Dependabot alerts" in Settings > Code security too.
+version: 2
+updates:
+  # Node / npm — active only if package.json exists at the repo root.
+  - package-ecosystem: "npm"
+    directory: "/"
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # One grouped PR for minor/patch bumps — less noise for beginners.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Python / pip — active only if requirements.txt / pyproject.toml exists.
+  - package-ecosystem: "pip"
+    directory: "/"
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+
+  # GitHub Actions themselves — keeps pinned action versions patched.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
