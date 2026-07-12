@@ -1,0 +1,11 @@
+# Custom .semgrepignore replaces semgrep's defaults — re-include .gitignore first.
+:include .gitignore
+
+# Vendored GSD tooling (root and landing-page copies) — third-party, not project code.
+.claude/
+
+# Static prototype; cdn.tailwindcss.com serves generated JS so SRI hashes can't apply.
+API/index.html
+
+# ASP.NET template's vendored client libs (jquery, jquery-validation).
+API/ZachHairStudio.Admin/wwwroot/lib/
