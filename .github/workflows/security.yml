@@ -56,7 +56,8 @@ jobs:
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.12"
-          cache: "pip"
+          # No `cache: pip` — it requires a requirements.txt/pyproject.toml to
+          # key on, and this repo has none (semgrep is installed ad-hoc below).
       - name: Install semgrep
         run: python -m pip install --upgrade pip semgrep
       - name: Run semgrep (community rules)
