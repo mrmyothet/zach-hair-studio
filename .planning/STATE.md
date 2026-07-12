@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 03 (staff-dashboard-schedule) — EXECUTING
 Plan: 4 of 4
 Status: Ready to execute
-Last activity: 2026-07-11 — Phase 03 execution started
+Last activity: 2026-07-12 - Completed quick task 260712-tds: Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs)
 
 Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 
@@ -102,6 +102,12 @@ Recent decisions affecting current work:
 - Payment provider (Phase 6) and auth provider/session strategy (Phase 7) remain open decisions per PROJECT.md Key Decisions — confirm before planning those phases.
 - ~~Default `MSSQLLocalDB` fails on this machine~~ — **resolved 2026-07-09.** The corrupted automatic instance was deleted and recreated (now v17.0.4025.3); migrations apply cleanly to `(localdb)\MSSQLLocalDB`, database `ZachHairStudio`. The API also runs against Azure SQL (`zachhairstudio.database.windows.net`) via a `ConnectionStrings__DefaultConnection` env-var override — note the Azure SQL firewall must allow the client IP.
 - `appsettings.json` `DefaultConnection` is `Server=localhost;...`, which disagrees with the `(localdb)\MSSQLLocalDB` documented in CLAUDE.md. Use `dotnet user-secrets` (not `appsettings.json`) for any connection string carrying a password — gitleaks scanning is wired to the pre-commit hook.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260712-tds | Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs) | 2026-07-12 | 40e3207 | [260712-tds-fix-semgrep-ci-findings-semgrepignore-ve](./quick/260712-tds-fix-semgrep-ci-findings-semgrepignore-ve/) |
 
 ## Deferred Items
 
