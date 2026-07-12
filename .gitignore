@@ -42,3 +42,5 @@ dashboard/.next/
 dashboard/node_modules/
 
 .vs
+
+/temp
