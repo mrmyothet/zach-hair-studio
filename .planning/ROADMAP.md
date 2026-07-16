@@ -73,7 +73,7 @@ Plans:
   4. Two near-simultaneous booking attempts for the same stylist/slot result in exactly one success and one clear "slot taken" rejection, enforced by a database-level uniqueness/overlap guarantee, not just an app-level check
   5. Appointment and availability times are stored as `DateTimeOffset` against a configured salon IANA timezone, verified correct across a DST-transition date
 
-**Plans**: 6 complete + 2 gap-closure (verification hardening)
+**Plans**: 7/8 plans executed
 Plans:
 **Wave 1**
 
@@ -98,7 +98,7 @@ Plans:
 
 **Gap-closure (Wave 6)** *(from 02-VERIFICATION.md — added by `/gsd-plan-phase 2 --gaps`)*
 
-- [ ] 02-07-PLAN.md — De-date-bomb the booking test suite (relative-to-now helper), prove shipped create-path salon-offset on real SQL, record SC5 DST descope for Asia/Yangon (BOOK-03, BOOK-05)
+- [x] 02-07-PLAN.md — De-date-bomb the booking test suite (relative-to-now helper), prove shipped create-path salon-offset on real SQL, record SC5 DST descope for Asia/Yangon (BOOK-03, BOOK-05)
 - [ ] 02-08-PLAN.md — [BLOCKING HUMAN] Fresh full-suite run + real booking email inspection for all five BOOK-03 fields (BOOK-03, BOOK-05)
 
 **Research flag**: yes — highest-correctness-risk phase in the roadmap; run a focused research pass on DB-level uniqueness/overlap constraint design, DateTimeOffset/timezone strategy, and seeded-availability-model shape before planning (research complete — see 02-RESEARCH.md)
@@ -230,7 +230,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 6/6 (+2 gap-closure) | Gap-closure | 2026-07-10 |
+| 2. Booking Core | 7/8 | In Progress|  |
 | 3. Staff Dashboard (Schedule) | 3/4 | In Progress|  |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |

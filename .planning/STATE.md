@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 03
-current_phase_name: staff-dashboard-schedule
+current_phase: 02
+current_phase_name: booking-core
 status: executing
 stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-07-16T07:25:51.546Z"
-last_activity: 2026-07-12
-last_activity_desc: "Completed quick task 260712-tds: Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs)"
+last_updated: "2026-07-16T07:58:45.776Z"
+last_activity: 2026-07-16
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 8
-  completed_phases: 2
-  total_plans: 14
-  completed_plans: 13
-  percent: 25
+  completed_phases: 1
+  total_plans: 17
+  completed_plans: 14
+  percent: 13
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 03 — staff-dashboard-schedule
+**Current focus:** Phase 02 — booking-core
 
 ## Current Position
 
-Phase: 03 (staff-dashboard-schedule) — EXECUTING
-Plan: 4 of 4
+Phase: 02 (booking-core) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-07-12 - Completed quick task 260712-tds: Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs)
+Last activity: 2026-07-16 — Phase 02 execution started
 
 Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 
@@ -60,6 +60,7 @@ Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 | Phase 03 P01 | 14min | 3 tasks | 13 files |
 | Phase 03 P02 | 10min | 3 tasks | 9 files |
 | Phase 03 P03 | 25min | 3 tasks | 10 files |
+| Phase 02 P07 | 25min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Phase 3 Plan 02: StaffUsersController uses an explicit [Route("api/staff-users")] (not the [controller] token) since the default token would yield /api/staffusers with no hyphen.
 - [Phase 03]: Phase 3 Plan 03: Global JsonStringEnumConverter registered in Program.cs so enum request/response fields (AppointmentStatusUpdateDto.NewStatus) round-trip as strings, matching AppointmentResponseDto.Status's existing string shape.
 - [Phase 03]: Phase 3 Plan 03: UpdateStatusAsync re-reads the current status from the DB and checks the single AllowedTransitions map before mutating - the one reusable slot-release path for Cancel/NoShow, never a forked copy.
+- [Phase ?]: Phase 2 Plan 07: SC5's DST-transition clause is descoped for the Asia/Yangon deployment (fixed UTC+06:30, never observes DST); DstBoundaryTests, DstRoundTripTests, and WritePathOffsetTests remain as the standing DST/offset proofs.
+- [Phase ?]: Phase 2 Plan 07: Create-path test dates derive from a shared TestSupport.BookingDates helper (relative-to-now via SalonTimeZone) instead of hardcoded calendar literals, for any test crossing the future-gated AppointmentCreateDtoValidator.
 
 ### Pending Todos
 
@@ -119,7 +122,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T06:49:27.192Z
+Last session: 2026-07-16T07:58:45.763Z
 Stopped at: Completed 03-02-PLAN.md
 Resume file: None
 
