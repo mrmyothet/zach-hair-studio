@@ -64,4 +64,48 @@ public class IdentitySeederTests : IClassFixture<SqlServerWebApplicationFactory>
         Assert.Single(allRoles, r => r.Name == StaffRoles.Owner);
         Assert.Single(allRoles, r => r.Name == StaffRoles.Staff);
     }
+
+    [Fact]
+    public async Task SeedAsync_ExistingOwnerMissingRole_RepairsMembership()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var config = BuildOwnerConfig();
+
+        // Ensure roles exist, then create the Owner user WITHOUT a role — the failure
+        // mode observed when AddToRoleAsync was skipped / failed on first seed.
+        foreach (var role in new[] { StaffRoles.Owner, StaffRoles.Staff })
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole<int>(role));
+            }
+        }
+
+        const string email = "owner-repair@seeder-test.local";
+        var orphan = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            DisplayName = "Orphan Owner",
+            EmailConfirmed = true,
+        };
+        Assert.True((await userManager.CreateAsync(orphan, "SeederTest!2026Pw")).Succeeded);
+        Assert.False(await userManager.IsInRoleAsync(orphan, StaffRoles.Owner));
+
+        var repairConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Owner:Email"] = email,
+                ["Owner:InitialPassword"] = "unused-because-user-exists",
+            })
+            .Build();
+
+        await IdentitySeeder.SeedAsync(roleManager, userManager, repairConfig);
+
+        var repaired = await userManager.FindByEmailAsync(email);
+        Assert.NotNull(repaired);
+        Assert.True(await userManager.IsInRoleAsync(repaired!, StaffRoles.Owner));
+    }
 }

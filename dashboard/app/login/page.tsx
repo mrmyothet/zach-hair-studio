@@ -61,7 +61,15 @@ function LoginForm() {
         headers: { "X-Skip-Auth-Redirect": "1" },
       });
 
-      if (!response.ok || !data?.token || !data.expiresAt || !data.displayName || !data.role) {
+      // role may be "" if AspNetUserRoles is missing — still accept a valid token so
+      // the staff can get in; Owner-only screens check role separately.
+      if (
+        !response.ok ||
+        !data?.token ||
+        !data.expiresAt ||
+        !data.displayName ||
+        typeof data.role !== "string"
+      ) {
         if (response.status === 401) {
           clearSession();
           setError("Invalid email or password.");

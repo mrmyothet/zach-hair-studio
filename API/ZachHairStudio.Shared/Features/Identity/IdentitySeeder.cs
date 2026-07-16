@@ -33,6 +33,14 @@ public static class IdentitySeeder
         var existingOwner = await userManager.FindByEmailAsync(ownerEmail);
         if (existingOwner is not null)
         {
+            // Repair path: an Owner user created without AspNetUserRoles (e.g. AddToRoleAsync
+            // failed on first seed) would otherwise leave login returning role:"" forever,
+            // because the early return skipped role assignment on every subsequent startup.
+            if (!await userManager.IsInRoleAsync(existingOwner, StaffRoles.Owner))
+            {
+                await userManager.AddToRoleAsync(existingOwner, StaffRoles.Owner);
+            }
+
             return;
         }
 
