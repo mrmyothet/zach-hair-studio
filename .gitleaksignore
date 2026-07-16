@@ -1,13 +1,8 @@
 # This file contains fingerprints of known false positives for gitleaks.
 # Format: <commit>:<file>:<rule>:<line>
-# The entries below are SHA-256 file-integrity checksums in manifest files,
-# not real secrets.
-3be69e3e34e4f2712cb0e19b84b6db62d072a28a:landing-page/.claude/gsd-file-manifest.json:generic-api-key:123
-18aec43ad946f75314cf48b790758944d73d764e:.claude/gsd-file-manifest.json:generic-api-key:122
-# Same manifest checksums as flagged by the pinned gitleaks v8.18.4 in
-# security.yml (different version = different reported line numbers).
-18aec43ad946f75314cf48b790758944d73d764e:.claude/gsd-file-manifest.json:generic-api-key:64
-3be69e3e34e4f2712cb0e19b84b6db62d072a28a:landing-page/.claude/gsd-file-manifest.json:generic-api-key:65
+# GSD manifest checksums are ignored via the regex [[allowlists]] block in
+# .gitleaks.toml (survives manifest regeneration); this file no longer carries
+# fingerprints for them.
 # UserSecretsId GUID documented in STACK.md — a public identifier (it lives in
 # the csproj), not a secret.
 c05c785156930157102f52e3d1e5acc2666879e1:.planning/codebase/STACK.md:generic-api-key:68
