@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Service Catalog** - Clients browse services (name, description, duration, price); API built on a real service layer from day one (completed 2026-07-09)
 - [x] **Phase 2: Booking Core** - Clients pick a service, see real open slots, and confirm a double-booking-safe appointment (completed 2026-07-10)
-- [ ] **Phase 3: Staff Dashboard (Schedule)** - Staff view the day's/week's appointments and update status behind a staff-only auth gate
+- [x] **Phase 3: Staff Dashboard (Schedule)** - Staff view the day's/week's appointments and update status behind a staff-only auth gate (completed 2026-07-16)
 - [ ] **Phase 4: Staff Management (Services & Availability)** - Staff self-serve CRUD for services and stylist availability, conflict-checked against existing bookings
 - [ ] **Phase 5: Product Catalog** - Clients browse a curated product catalog surfaced as stylist-recommended add-ons
 - [ ] **Phase 6: Cart & Checkout** - Clients buy recommended products through a trustworthy, server-authoritative checkout, as a guest or logged in
@@ -118,7 +118,7 @@ Plans:
   4. "No-show" behaves as a distinct terminal status from "cancelled" — queryable and reportable separately, not folded into the same enum meaning
   5. Attempting to reach the dashboard or its API without staff authentication is rejected
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans complete
 
 **Wave 1**
 
@@ -135,7 +135,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-05-PLAN.md — Day/week schedule UI + detail + status actions + polling + Owner add-staff (DASH-01..04 frontend)
+- [x] 03-05-PLAN.md — Day/week schedule UI + detail + status actions + polling + Owner add-staff (DASH-01..04 frontend)
 
 **UI hint**: yes
 
@@ -231,7 +231,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
 | 2. Booking Core | 7/8 | In Progress|  |
-| 3. Staff Dashboard (Schedule) | 4/5 | In Progress|  |
+| 3. Staff Dashboard (Schedule) | 5/5 | Complete   | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
 | 6. Cart & Checkout | 0/TBD | Not started | - |
