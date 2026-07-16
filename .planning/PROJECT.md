@@ -36,13 +36,13 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 - ✓ Frontend ↔ API round trip wired end-to-end (Phase 0 foundation) — existing
 - ✓ **Service catalog (read-only)** — services modeled (slug, name, descriptions, category, duration, price, image, active, display order); list + detail API; public `/services` browse and `/services/[slug]` detail; homepage subset and booking dropdown both database-backed. Validated in Phase 1: Service Catalog (2026-07-09)
 - ✓ **Per-feature service layer + validation layer** — `ServicesService` owns all `BookingDbContext` access; FluentValidation rejects invalid writes before they reach the database. Validated in Phase 1: Service Catalog (2026-07-09)
+- ✓ **Booking core** — appointments + stylist availability; open-slot query; pick service → choose slot → confirm with DB-enforced double-booking prevention; confirmation email. Validated in Phase 2: Booking Core (2026-07-10; gap-closure 2026-07-16)
+- ✓ **Staff dashboard (schedule)** — authenticated day/week schedule in `dashboard/`; appointment detail; Complete/Cancel/No-show with distinct no-show; staff auth gate. Validated in Phase 3: Staff Dashboard (Schedule) (2026-07-16)
 
 ### Active
 
 <!-- Current milestone: full specs roadmap P1–8. Hypotheses until shipped and validated. -->
 
-- [ ] **Booking core** — model appointments and stylist availability; query open slots; pick service → choose slot → confirm appointment (real slot-based booking, not free-text requests)
-- [ ] **Staff dashboard (schedule)** — day/week appointment view; staff view booking details and update status (confirmed, completed, cancelled, no-show)
 - [ ] **Staff management of services & availability** — dashboard CRUD for services; manage stylist availability feeding the slot logic
 - [ ] **Product catalog (read-only)** — model products (name, description, price, image, stock); list + detail API; public browse surfaced as stylist-recommended add-ons
 - [ ] **Cart & checkout** — cart on the public site; create order; decrement stock; integrate a payment provider and complete checkout
@@ -61,9 +61,9 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 ## Context
 
 - **Brownfield.** Phase 0 (foundation) is already shipped: the .NET API boots with EF Core + SQL Server, and the Next.js landing page calls it successfully via a working booking form. A `dashboard/` app is scaffolded but not built; a `mobile-app/` is only referenced.
-- **Booking today is a contact-style request**, not slot-based: the public form captures a free-text `Service` and a `PreferredDate`, with no service catalog or availability model behind it. Phases 1–2 replace this with a real catalog + slot booking.
+- **Phases 1–3 shipped:** service catalog, slot-based booking with confirmation email, and an authenticated staff schedule dashboard (`dashboard/`) with status updates including distinct no-show. Next: staff self-serve services & availability (Phase 4).
 - **Codebase map** lives in `.planning/codebase/` (STACK, ARCHITECTURE, STRUCTURE, CONVENTIONS, TESTING, INTEGRATIONS, CONCERNS).
-- **Known concerns flagged during mapping** (see `.planning/codebase/CONCERNS.md`): open CORS + no authentication (must be addressed before public deployment / Phase 7–8), `db.Database.Migrate()` runs on startup, and core business logic is currently untested.
+- **Known concerns flagged during mapping** (see `.planning/codebase/CONCERNS.md`): open CORS (must be restricted before public deployment / Phase 8); staff JWT auth is in place for dashboard APIs (Phase 3); `db.Database.Migrate()` runs on startup.
 - **Project skills exist** for this stack: `dev`, `ef-migrations`, `feature-scaffold`, `openapi-client` (see `specs/tooling.md`).
 
 ## Constraints
@@ -106,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 5. Update Context with current state
 
 ---
-*Last updated: 2026-07-07 after initialization*
+*Last updated: 2026-07-16 after Phase 3 (Staff Dashboard) completion*
