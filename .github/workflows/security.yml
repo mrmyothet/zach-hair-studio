@@ -41,7 +41,7 @@ jobs:
         # The image has no license gate. Exits non-zero on findings; continue-on-error
         # keeps the job green (advisory). Findings appear in the run logs.
         run: |
-          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.18.4 \
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 \
             detect --source /repo --redact --verbose
           # Pinned tag = reproducible + a known `detect` subcommand. Bump the tag
           # occasionally for fresh secret patterns.
