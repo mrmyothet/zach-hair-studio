@@ -6,7 +6,7 @@ current_phase: 4
 current_phase_name: Services & Availability
 status: verifying
 stopped_at: Completed 03-05-PLAN.md
-last_updated: "2026-07-16T12:20:47.210Z"
+last_updated: "2026-07-16T12:35:36.310Z"
 last_activity: 2026-07-16
 last_activity_desc: "Completed quick task 260716-qfe: Fix gitleaks false positives on GSD manifest checksums"
 progress:
@@ -118,6 +118,7 @@ Recent decisions affecting current work:
 | 260712-tds | Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs) | 2026-07-12 | 40e3207 | [260712-tds-fix-semgrep-ci-findings-semgrepignore-ve](./quick/260712-tds-fix-semgrep-ci-findings-semgrepignore-ve/) |
 | 260716-qfe | Fix gitleaks false positives on GSD manifest checksums (rule-targeted regex allowlist replaces stale .gitleaksignore fingerprints) | 2026-07-16 | 8e7a1d2 | [260716-qfe-fix-gitleaks-false-positives-on-gsd-mani](./quick/260716-qfe-fix-gitleaks-false-positives-on-gsd-mani/) |
 | 3 | Bump CI gitleaks v8.18.4 -> v8.30.1 so [[allowlists]] config applies in security.yml scan | 2026-07-16 | 1221ba5 | — |
+| 4 | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies | 2026-07-16 | b130c2d | — |
 
 ## Deferred Items
 
