@@ -3,18 +3,18 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 03
-current_phase_name: staff-dashboard-schedule
-status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-07-16T10:54:39.061Z"
+status: plans_complete
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-07-16T10:56:00.000Z"
 last_activity: 2026-07-16
-last_activity_desc: Phase 03 execution started
+last_activity_desc: Completed 03-05-PLAN.md (schedule UI)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 17
   completed_plans: 17
   percent: 38
+current_phase_name: staff-dashboard-schedule
 ---
 
 # Project State
@@ -28,12 +28,12 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 
 ## Current Position
 
-Phase: 03 (staff-dashboard-schedule) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
-Last activity: 2026-07-16 — Phase 03 execution started
+Phase: 03 (staff-dashboard-schedule) — PLANS COMPLETE
+Plan: 5 of 5
+Status: Phase 03 plans complete — awaiting verify-work
+Last activity: 2026-07-16 — Completed 03-05-PLAN.md
 
-Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
+Progress: [████░░░░░░] 38%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 | Phase 03 P02 | 10min | 3 tasks | 9 files |
 | Phase 03 P03 | 25min | 3 tasks | 10 files |
 | Phase 02 P07 | 25min | 3 tasks | 8 files |
+| Phase 03 P05 | close-out | 4 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Phase 3 Plan 03: UpdateStatusAsync re-reads the current status from the DB and checks the single AllowedTransitions map before mutating - the one reusable slot-release path for Cancel/NoShow, never a forked copy.
 - [Phase ?]: Phase 2 Plan 07: SC5's DST-transition clause is descoped for the Asia/Yangon deployment (fixed UTC+06:30, never observes DST); DstBoundaryTests, DstRoundTripTests, and WritePathOffsetTests remain as the standing DST/offset proofs.
 - [Phase ?]: Phase 2 Plan 07: Create-path test dates derive from a shared TestSupport.BookingDates helper (relative-to-now via SalonTimeZone) instead of hardcoded calendar literals, for any test crossing the future-gated AppointmentCreateDtoValidator.
+- [Phase ?]: Phase 3 Plan 05: Hand-rolled CSS Grid day view with Asia/Yangon scheduleTime helpers — no calendar library.
+- [Phase ?]: Phase 3 Plan 05: Schedule fetches all statuses; Cancelled/NoShow reveal is client-side includeCancelled toggle (D-08).
+- [Phase ?]: Phase 3 Plan 05: POST /api/staff-users 201 Created treated as success on Owner add-staff form.
 
 ### Pending Todos
 
@@ -122,8 +126,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-16T10:54:39.042Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-07-16T10:56:00.000Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None
 
-Next action: run the flagged research pass for Phase 2 (Booking Core), then `/gsd-plan-phase 2`. Phase 2 is the highest-correctness-risk phase — DB-level double-booking constraint design, `DateTimeOffset`/timezone strategy, and the seeded-availability model shape all need research before planning.
+Next action: Phase 03 plans 01–05 complete (ROADMAP 5/5). Run `/gsd-verify-work` for Phase 03 when ready — do not start Phase 04 until verification.
