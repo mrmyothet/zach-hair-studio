@@ -42,7 +42,7 @@ const node_os_1 = __importDefault(require("node:os"));
 const node_crypto_1 = __importDefault(require("node:crypto"));
 /* eslint-disable @typescript-eslint/no-require-imports */
 const ledgerMod = require('./capability-ledger.cjs');
-const { execTool } = require('./shell-command-projection.cjs');
+const { execTool, retryRenameSync } = require('./shell-command-projection.cjs');
 /* eslint-enable @typescript-eslint/no-require-imports */
 // ---------------------------------------------------------------------------
 // Constants
@@ -475,7 +475,7 @@ function acquireLock(lockPath, opts) {
         // Steal atomically (only one racer can rename the inode).
         const stolen = `${lockPath}.stale-${process.pid}-${Date.now()}-${node_crypto_1.default.randomBytes(4).toString('hex')}`;
         try {
-            node_fs_1.default.renameSync(lockPath, stolen);
+            retryRenameSync(lockPath, stolen);
         }
         catch {
             return null;

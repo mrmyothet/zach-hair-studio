@@ -18,7 +18,7 @@ Closes the plan → execute → verify → ship loop.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ship.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ship.md
 </execution_context>
 
-Execute the ship workflow from @D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ship.md end-to-end.
+Execute the ship workflow from @C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ship.md end-to-end.

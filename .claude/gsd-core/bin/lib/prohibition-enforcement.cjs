@@ -515,12 +515,12 @@ function defaultProveFailFirst(check, cwd, timeoutMs) {
             // a setup crash, not from the prohibition firing. Requiring the fixture to exist before spawning
             // closes the realistic typo/stale-path case (#1279 review, Major 1).
             //
-            // CAUSATION (#1346): existence + a non-vacuous red is necessary but not sufficient — a deceptive
-            // negative test that reds merely BECAUSE `GSD_PROHIB_SUBJECT` is set (rather than because the
-            // subject's CONTENT violates the must-NOT) would otherwise be accepted. The OPTIONAL `cleanFixture`
-            // control below proves content-dependence when supplied (red on bad AND green on clean). When NO
-            // clean fixture is authored the control cannot run, so the residual remains a documented constraint
-            // for that case (an author opts into the stronger proof by supplying a known-clean control subject).
+            // CAUSATION (#1346; MANDATORY as of #1906): existence + a non-vacuous red is necessary but not
+            // sufficient — a deceptive negative test that reds merely BECAUSE `GSD_PROHIB_SUBJECT` is set
+            // (rather than because the subject's CONTENT violates the must-NOT) would otherwise be accepted.
+            // The `cleanFixture` control below proves content-dependence (red on bad AND green on clean) and is
+            // now REQUIRED for the node-test kind: absent it, the check is un-provable (fail-closed), not
+            // accepted under the weaker violation-only proof (#1906 supersedes #1346's opt-in; ADR-1606 D4).
             // Resolve the fixture against `cwd` (NOT the verify process's cwd): the spawned test reads
             // `GSD_PROHIB_SUBJECT` and resolves a relative subject against `cwd`, so the existence check must
             // use the SAME base or it could pass here yet ENOENT in the child (re-opening the fail-open hole).
@@ -530,20 +530,22 @@ function defaultProveFailFirst(check, cwd, timeoutMs) {
             const redOut = runNodeTestWithSubject(check, cwd, fixture, timeoutMs);
             if (!isNonVacuousNodeTestRed(redOut, check.target))
                 return { provenFailFirst: false, method: 'violation-fixture' };
-            // #1346 CAUSATION CONTROL (optional): if a clean control subject is supplied, run the SAME test
-            // against it and require it to stay GREEN. This proves the red above was caused by the subject's
-            // CONTENT — a deceptive test that reds merely because GSD_PROHIB_SUBJECT is SET reds here too →
-            // not content-dependent → not proven. Absent → no control (documented residual; backward-compat).
+            // #1906 CAUSATION CONTROL (MANDATORY for node-test — supersedes #1346's opt-in, ADR-1606 D4): the
+            // clean control subject is REQUIRED. Run the SAME test against it and require it to stay GREEN,
+            // proving the red above was caused by the subject's CONTENT — a deceptive test that reds merely
+            // because GSD_PROHIB_SUBJECT is SET reds here too → not content-dependent → not proven. ABSENT →
+            // the control cannot run → un-provable → fail-closed (NOT accepted under the weaker violation-only
+            // proof). This is the one behavior change vs #1346: absent `cleanFixture` was previously proven.
             const clean = check.cleanFixture;
-            if (clean) {
-                // A supplied-but-missing/typo'd control path can't run the control → fail-closed, symmetric
-                // with the violation-fixture existence guard (resolve against the SAME `cwd` as the child).
-                if (!node_fs_1.default.existsSync(node_path_1.default.resolve(cwd, clean)))
-                    return { provenFailFirst: false, method: 'violation-fixture' };
-                const cleanOut = runNodeTestWithSubject(check, cwd, clean, timeoutMs);
-                if (!isNonVacuousNodeTestPass(cleanOut, check.target))
-                    return { provenFailFirst: false, method: 'violation-fixture' };
-            }
+            if (!clean)
+                return { provenFailFirst: false, method: 'violation-fixture' };
+            // A supplied-but-missing/typo'd control path can't run the control → fail-closed, symmetric
+            // with the violation-fixture existence guard (resolve against the SAME `cwd` as the child).
+            if (!node_fs_1.default.existsSync(node_path_1.default.resolve(cwd, clean)))
+                return { provenFailFirst: false, method: 'violation-fixture' };
+            const cleanOut = runNodeTestWithSubject(check, cwd, clean, timeoutMs);
+            if (!isNonVacuousNodeTestPass(cleanOut, check.target))
+                return { provenFailFirst: false, method: 'violation-fixture' };
             return { provenFailFirst: true, method: 'violation-fixture' };
         }
         // Unknown kind — defensive; the LOCATE guard already rejects it.

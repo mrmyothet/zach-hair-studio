@@ -21,9 +21,9 @@ Three modes:
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/undo.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gate-prompts.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/undo.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gate-prompts.md
 </execution_context>
 
 <context>

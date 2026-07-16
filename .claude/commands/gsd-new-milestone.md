@@ -26,11 +26,11 @@ Brownfield equivalent of new-project. Project exists, PROJECT.md has history. Ga
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/new-milestone.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/questioning.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/project.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/requirements.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/new-milestone.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/questioning.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/project.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/requirements.md
 </execution_context>
 
 <context>

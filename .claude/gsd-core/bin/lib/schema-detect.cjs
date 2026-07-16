@@ -13,6 +13,7 @@ exports.ORM_INFO = exports.SCHEMA_PATTERNS = void 0;
 exports.detectSchemaFiles = detectSchemaFiles;
 exports.detectSchemaOrm = detectSchemaOrm;
 exports.checkSchemaDrift = checkSchemaDrift;
+const shell_command_projection_cjs_1 = require("./shell-command-projection.cjs");
 exports.SCHEMA_PATTERNS = [
     { pattern: /^src\/collections\/.*\.ts$/, orm: 'payload' },
     { pattern: /^src\/globals\/.*\.ts$/, orm: 'payload' },
@@ -61,7 +62,7 @@ function detectSchemaFiles(files) {
     const matches = [];
     const orms = new Set();
     for (const rawFile of files) {
-        const file = rawFile.replace(/\\/g, '/');
+        const file = (0, shell_command_projection_cjs_1.posixNormalize)(rawFile);
         for (const { pattern, orm } of exports.SCHEMA_PATTERNS) {
             if (pattern.test(file)) {
                 matches.push(rawFile);

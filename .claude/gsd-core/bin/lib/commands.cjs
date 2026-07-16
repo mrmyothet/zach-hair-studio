@@ -45,6 +45,7 @@ const { extractFrontmatter } = frontmatter;
 const modelProfiles = require("./model-profiles.cjs");
 const { MODEL_PROFILES, VALID_PHASE_TYPES } = modelProfiles;
 const runtime_slash_cjs_1 = require("./runtime-slash.cjs");
+const clock_cjs_1 = require("./clock.cjs");
 // ─── Phase Status ─────────────────────────────────────────────────────────────
 /**
  * Determine phase status by checking plan/summary counts AND verification state.
@@ -471,9 +472,11 @@ function cmdEffortSync(cwd, raw, opts) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/unbound-method
     const { getGlobalConfigDir } = require('./runtime-homes.cjs');
     // Use install-time resolvers: they merge ~/.gsd/defaults.json with project config,
-    // matching the exact logic used when agents were originally installed.
+    // matching the exact logic used when agents were originally installed. #2071: these
+    // live in the shipped sibling install-effort-resolver.cjs (extracted from the
+    // package-root bin/install.js, which the installer never copies into a runtime home).
     // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/unbound-method
-    const { readGsdEffectiveEffortConfig, resolveInstallTimeEffort } = require('../../../bin/install.js');
+    const { readGsdEffectiveEffortConfig, resolveInstallTimeEffort } = require('./install-effort-resolver.cjs');
     const effortCfg = readGsdEffectiveEffortConfig(cwd);
     const agentsDir = node_path_1.default.join(opts.configDir || getGlobalConfigDir(runtime), 'agents');
     if (!node_fs_1.default.existsSync(agentsDir)) {
@@ -590,6 +593,7 @@ function cmdCommit(cwd, message, files, raw, amend, noVerify) {
     // Stage files
     const explicitFiles = files && files.length > 0;
     const filesToStage = explicitFiles ? files : ['.planning/'];
+    const stagedPaths = [];
     for (const file of filesToStage) {
         const fullPath = node_path_1.default.join(cwd, file);
         if (!node_fs_1.default.existsSync(fullPath)) {
@@ -605,12 +609,32 @@ function cmdCommit(cwd, message, files, raw, amend, noVerify) {
         }
         else {
             (0, shell_command_projection_cjs_1.execGit)(['add', file], { cwd });
+            stagedPaths.push(file);
         }
     }
-    // Commit (--no-verify skips pre-commit hooks, used by parallel executor agents)
-    const commitArgs = amend ? ['commit', '--amend', '--no-edit'] : ['commit', '-m', sanitizedMessage];
+    // Commit — when the caller declared a scope (--files), append a pathspec so
+    // only the declared files land in the commit, not the entire index (#2112).
+    // The pathspec uses stagedPaths (not filesToStage) so skipped missing files
+    // are excluded — otherwise git would record them as deletions (#2014).
+    // During a merge, git refuses partial commits — fall back to a bare commit.
+    // --amend is left without a pathspec: amending with -- <paths> is a different
+    // operation that rewrites the tip with only those paths.
+    if (explicitFiles && stagedPaths.length === 0 && !amend) {
+        const result = { committed: false, hash: null, reason: 'nothing_to_commit' };
+        output(result, raw, 'nothing');
+        return;
+    }
+    const isMergeInProgress = (0, shell_command_projection_cjs_1.execGit)(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { cwd }).exitCode === 0;
+    const canScope = explicitFiles && stagedPaths.length > 0 && !amend
+        && !isMergeInProgress;
+    const commitArgs = amend
+        ? ['commit', '--amend', '--no-edit']
+        : ['commit', '-m', sanitizedMessage];
     if (noVerify)
         commitArgs.push('--no-verify');
+    if (canScope) {
+        commitArgs.push('--', ...stagedPaths);
+    }
     const commitResult = (0, shell_command_projection_cjs_1.execGit)(commitArgs, { cwd });
     if (commitResult.exitCode !== 0) {
         if (commitResult.stdout.includes('nothing to commit') || commitResult.stderr.includes('nothing to commit')) {
@@ -708,12 +732,21 @@ function cmdCommitToSubrepo(cwd, message, files, raw) {
     for (const [repo, repoFiles] of Object.entries(grouped)) {
         const repoCwd = node_path_1.default.join(cwd, repo);
         // Stage files (strip sub-repo prefix for paths relative to that repo)
+        const stagedRelPaths = [];
         for (const file of repoFiles) {
             const relativePath = file.slice(repo.length + 1);
-            (0, shell_command_projection_cjs_1.execGit)(['add', relativePath], { cwd: repoCwd });
+            const addResult = (0, shell_command_projection_cjs_1.execGit)(['add', relativePath], { cwd: repoCwd });
+            if (addResult.exitCode === 0) {
+                stagedRelPaths.push(relativePath);
+            }
         }
-        // Commit
-        const commitResult = (0, shell_command_projection_cjs_1.execGit)(['commit', '-m', message], { cwd: repoCwd });
+        // Commit — pathspec limits the commit to the staged files only (#2112)
+        const isMergeInProgressSub = (0, shell_command_projection_cjs_1.execGit)(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { cwd: repoCwd }).exitCode === 0;
+        const canScopeSub = stagedRelPaths.length > 0 && !isMergeInProgressSub;
+        const commitArgs = canScopeSub
+            ? ['commit', '-m', message, '--', ...stagedRelPaths]
+            : ['commit', '-m', message];
+        const commitResult = (0, shell_command_projection_cjs_1.execGit)(commitArgs, { cwd: repoCwd });
         if (commitResult.exitCode !== 0) {
             if (commitResult.stdout.includes('nothing to commit') || commitResult.stderr.includes('nothing to commit')) {
                 repos[repo] = { committed: false, hash: null, files: repoFiles, reason: 'nothing_to_commit' };
@@ -835,8 +868,16 @@ function cmdPrSubrepo(cwd, repo, branch, commitMessage, raw) {
             error(`Failed to stage ${file} in ${repo}: ${addResult.stderr}`);
         }
     }
-    // 5. Commit
-    const commitResult = (0, shell_command_projection_cjs_1.execGit)(['commit', '-m', commitMessage], { cwd: repoCwd });
+    // 5. Commit — pathspec limits the commit to the staged files only (#2112).
+    // changedFiles includes both old and new paths for renames so the full
+    // rename is captured atomically (pathspec on newPath alone would leave the
+    // deletion of oldPath stranded in the index).
+    const isMergeInProgressPr = (0, shell_command_projection_cjs_1.execGit)(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { cwd: repoCwd }).exitCode === 0;
+    const canScopePr = changedFiles.length > 0 && !isMergeInProgressPr;
+    const commitArgs = canScopePr
+        ? ['commit', '-m', commitMessage, '--', ...changedFiles]
+        : ['commit', '-m', commitMessage];
+    const commitResult = (0, shell_command_projection_cjs_1.execGit)(commitArgs, { cwd: repoCwd });
     if (commitResult.exitCode !== 0) {
         rollback();
         error(`Failed to commit in ${repo}: ${commitResult.stderr}`);
@@ -1157,7 +1198,7 @@ function cmdTodoMatchPhase(cwd, phase, raw) {
                 const planContent = (0, shell_command_projection_cjs_1.platformReadSync)(node_path_1.default.join(phaseDir, pf));
                 if (planContent === null)
                     continue;
-                const fmFiles = planContent.match(/files_modified:\s*\[([^\]]*)\]/);
+                const fmFiles = planContent.match(/files_modified:\s*\[([^\]]{0,8000})\]/);
                 if (fmFiles) {
                     phasePlans.push(...fmFiles[1].split(',').map(s => s.trim().replace(/['"]/g, '')).filter(Boolean));
                 }
@@ -1221,7 +1262,7 @@ function cmdTodoComplete(cwd, filename, raw) {
     (0, shell_command_projection_cjs_1.platformEnsureDir)(completedDir);
     // Read, add completion timestamp, move
     let content = node_fs_1.default.readFileSync(sourcePath, 'utf-8');
-    const today = new Date().toISOString().split('T')[0];
+    const today = clock_cjs_1.realClock.localToday();
     content = `completed: ${today}\n` + content;
     (0, shell_command_projection_cjs_1.platformWriteSync)(node_path_1.default.join(completedDir, filename), content);
     node_fs_1.default.unlinkSync(sourcePath);
@@ -1230,7 +1271,7 @@ function cmdTodoComplete(cwd, filename, raw) {
 function cmdScaffold(cwd, type, options, raw) {
     const { phase, name } = options;
     const padded = phase ? normalizePhaseName(phase) : '00';
-    const today = new Date().toISOString().split('T')[0];
+    const today = clock_cjs_1.realClock.localToday();
     // Find phase directory
     const phaseInfo = phase ? findPhaseInternal(cwd, phase) : null;
     const phaseDir = phaseInfo ? node_path_1.default.join(cwd, phaseInfo['directory']) : null;
@@ -1302,7 +1343,8 @@ function cmdStats(cwd, format, raw) {
         const roadmapContent = extractCurrentMilestone(roadmapRaw, cwd);
         // Matches both plain numeric (Phase 1:) and milestone-prefixed (Phase 2-01:) headings.
         // Also tolerates optional [bracket-token] scope prefix on phase headings.
-        const headingPattern = /#{2,4}\s*(?:\[[^\]]+\]\s*)?Phase\s+([\w][\w.-]*)\s*:\s*([^\n]+)/gi;
+        // #1729: `(?:\s*\([^)\n]{0,200}\))?` tolerates a pre-colon ( ) tag (literal mirror of OPTIONAL_PHASE_TAG_SOURCE).
+        const headingPattern = /#{2,4}\s*(?:\[[^\]]{1,200}\]\s*)?Phase\s+([\w][\w.-]*)(?:\s*\([^)\n]{0,200}\))?\s*:\s*([^\n]+)/gi;
         let match;
         while ((match = headingPattern.exec(roadmapContent)) !== null) {
             const key = normalizePhaseName(match[1]);

@@ -29,10 +29,10 @@ Mode routing:
 </routing>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/new-workspace.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/list-workspaces.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/remove-workspace.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/new-workspace.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/list-workspaces.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/remove-workspace.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
 </execution_context>
 
 <context>

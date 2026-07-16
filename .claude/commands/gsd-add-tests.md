@@ -26,7 +26,7 @@ Output: Test files committed with message `test(phase-{N}): add unit and E2E tes
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-tests.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-tests.md
 </execution_context>
 
 <context>

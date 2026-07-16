@@ -17,7 +17,7 @@ Extract structured learnings from completed phase artifacts (PLAN.md, SUMMARY.md
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/extract-learnings.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/extract-learnings.md
 </execution_context>
 
-Execute the extract-learnings workflow from @D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/extract-learnings.md end-to-end.
+Execute the extract-learnings workflow from @C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/extract-learnings.md end-to-end.

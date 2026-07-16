@@ -26,6 +26,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const shell_command_projection_cjs_1 = require("./shell-command-projection.cjs");
 const runtime_slash_cjs_1 = require("./runtime-slash.cjs");
+const clock_cjs_1 = require("./clock.cjs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ioMod = require("./io.cjs");
 const { output } = ioMod;
@@ -276,7 +277,7 @@ function buildStateMd(phaseMap) {
     const status = currentEntry ? 'Ready to plan' : 'All phases complete';
     const filled = Math.round(pct / 10);
     const bar = `[${'█'.repeat(filled)}${'░'.repeat(10 - filled)}]`;
-    const today = new Date().toISOString().split('T')[0];
+    const today = clock_cjs_1.realClock.localToday();
     return [
         '# Project State',
         '',

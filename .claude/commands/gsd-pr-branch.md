@@ -18,7 +18,7 @@ changes that are irrelevant to code review.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/pr-branch.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/pr-branch.md
 </execution_context>
 
 <process>

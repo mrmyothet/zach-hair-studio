@@ -15,7 +15,7 @@ Use when `.planning/phases/` has accumulated directories from past milestones.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/cleanup.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/cleanup.md
 </execution_context>
 
 <process>

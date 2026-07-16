@@ -69,7 +69,7 @@ const SAFE_PATH_RE = /^(?!.*\.\.)(?:[A-Za-z0-9_.][A-Za-z0-9_.\-]*)(?:\/[A-Za-z0-
 function classifyFile(file) {
     if (typeof file !== 'string' || !file)
         return null;
-    const norm = file.replace(/\\/g, '/');
+    const norm = (0, shell_command_projection_cjs_1.posixNormalize)(file);
     if (MIGRATION_RES.some((r) => r.test(norm)))
         return 'migration';
     if (ROUTE_RES.some((r) => r.test(norm)))
@@ -87,7 +87,7 @@ function classifyFile(file) {
  * check `structureMd.includes('src/lib')` holds.
  */
 function isPathMapped(file, structureMd) {
-    const norm = file.replace(/\\/g, '/');
+    const norm = (0, shell_command_projection_cjs_1.posixNormalize)(file);
     const parts = norm.split('/');
     // Check prefixes from longest to shortest; any hit means "mapped".
     for (let i = parts.length - 1; i >= 1; i--) {
@@ -130,7 +130,7 @@ function detectDrift(input) {
         const elements = [];
         const seen = new Map();
         for (const rawFile of added) {
-            const file = rawFile.replace(/\\/g, '/');
+            const file = (0, shell_command_projection_cjs_1.posixNormalize)(rawFile);
             const specific = classifyFile(file);
             let category = specific;
             if (!category) {
@@ -251,7 +251,7 @@ function chooseAffectedPaths(paths) {
     for (const raw of paths || []) {
         if (typeof raw !== 'string' || !raw)
             continue;
-        const file = raw.replace(/\\/g, '/');
+        const file = (0, shell_command_projection_cjs_1.posixNormalize)(raw);
         const parts = file.split('/');
         if (parts.length === 0)
             continue;

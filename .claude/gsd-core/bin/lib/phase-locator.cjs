@@ -34,9 +34,30 @@ const { planningDir } = planningWorkspace;
 function searchPhaseInDir(baseDir, relBase, normalized) {
     try {
         const dirs = readSubdirectories(baseDir, true);
-        const match = dirs.find(d => phaseTokenMatches(d, normalized));
-        if (!match)
+        const matches = dirs.filter(d => phaseTokenMatches(d, normalized));
+        if (matches.length === 0)
             return null;
+        // #2237: fail loud when multiple directories match the same bare phase
+        // number — this happens when unrelated projects share a .planning/phases/
+        // tree. Silently taking the first match risks cross-project file writes.
+        if (matches.length > 1) {
+            return {
+                found: false,
+                directory: '',
+                phase_number: normalized,
+                phase_name: null,
+                phase_slug: null,
+                plans: [],
+                summaries: [],
+                incomplete_plans: [],
+                has_research: false,
+                has_context: false,
+                has_verification: false,
+                has_reviews: false,
+                ambiguous_matches: matches,
+            };
+        }
+        const match = matches[0];
         const phaseToken = extractPhaseToken(match);
         const phaseNumber = phaseToken || normalized;
         const afterToken = match.slice(phaseToken ? phaseToken.length : 0).replace(/^-/, '');

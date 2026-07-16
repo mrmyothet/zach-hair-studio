@@ -13,21 +13,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_child_process_1 = require("node:child_process");
+const shell_command_projection_cjs_1 = require("./shell-command-projection.cjs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const planningWorkspace = require("./planning-workspace.cjs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const phaseIdMod = require("./phase-id.cjs");
 const { planningDir } = planningWorkspace;
-const { stripProjectCodePrefix } = phaseIdMod;
+const { stripProjectCodePrefix, PHASE_NUMBER_TOKEN_SOURCE } = phaseIdMod;
 // ─── Regex helpers ────────────────────────────────────────────────────────────
 // Matches legacy phase headings: ### Phase N: Name  (also decimal: Phase 2.1:)
 // Captures: (hashes)(spaces)(phase-number)(rest-of-line)
-const LEGACY_PHASE_HEADING_RE = /^(#{2,4})\s*(?:\[[^\]]+\]\s*)?Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:(.*)/i;
+const LEGACY_PHASE_HEADING_RE = new RegExp(`^(#{2,4})\\s*(?:\\[[^\\]]{1,200}\\]\\s*)?Phase\\s+(${PHASE_NUMBER_TOKEN_SOURCE})\\s*:(.*)`, 'i');
 // Matches already-migrated phase headings: ### Phase M-NN: Name
-const MIGRATED_PHASE_HEADING_RE = /^#{2,4}\s*(?:\[[^\]]+\]\s*)?Phase\s+\d+-\d{2}\s*:/i;
+const MIGRATED_PHASE_HEADING_RE = /^#{2,4}\s*(?:\[[^\]]{1,200}\]\s*)?Phase\s+\d+-\d{2}\s*:/i;
 // Matches milestone section headings: ## v1.0, ## Roadmap v2.0, ## ✅ v1.0, ## [GSD] v1.0, etc.
 // The optional bracket-token prefix (e.g., [GSD]) must be tested before the emoji group.
-const MILESTONE_HEADING_RE = /^##\s+(?:\[[^\]]+\]\s+|Roadmap\s+|[✅🚧]\s*)?v(\d+)\.(\d+)(?:\s|:)/iu;
+const MILESTONE_HEADING_RE = /^##\s+(?:\[[^\]]{1,200}\]\s+|Roadmap\s+|[✅🚧]\s*)?v(\d+)\.(\d+)(?:\s|:)/iu;
 // ─── Pure computation helpers ─────────────────────────────────────────────────
 /**
  * Parse the ROADMAP.md content and build a list of phase entries with their
@@ -105,7 +106,7 @@ function extractPhaseNumFromDir(dirName) {
     const stripped = stripProjectCodePrefix(dirName);
     // Matches: digits + optional letter + optional decimal suffix, followed by '-' or end.
     // e.g. "02.1-hotfix" → "02.1", "01-setup" → "01"
-    const m = stripped.match(/^(\d+[A-Z]?(?:\.\d+)*)(?:-|$)/i);
+    const m = stripped.match(new RegExp(`^(${PHASE_NUMBER_TOKEN_SOURCE})(?:-|$)`, 'i'));
     return m ? m[1] : null;
 }
 /**
@@ -118,7 +119,7 @@ function buildNewDirName(oldDirName, newId, projectCode) {
     // Strip existing project_code prefix
     const stripped = stripProjectCodePrefix(oldDirName);
     // Extract slug: everything after "NN-" (the old phase num, including decimal like 02.1)
-    const slugMatch = stripped.match(/^\d+[A-Z]?(?:\.\d+)*-(.*)/i);
+    const slugMatch = stripped.match(new RegExp(`^${PHASE_NUMBER_TOKEN_SOURCE}-(.*)`, 'i'));
     const slug = slugMatch ? slugMatch[1] : stripped;
     // Build M-NN prefix (zero-pad both parts)
     const [milestoneStr, subStr] = newId.split('-');
@@ -255,7 +256,7 @@ function computeMigrationPlan(cwd, options = {}) {
             continue;
         // Rewrite heading line: "### Phase N: Name" → "### Phase M-NN: Name"
         const oldLine = lines[entry.lineIndex];
-        const newLine = oldLine.replace(/^(#{2,4}\s*(?:\[[^\]]+\]\s*)?Phase\s+)\d+[A-Z]?(?:\.\d+)*(\s*:)/i, `$1${mapping.newId}$2`);
+        const newLine = oldLine.replace(new RegExp(`^(#{2,4}\\s*(?:\\[[^\\]]{1,200}\\]\\s*)?Phase\\s+)${PHASE_NUMBER_TOKEN_SOURCE}(\\s*:)`, 'i'), `$1${mapping.newId}$2`);
         if (newLine !== oldLine) {
             roadmapEdits.push({ lineIndex: entry.lineIndex, from: oldLine, to: newLine });
         }
@@ -273,7 +274,7 @@ function computeMigrationPlan(cwd, options = {}) {
         if (roadmapEdits.some(e => e.lineIndex === i))
             continue;
         // Match checklist items: "- [ ] **Phase N:**" or "- [x] Phase N:"  (also decimal)
-        const checklistMatch = line.match(/^(\s*-\s*\[[ x]\]\s*\*{0,2}Phase\s+)(\d+[A-Z]?(?:\.\d+)*)(\s*[:\s*])/i);
+        const checklistMatch = line.match(new RegExp(`^(\\s*-\\s*\\[[ x]\\]\\s*\\*{0,2}Phase\\s+)(${PHASE_NUMBER_TOKEN_SOURCE})(\\s*[:\\s*])`, 'i'));
         if (checklistMatch) {
             const legacyNum = checklistMatch[2];
             const cIntPart = parseInt(legacyNum, 10);
@@ -299,7 +300,7 @@ function computeMigrationPlan(cwd, options = {}) {
                     newId = found.newId;
             }
             if (newId) {
-                const newLine = line.replace(/^(\s*-\s*\[[ x]\]\s*\*{0,2}Phase\s+)\d+[A-Z]?(?:\.\d+)*(\s*[:\s*])/i, `$1${newId}$2`);
+                const newLine = line.replace(new RegExp(`^(\\s*-\\s*\\[[ x]\\]\\s*\\*{0,2}Phase\\s+)${PHASE_NUMBER_TOKEN_SOURCE}(\\s*[:\\s*])`, 'i'), `$1${newId}$2`);
                 if (newLine !== line) {
                     roadmapEdits.push({ lineIndex: i, from: line, to: newLine });
                 }
@@ -416,7 +417,7 @@ function applyMigration(cwd, plan, options = {}) {
             const oldPath = node_path_1.default.join(phasesDir, phaseEntry.oldDir);
             const newPath = node_path_1.default.join(phasesDir, phaseEntry.newDir);
             if (node_fs_1.default.existsSync(oldPath)) {
-                node_fs_1.default.renameSync(oldPath, newPath);
+                (0, shell_command_projection_cjs_1.retryRenameSync)(oldPath, newPath);
                 performedRenames.push({ oldPath, newPath });
                 renamedDirs.push(`${phaseEntry.oldDir} → ${phaseEntry.newDir}`);
             }
@@ -483,7 +484,7 @@ function applyMigration(cwd, plan, options = {}) {
             const { oldPath, newPath } = performedRenames[i];
             try {
                 if (node_fs_1.default.existsSync(newPath))
-                    node_fs_1.default.renameSync(newPath, oldPath);
+                    (0, shell_command_projection_cjs_1.retryRenameSync)(newPath, oldPath);
             }
             catch { /* best-effort */ }
         }

@@ -29,8 +29,8 @@ Clarify phase requirements through structured Socratic questioning with quantita
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/spec-phase.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/spec.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/spec-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/spec.md
 </execution_context>
 
 <runtime_note>

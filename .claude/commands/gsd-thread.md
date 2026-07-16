@@ -16,7 +16,7 @@ doesn't belong to any specific phase.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/thread.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/thread.md
 </execution_context>
 
 <process>

@@ -21,7 +21,7 @@ and optionally applies labels or closes non-compliant submissions.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/inbox.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/inbox.md
 </execution_context>
 
 <context>

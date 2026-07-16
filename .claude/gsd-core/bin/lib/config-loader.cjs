@@ -104,6 +104,7 @@ const CONFIG_DEFAULTS = {
     verifier: _getNestedConfigDefault('workflow', 'verifier'),
     nyquist_validation: _getNestedConfigDefault('workflow', 'nyquist_validation'),
     ai_integration_phase: _getNestedConfigDefault('workflow', 'ai_integration_phase'),
+    api_coverage_gate: _getNestedConfigDefault('workflow', 'api_coverage_gate'),
     parallelization: _getConfigDefault('parallelization'),
     brave_search: _getConfigDefault('brave_search'),
     firecrawl: _getConfigDefault('firecrawl'),
@@ -157,11 +158,15 @@ const _warnedUnknownConfigKeys = new Set();
 // ─── Git utilities ────────────────────────────────────────────────────────────
 const _gitIgnoredCache = new Map();
 function isGitIgnored(cwd, targetPath) {
-    const key = cwd + '::' + targetPath;
+    // #2206: strip trailing slashes — `git check-ignore` has a quirk where a
+    // CRLF .gitignore with blank lines falsely reports a trailing-slash path
+    // (e.g. `.planning/`) as ignored. Normalizing here protects every call site.
+    const normalized = targetPath.replace(/\/+$/, '');
+    const key = cwd + '::' + normalized;
     if (_gitIgnoredCache.has(key))
         return _gitIgnoredCache.get(key);
     // --no-index checks .gitignore rules regardless of whether the file is tracked.
-    const result = (0, shell_command_projection_cjs_1.execGit)(['check-ignore', '-q', '--no-index', '--', targetPath], { cwd });
+    const result = (0, shell_command_projection_cjs_1.execGit)(['check-ignore', '-q', '--no-index', '--', normalized], { cwd });
     const ignored = result.exitCode === 0;
     _gitIgnoredCache.set(key, ignored);
     return ignored;

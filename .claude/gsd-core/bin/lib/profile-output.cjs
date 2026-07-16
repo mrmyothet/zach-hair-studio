@@ -1024,7 +1024,7 @@ function cmdGenerateClaudeMd(cwd, options, raw) {
         // project-instruction-file`). Previously this was a codex-only override
         // (#3163) that left AGENTS-native runtimes (opencode/kilo/kimi) emitting
         // CLAUDE.md; copilot now resolves to .github/copilot-instructions.md, and
-        // antigravity/gemini to GEMINI.md. GSD_RUNTIME env var takes precedence
+        // antigravity to GEMINI.md. GSD_RUNTIME env var takes precedence
         // over config.runtime, mirroring detectRuntime().
         //
         // Non-claude runtimes always win over a stale `claude_md_path` (the #3163

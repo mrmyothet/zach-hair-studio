@@ -10,7 +10,7 @@ const capabilities = {
   "ai-integration": {
     "id": "ai-integration",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "AI design contract",
     "description": "AI-SPEC design contract workflow for phases that build AI systems; owns the AI integration command, agents, and workflow.ai_integration_phase activation key.",
     "tier": "full",
@@ -39,6 +39,11 @@ const capabilities = {
         "type": "boolean",
         "default": true,
         "description": "Prompt for an AI-SPEC design contract before planning phases that involve AI systems."
+      },
+      "workflow.api_coverage_gate": {
+        "type": "boolean",
+        "default": true,
+        "description": "Require an explicit API-coverage decision (full-by-default, opt-out-not-opt-in) before a phase that integrates an external API/SDK/service can seal. At plan:pre the planner is prompted to enumerate the API surface into COVERAGE.md; at verify:pre a blocking gate fails the seal unless the matrix exists with every non-integrated capability an explicit, reasoned opt-out. Independent of ai_integration_phase (applies to any external-API integration, not only AI)."
       }
     },
     "steps": [
@@ -57,13 +62,40 @@ const capabilities = {
         "onError": "skip"
       }
     ],
-    "contributions": [],
-    "gates": []
+    "contributions": [
+      {
+        "point": "plan:pre",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/api-coverage-plan-pre.md",
+          "inline": "# API Coverage Decision Checkpoint\n\n> Full API Coverage by Default — Opt Out, Never Opt In. Fires when a phase\n> integrates an external API / SDK / service. Most non-API phases will not fire\n> it — that is the point.\n\n## Why this exists\n\n\"We integrated the API\" too often silently means \"we integrated whatever the\nfirst use case exercised.\" Every un-built capability is then an invisible hole,\ndiscovered later by a user who reasonably expected it to work. The phase sealed\ngreen because its tasks completed; nobody decided the gaps were acceptable,\nbecause nobody enumerated them. This checkpoint makes the surface **visible and\ndecided** before the phase can seal.\n\n## Detect whether this phase integrates an external API\n\nThe detector is a deterministic scan over the phase scope. It strips fenced\ncode blocks first, so a trigger term inside a code snippet does not fire. It\nreturns a typed result: `{ detected, signals[], terms }`. Run it on the phase\nscope (the concatenation of this phase's ROADMAP section + the PLAN body):\n\n```bash\nSCOPE=\"$(cat \"${PHASE_DIR}\"/*-PLAN.md 2>/dev/null) $(gsd_run query roadmap.get-phase \"${PHASE}\" 2>/dev/null || true)\"\nAPI_COVERAGE_JSON=$(printf '%s' \"$SCOPE\" | node gsd-core/bin/lib/api-coverage.cjs --json 2>/dev/null || echo '{\"detected\":false,\"signals\":[]}')\n```\n\nRead `API_COVERAGE_JSON.detected`. Act on it only — do **not** pattern-match the\nprose yourself.\n\n**If `detected` is `false`:** this phase does not integrate an external API. Skip\nthe checkpoint entirely and continue planning. Do not raise it with the user.\n\n**If `detected` is `true`:** an external-API integration is in scope. You MUST\nproduce a **coverage matrix** before the plan is finalized.\n\n## Produce the coverage matrix\n\nEnumerate the external API's full **capability surface** — the verb/endpoint/method\nlist (e.g. for a music service: `search`, `play`, `pause`, `skip`, `set_volume`,\n`get_playlist`, `create_playlist`, `add_to_playlist`, …). For each capability\nrecord a decision, starting from **full coverage** as the default:\n\n| capability | decision | reason |\n|---|---|---|\n| `<capability-id>` | `INTEGRATE` \\| `OPT-OUT` | `<one-line reason if OPT-OUT>` |\n\nRules:\n\n- **`INTEGRATE` is the default.** Every capability starts as INTEGRATE; the\n  matrix is the *subtraction record*.\n- **Every `OPT-OUT` MUST carry a one-line reason** (`not needed`, `not needed\n  yet`, `explicitly out of scope`, …). An opt-out without a reason is an\n  un-decided hole — the exact failure mode this gate exists to close.\n- **A second integration against the same need** (e.g. a second platform for the\n  same capability) starts from the **same full-coverage baseline** as the first.\n  Do not carry over the first integration's opt-outs silently — re-decide each\n  capability for the new surface, so a first-class/fallback asymmetry cannot\n  accumulate.\n\nWrite the matrix to `${PHASE_DIR}/COVERAGE.md` (canonical markdown-table form):\n\n```markdown\n# API Coverage — <service>\n\n> Full coverage by default. Opt-outs are explicit, reasoned decisions.\n\n| capability | decision | reason |\n|---|---|---|\n| search | INTEGRATE | |\n| playlists | INTEGRATE | |\n| skip | OPT-OUT | not needed yet — tracked for follow-up phase |\n```\n\nA fenced ` ```coverage ` JSON block is also accepted for machine-generated\nmatrices; the markdown table is preferred (human-editable, diff-friendly).\n\n## The seal-time gate\n\nThis checkpoint is enforced. At `verify:pre` the `api-coverage.verify-pre` gate\nruns `check api-coverage.verify-pre <phase-dir>`:\n\n- If `COVERAGE.md` exists, it is validated — every row needs a valid decision and\n  every `OPT-OUT` a reason. A malformed/partial matrix **blocks the seal**.\n- If `COVERAGE.md` is absent, the detector runs again over the phase scope. If a\n  strong external-API-integration signal is found, the seal is **blocked** until a\n  matrix is produced. If no signal is found, the phase is treated as a non-API\n  phase and the seal proceeds.\n\nSo: an API-integrating phase cannot seal without a decided matrix. Produce it at\nplan time; do not leave it for seal time.\n\n## Tuning the vocabulary (optional)\n\nThe trigger vocabulary is a curated, additive-only set in\n`gsd-core/bin/lib/api-coverage.cjs` (`DEFAULT_API_COVERAGE_TERMS`). To widen it\nfor a project, override at the call site:\n\n```bash\nprintf '%s' \"$SCOPE\" | node gsd-core/bin/lib/api-coverage.cjs --json \\\n  --verbs integrate,wrap,connect,embed --nouns api,sdk,rest,grpc,webhook,plugin\n```\n\nThe whole checkpoint is toggleable via `workflow.api_coverage_gate` in\n`.planning/config.json`.\n"
+        },
+        "produces": [
+          "COVERAGE.md"
+        ],
+        "consumes": [
+          "CONTEXT.md"
+        ],
+        "when": "workflow.api_coverage_gate",
+        "onError": "skip"
+      }
+    ],
+    "gates": [
+      {
+        "point": "verify:pre",
+        "check": {
+          "query": "api-coverage.verify-pre"
+        },
+        "when": "workflow.api_coverage_gate",
+        "blocking": true,
+        "onError": "halt"
+      }
+    ]
   },
   "antigravity": {
     "id": "antigravity",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Antigravity",
     "description": "Google Antigravity IDE — nested under ~/.gemini/antigravity; probed across 1.x and 2.x layouts; Gemini hook event dialect; flat skill layout; tier-1 support.",
     "tier": "core",
@@ -86,6 +118,7 @@ const capabilities = {
         ],
         "probeExists": "gsd-core/VERSION"
       },
+      "localConfigDir": ".agents",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -96,6 +129,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToAntigravitySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAntigravityAgent"
           }
         ],
         "local": [
@@ -106,6 +147,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToAntigravitySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAntigravityAgent"
           }
         ]
       },
@@ -116,14 +165,84 @@ const capabilities = {
       "supportTier": 1,
       "installSurface": "settings-json",
       "writesSharedSettings": true,
-      "permissionWriter": null,
-      "extendedHookEvents": []
+      "permissionWriter": "antigravity",
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": "undocumented",
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "go"
+      },
+      "hostBehaviors": {
+        "reviewerCli": true,
+        "projectInstructionFile": "GEMINI.md",
+        "noPathRewrite": true,
+        "hookPathStyle": "raw",
+        "globalDirResolver": "antigravity"
+      }
     }
+  },
+  "assumption-delta": {
+    "id": "assumption-delta",
+    "role": "feature",
+    "version": "1.7.0",
+    "title": "Assumption-delta architecture checkpoint",
+    "description": "Rarely-firing advisory checkpoint that triggers when a phase makes something plural, optional, or chosen that used to be singular, required, or derived. Surfaces one identity-model question (promote the new general representation to primary, or add it alongside?) so a silent primary-key drift does not accumulate into a later user-facing bug. Non-blocking; fires only on a detected signal.",
+    "tier": "full",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.6.0"
+    },
+    "runtimeCompat": {
+      "supported": [
+        "*"
+      ],
+      "unsupported": []
+    },
+    "skills": [],
+    "agents": [],
+    "hooks": [],
+    "config": {
+      "workflow.assumption_delta": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable the assumption-delta architecture checkpoint during planning. When a pluralization/optional/chosen signal is detected in the phase scope, the planner is prompted to re-ask whether the primary key / identity model still names the right thing. Advisory (non-blocking)."
+      }
+    },
+    "steps": [],
+    "contributions": [
+      {
+        "point": "plan:pre",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/plan-pre.md",
+          "inline": "# Assumption-Delta Architecture Checkpoint\n\n> Advisory, non-blocking. Fires **only** when the phase scope shows a singular→plural / required→optional / derived→chosen transition. When it fires, it surfaces ONE identity-model question before the plan is finalized. Most phases will not fire it — that is the point.\n\n## Why this exists\n\nMost quietly-imported architectural debt does not come from a missing upfront design phase. It comes at the *seam*: a later phase introduces a second case (a second platform, auth method, tenant, region, source of truth) and nobody re-asks whether the original abstraction still names the right thing. The phase that adds the second case is exactly the 20-minute conversation that prevents an afternoon of later cleanup.\n\n## Run the detector\n\nThe detector is a deterministic scan over the phase scope text. It strips fenced code blocks first, so a trigger word that appears only inside a code snippet does not fire. It returns a typed result: `{ detected, signals[], terms }`. Resolve it through the `assumption-delta scan` query (same phase-section resolver as `roadmap.get-phase`):\n\n```bash\nASSUMPTION_DELTA_JSON=$(gsd_run query assumption-delta scan \"${PHASE}\" --json 2>/dev/null || echo '{\"detected\":false,\"signals\":[],\"terms\":{}}')\n```\n\n> If the phase section cannot be resolved (no `ROADMAP.md` / unknown phase), the query emits `{ \"detected\": false, ... }` — the checkpoint does not fire. Do not block on it.\n>\n> Optional tuning — pass `--terms <comma-list>` to replace the curated pluralization cues for this project (the `optional`/`chosen` cues keep their defaults): `gsd_run query assumption-delta scan \"${PHASE}\" --json --terms second,alternative,fallback`.\n\n## Decision branch\n\nRead `ASSUMPTION_DELTA_JSON`. Act on `detected` only — do **not** pattern-match the human prose.\n\n**If `detected` is `false`:** this phase does not change a core assumption. Skip the checkpoint entirely and continue planning. Do not raise it with the user.\n\n**If `detected` is `true`:** a core assumption may have lost its monopoly. The `signals[]` array tells you which family fired:\n\n| `kind` | What changed | The question to answer |\n|---|---|---|\n| `pluralization` | A second X was introduced where there was one (second platform / auth method / tenant / region / source of truth) | Does the current primary key / identity model still name the right noun? |\n| `optional` | A required / `only` field became optional | Is the field still the right anchor, or has the anchor moved? |\n| `chosen` | A derived value became chosen, or a constant became a parameter | Has a configuration decision become a modeling decision? |\n\nBefore finalizing the plan, answer this for the user and record the decision explicitly:\n\n> **Promote vs. add-alongside.** The usual correct move when a generalization occurs is to **promote** the new general representation to the primary and **demote** the old specific one to a detail of one variant — *not* to add the new one alongside the still-required old one. Adding alongside silently contradicts the generalized intent (a later variant that does not fit the old primary can be stored but never confirmed as a default).\n\nRecord the outcome in the PLAN.md front matter / a `<assumption_delta_decision>` block:\n\n- The **noun** that is now primary (the generalized identity).\n- The **decision**: `promote` | `add-alongside` | `no-change`, with a one-line rationale.\n- If `add-alongside`: call it out as accepted debt and note what would force a later promote.\n\n## Optional companion: an invariant test\n\nWhen `detected` is `true`, suggest (do not require) a contract/invariant test that encodes the now-generalized intent — e.g. *\"every confirmed default round-trips through the primary use-path, for every supported variant.\"* That test goes red the instant a future phase reintroduces the singular assumption, so the regression cannot land silently. If the user accepts, add the test as a task in the plan.\n\n## Tuning the vocabulary (optional)\n\nThe trigger vocabulary is a curated, additive-only set in `gsd-core/bin/lib/assumption-delta.cjs` (`DEFAULT_ASSUMPTION_DELTA_TERMS`). Bare \"or\" is intentionally excluded — it is too common in prose and would make the gate fire constantly. To widen or narrow the cues for a project, override at the call site with `--terms <comma-list>` (replaces the pluralization cues; `optional`/`chosen` keep defaults). The whole checkpoint is toggleable via `workflow.assumption_delta` in `.planning/config.json`.\n\nThis checkpoint is advisory: it informs and records; it never blocks the phase.\n"
+        },
+        "produces": [],
+        "consumes": [
+          "CONTEXT.md"
+        ],
+        "when": "workflow.assumption_delta",
+        "onError": "skip"
+      }
+    ],
+    "gates": []
   },
   "audit": {
     "id": "audit",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Audit",
     "description": "Open-artifact audit and UAT-gap audit for milestone close gates; exposes `gsd-tools audit-uat` (cross-phase UAT outstanding items) and `gsd-tools audit-open` (structured open-artifact scan across debug, tasks, threads, todos, seeds, UAT, verification, context-questions).",
     "tier": "full",
@@ -160,7 +279,7 @@ const capabilities = {
   "augment": {
     "id": "augment",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Augment Code",
     "description": "Augment Code CLI — commands + nested-skill artifact layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -176,6 +295,7 @@ const capabilities = {
           "AUGMENT_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".augment",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -194,6 +314,14 @@ const capabilities = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToAugmentSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAugmentAgent"
           }
         ],
         "local": [
@@ -212,6 +340,14 @@ const capabilities = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToAugmentSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAugmentAgent"
           }
         ]
       },
@@ -223,13 +359,34 @@ const capabilities = {
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostBehaviors": {
+        "commandBodyConverter": "convertClaudeToAugmentMarkdown",
+        "mcpCompanion": "settings-json"
+      },
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      }
     }
   },
   "claude": {
     "id": "claude",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Claude Code",
     "description": "Anthropic Claude Code — primary development runtime; tier-1 support with full hook surface and skills-based global install.",
     "tier": "core",
@@ -245,6 +402,7 @@ const capabilities = {
           "CLAUDE_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".claude",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -289,13 +447,138 @@ const capabilities = {
         "Stop",
         "PreCompact",
         "FileChanged"
-      ]
+      ],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 5,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "attributionSource": "settings-json-commit",
+        "authorsCanonicalWorkflow": true,
+        "localInstallStyle": "legacy-flat",
+        "permissionsSchema": "claude",
+        "settingsFileByScope": {
+          "local": "settings.local.json",
+          "global": "settings.json"
+        },
+        "sourceMarkerFile": ".gsd-source",
+        "agentFrontmatterExtensions": [
+          "effort"
+        ],
+        "ownsClaudePaths": true,
+        "nativeModelAliases": true,
+        "skillsGlobalOnboarding": true,
+        "legacyCommandsGsdInstallMigration": true,
+        "legacyCommandsGsdUninstall": "global",
+        "hyphenNameAgentBody": true,
+        "reviewerCli": true
+      }
     }
+  },
+  "claude-orchestration": {
+    "id": "claude-orchestration",
+    "role": "feature",
+    "version": "1.7.0",
+    "title": "Claude orchestration (Workflow backend)",
+    "description": "Default-off, BETA, claude-only capability that adopts Claude Code's Workflow tool (the engine behind /effort ultracode) as an optional parallel-execution backend for the GSD loop. When the runtime exposes the Workflow tool and claude_orchestration.execution_backend resolves to 'workflow', execute-phase emits a generated Workflow script (waves -> parallel() barriers, plans -> agent({ agentType: 'gsd-executor', isolation: 'worktree' }), files_modified overlap -> separate sequential stages, resumeFromRunId wired to the phase run id, shared token budget) that composes the SAME gsd-executor agent and worktree isolation the inline path uses, restoring the wave parallelism the #853 backgrounded-agent nesting limitation forces inline on Claude Code. (The plan-checker and verifier remain inline until separately wired — this capability delivers the parallel-execution backend, not those gates.) Also folds the ultraplan plan-offload under one runtime gate (plan:* surface). On any runtime lacking the Workflow tool, or when the capability is disabled, behaviour is byte-identical to today (inline/manual dispatch). Detection + emission live in gsd-core/bin/lib/claude-orchestration.cjs (pure, fail-closed). Mirrors the existing gsd-ultraplan-phase BETA-isolation posture.",
+    "tier": "full",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.7.0"
+    },
+    "runtimeCompat": {
+      "supported": [
+        "claude"
+      ],
+      "unsupported": []
+    },
+    "skills": [],
+    "agents": [],
+    "hooks": [],
+    "commands": [
+      {
+        "family": "claude-orchestration",
+        "module": "claude-orchestration-command-router.cjs",
+        "router": "routeClaudeOrchestrationCommand",
+        "subcommands": [
+          "detect-backend",
+          "emit-workflow"
+        ]
+      }
+    ],
+    "activationKey": "claude_orchestration.enabled",
+    "config": {
+      "claude_orchestration.enabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Master toggle for the Claude orchestration capability. Default-off + BETA: the Workflow-tool execution backend and the ultraplan plan-offload surface are inert unless this is true. When false, loop behaviour is byte-identical to a non-Claude runtime (inline/manual dispatch)."
+      },
+      "claude_orchestration.execution_backend": {
+        "type": "enum",
+        "values": [
+          "auto",
+          "workflow",
+          "inline"
+        ],
+        "default": "auto",
+        "description": "Which execute-phase dispatch backend to use when the capability is enabled. 'auto' (default) activates the Workflow backend only when the runtime is Claude AND the Workflow tool is detected AND the Agent SDK meets claude_orchestration.min_agent_sdk_version; otherwise it falls back to inline. 'workflow' forces the Workflow backend when the tool is present AND the Agent SDK meets the floor (still fails closed to inline if the tool is absent or the SDK is too old — the floor applies in both modes). 'inline' forces today's manual one-agent-per-message dispatch regardless of tool availability."
+      },
+      "claude_orchestration.min_agent_sdk_version": {
+        "type": "string",
+        "default": "0.3.149",
+        "description": "Minimum Agent SDK version required to activate the Workflow backend under execution_backend='auto'. Defaults to 0.3.149 (the release that introduced the Workflow tool). Raise to pin a higher floor; the detection seam fails closed to inline for any runtime reporting an older or unknown version."
+      }
+    },
+    "steps": [],
+    "contributions": [
+      {
+        "point": "execute:wave:post",
+        "into": "executor",
+        "fragment": {
+          "path": "fragments/execute-wave-post.md",
+          "inline": "# Claude orchestration — Workflow execution backend (BETA)\n\n> Injected at `execute:wave:post` `into: executor` only when\n> `claude_orchestration.enabled` is true. Default-off; `onError: skip`.\n\n## When this contribution is active\n\nThe Claude orchestration capability is **default-off and BETA**. It activates only\nwhen ALL of the following hold:\n\n1. `claude_orchestration.enabled` is `true` in `.planning/config.json`, AND\n2. the active runtime is **Claude Code** (the Workflow tool is Claude / Agent\n   SDK-specific), AND\n3. `claude_orchestration.execution_backend` resolves to `workflow` — either\n   explicitly, or via `auto` — **and** the Agent SDK version is\n   `>= claude_orchestration.min_agent_sdk_version` (default `0.3.149`). The SDK\n   floor applies in both `auto` and `workflow` modes (fail-closed: a pre-release\n   or older SDK never activates the preview backend).\n\nDetection is fail-closed: any miss degrades to **inline, manual, one-agent-per-\nmessage dispatch** — exactly today's behaviour. On a non-Claude runtime this\ncontribution is a no-op.\n\n## What the executor does when the Workflow backend is active\n\nInstead of the orchestrator fanning out one `Agent(subagent_type=gsd-executor,\nisolation=worktree, run_in_background=true)` per message (which on Claude Code\ncannot nest further subagents — #853 — and so degrades to sequential inline\nexecution), execute-phase **emits a generated Workflow script** and lets the main\nloop orchestrate it:\n\n- **waves → one or more sequential `parallel()` barriers** — each wave is a\n  barrier group; when plans within a wave share `files_modified`, they are split\n  into separate sequential stages within that wave's barrier (the next wave\n  still waits for the previous wave to complete).\n- **plans → `agent(brief, { agentType: 'gsd-executor', isolation: 'worktree' })`**\n  — the SAME executor agent and worktree isolation the inline path uses, so the\n  produced `SUMMARY.md` and commits are identical.\n- **`files_modified` overlap → separate sequential stages** — two plans that\n  touch the same file are placed in different stages within the wave (the same\n  overlap rule execute-phase already applies inline).\n- **`resumeFromRunId`** — wired to the phase run id, so an interrupted phase\n  resumes without re-running completed plans.\n- **`budget(tokens)`** — a shared token pool across the whole phase when the\n  orchestrator passes a `budgetTokens` value to `emitWorkflowScript` (it is a\n  function parameter, not a config key; the orchestrator decides the budget).\n\nThe emitter is a pure function exposed through the capability command surface:\n`gsd-tools claude-orchestration emit-workflow --waves <manifest.json> --run-id <id>\n[--phase-dir <dir>] [--budget <n>]` (or `require('gsd-core/bin/lib/claude-orchestration.cjs').emitWorkflowScript`\ndirectly). It maps the phase's wave/plan manifest to the Workflow script string\nand never invokes the Workflow tool itself; the orchestrator runs the emitted\nscript. Detection is resolved by the orchestrator calling the pure\n`detectWorkflowBackend` with the LIVE host descriptor (the CLI\n`gsd-tools claude-orchestration detect-backend` is a simulation harness that\nassumes a capable host unless `--no-nested-dispatch` is passed — it does not probe\nthe real runtime; the orchestrator supplies the real descriptor).\n\n## Fallback contract\n\nIf detection resolves to `inline` (tool absent, SDK too old, runtime not Claude,\nor the capability disabled), execute-phase MUST proceed with the standard inline\nwave dispatch. The executor MUST NOT assume parallelism, a shared budget, or\nresume-from-run-id semantics in that mode.\n"
+        },
+        "produces": [],
+        "consumes": [
+          "PLAN.md"
+        ],
+        "when": "claude_orchestration.enabled",
+        "onError": "skip"
+      },
+      {
+        "point": "plan:post",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/plan-post.md",
+          "inline": "# Claude orchestration — ultraplan plan-offload ownership (BETA)\n\n> Injected at `plan:post` `into: planner` only when\n> `claude_orchestration.enabled` is true. Default-off; `onError: skip`.\n\n## Ownership declaration\n\nThe `gsd-ultraplan-phase` plan-offload surface (offloading GSD's plan phase to\nClaude Code's ultraplan cloud) is **owned by this capability**, not by a\nstandalone BETA skill. Both surfaces share one runtime gate\n(`claude_orchestration.enabled`), one BETA boundary, and one Claude-Code-only\ndetection seam.\n\n## When the planner should consider ultraplan offload\n\nWhen this contribution is active (capability enabled, Claude Code runtime), the\nplanner MAY offer the `/gsd-ultraplan-phase` path as an alternative to local\n`/gsd-plan-phase` for phases where cloud-assisted planning adds value. This is\nadvisory, not mandatory — the stable local planner remains the default.\n\n## Fallback contract\n\nIf the capability is disabled, or the runtime is not Claude Code, ultraplan\noffload is **not surfaced** and the planner proceeds with the standard local\n`/gsd-plan-phase`. The `gsd-ultraplan-phase` command itself remains installed\n(its own runtime gate already no-ops on non-Claude runtimes); this contribution\nonly governs whether the capability manifest advertises it as part of the\norchestration surface.\n"
+        },
+        "produces": [],
+        "consumes": [
+          "CONTEXT.md"
+        ],
+        "when": "claude_orchestration.enabled",
+        "onError": "skip"
+      }
+    ],
+    "gates": []
   },
   "cline": {
     "id": "cline",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Cline",
     "description": "Cline (VS Code extension) — global-only nested-skill layout; cline-rules hook surface (.clinerules); no hook events emitted; tier-2 support.",
     "tier": "core",
@@ -311,6 +594,7 @@ const capabilities = {
           "CLINE_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".cline",
       "configFormat": "markdown-dir",
       "artifactLayout": {
         "global": [
@@ -332,13 +616,38 @@ const capabilities = {
       "installSurface": "cline-rules",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "read-only",
+          "backgroundDispatch": false
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "frontmatterDialect": "cline",
+        "skipSharedHooksInstall": true,
+        "localTargetIsProjectRoot": true,
+        "clineRulesSurface": true,
+        "localCommandsViaRules": true
+      }
     }
   },
   "code-review": {
     "id": "code-review",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Code review",
     "description": "Source-file code review and review-fix workflow support for completed execution work.",
     "tier": "full",
@@ -399,7 +708,7 @@ const capabilities = {
   "codebuddy": {
     "id": "codebuddy",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "CodeBuddy",
     "description": "CodeBuddy (Tencent) — converted commands + skills artifact layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -415,6 +724,7 @@ const capabilities = {
           "CODEBUDDY_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".codebuddy",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -433,6 +743,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCodebuddySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCodebuddyAgent"
           }
         ],
         "local": [
@@ -451,6 +769,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCodebuddySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCodebuddyAgent"
           }
         ]
       },
@@ -462,13 +788,38 @@ const capabilities = {
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [
+        "SubagentStop",
+        "Stop",
+        "PreCompact",
+        "SubagentStart"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "reportCommandsDir": true
+      }
     }
   },
   "codex": {
     "id": "codex",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "OpenAI Codex CLI",
     "description": "OpenAI Codex CLI — shell-var command style; per-agent sandbox tiers; config.toml + hooks.json hook surface; tier-1 support.",
     "tier": "core",
@@ -484,6 +835,7 @@ const capabilities = {
           "CODEX_HOME"
         ]
       },
+      "localConfigDir": ".codex",
       "configFormat": "toml",
       "artifactLayout": {
         "global": [
@@ -493,7 +845,8 @@ const capabilities = {
             "prefix": "gsd-",
             "nesting": "flat",
             "recursive": false,
-            "converter": "convertClaudeCommandToCodexSkill"
+            "converter": "convertClaudeCommandToCodexSkill",
+            "home": ".agents"
           }
         ],
         "local": [
@@ -503,7 +856,8 @@ const capabilities = {
             "prefix": "gsd-",
             "nesting": "flat",
             "recursive": false,
-            "converter": "convertClaudeCommandToCodexSkill"
+            "converter": "convertClaudeCommandToCodexSkill",
+            "home": ".agents"
           }
         ]
       },
@@ -515,13 +869,42 @@ const capabilities = {
       "installSurface": "codex-toml",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [
+        "SubagentStop",
+        "Stop",
+        "PreCompact"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": true
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "$gsd-update --reapply",
+        "tomlConfigInstall": true,
+        "cleanupSkillSidecars": true,
+        "agentTomlFiles": true,
+        "frontmatterDialect": "codex",
+        "reviewerCli": true
+      }
     }
   },
   "copilot": {
     "id": "copilot",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "GitHub Copilot",
     "description": "GitHub Copilot (VS Code) — markdown config format; copilot-inline hook surface; no hook events emitted; flat skill nesting (unconfirmed recursive loader); tier-2 support.",
     "tier": "core",
@@ -538,6 +921,7 @@ const capabilities = {
           "COPILOT_HOME"
         ]
       },
+      "localConfigDir": ".github",
       "configFormat": "markdown",
       "artifactLayout": {
         "global": [
@@ -548,6 +932,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCopilotSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCopilotAgent"
           }
         ],
         "local": [
@@ -558,6 +950,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCopilotSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCopilotAgent"
           }
         ]
       },
@@ -568,13 +968,36 @@ const capabilities = {
       "installSurface": "copilot-instructions",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "undocumented"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "agentFileExtension": ".agent.md",
+        "skipSharedHooksInstall": true,
+        "noPathRewrite": true
+      }
     }
   },
   "cursor": {
     "id": "cursor",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Cursor",
     "description": "Cursor IDE — skills + converted commands artifact layout; hooks.json surface; Claude hook event dialect; recursive skill loader (flat nesting); tier-2 support.",
     "tier": "core",
@@ -590,6 +1013,7 @@ const capabilities = {
           "CURSOR_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".cursor",
       "configFormat": "none",
       "artifactLayout": {
         "global": [
@@ -608,6 +1032,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCursorCommand"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCursorAgent"
           }
         ],
         "local": [
@@ -626,6 +1058,14 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCursorCommand"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCursorAgent"
           }
         ]
       },
@@ -637,13 +1077,48 @@ const capabilities = {
       "installSurface": "cursor-hooks-json",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 2,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": true
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "gsd-update --reapply (mention the skill name)",
+        "frontmatterDialect": "cursor",
+        "hooksJsonSurface": true,
+        "skipSharedHooksInstall": true,
+        "reportCommandsDir": true,
+        "skipUpdateBannerCommand": true,
+        "skipSettingsUi": true,
+        "managedHookEvents": [
+          "sessionStart",
+          "postToolUse",
+          "preToolUse",
+          "stop",
+          "subagentStart",
+          "subagentStop"
+        ],
+        "reviewerCli": true
+      }
     }
   },
   "drift": {
     "id": "drift",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Drift detection gates",
     "description": "Drift detection gates for the planning loop. At execute:wave:post: a blocking schema drift gate (detects schema files changed without a database push) and a non-blocking codebase drift gate (detects structural additions not reflected in STRUCTURE.md). At plan:pre: a non-blocking, warn-only codebase drift gate (gated on workflow.plan_drift_precheck) that flags a stale codebase map before planning, so plans are authored against a fresh STRUCTURE.md instead of discovering drift mid-execution.",
     "tier": "full",
@@ -718,10 +1193,93 @@ const capabilities = {
       }
     ]
   },
+  "external-job": {
+    "id": "external-job",
+    "role": "feature",
+    "version": "1.7.0",
+    "title": "Async external-job scheduler adapter",
+    "description": "Default-off producer of the async external-job manifest (#1164). At execute:wave:post an executor can externalize long-running compute (SLURM first, scheduler-pluggable), commit a .planning/async-jobs/<job>.json manifest, defer SUMMARY.md, and return external_job_waiting. The core loop (#1165) consumes the manifest; this capability is the only thing that writes it. NOTE on contribution point: #1164 specifies execute:wave:pre, but execute-phase.md only dispatches execute:wave:post today (wave:pre is declared in the loop host contract but not rendered); wiring wave:pre dispatch is a core-loop change #1164 explicitly puts out of scope, so this capability registers at wave:post and the executor honors the runtime_budget classification guidance before running any tagged task. The adapter (scripts/slurm-adapter.cjs) reads external_job.submit_timeout_ms / poll_timeout_ms / artifact_dir through the canonical capability-config seam (env override > config > registry default).",
+    "tier": "full",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.7.0"
+    },
+    "runtimeCompat": {
+      "supported": [
+        "*"
+      ],
+      "unsupported": []
+    },
+    "skills": [],
+    "agents": [],
+    "hooks": [],
+    "config": {
+      "external_job.enabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Master toggle for the async external-job producer capability. Default-off: the core loop consumes manifests whether or not this is on, but no manifest is ever written unless an executor opts in here."
+      },
+      "external_job.backend": {
+        "type": "enum",
+        "values": [
+          "slurm"
+        ],
+        "default": "slurm",
+        "description": "Scheduler backend. SLURM is the first adapter; the field is the pluggability seam for future backends (LSF, PBS, Kubernetes batch). Core never interprets this value."
+      },
+      "external_job.artifact_dir": {
+        "type": "string",
+        "default": "Artifacts/jobs",
+        "description": "Root for per-job artifact directories (e.g. Artifacts/jobs/<jobid>/). Avoids fixed log paths and hardcoding a cluster/project layout. Surfaced by the adapter (`slurm-adapter.cjs submit` prints the resolved value); override via GSD_EXTERNAL_JOB_ARTIFACT_DIR."
+      },
+      "external_job.submit_timeout_ms": {
+        "type": "number",
+        "default": 30000,
+        "description": "Hard timeout (ms) for the scheduler submit subprocess (e.g. sbatch). Bounded per CLAUDE.md unbounded-subprocess policy. Read by the adapter (env GSD_SLURM_SUBMIT_TIMEOUT_MS overrides)."
+      },
+      "external_job.poll_timeout_ms": {
+        "type": "number",
+        "default": 15000,
+        "description": "Hard timeout (ms) for the scheduler poll subprocess (squeue, with sacct fallback). Read by the adapter (env GSD_SLURM_POLL_TIMEOUT_MS overrides)."
+      }
+    },
+    "steps": [],
+    "contributions": [
+      {
+        "point": "execute:wave:post",
+        "into": "executor",
+        "fragment": {
+          "path": "fragments/execute-wave-post.md",
+          "inline": "<!-- external-job capability — execute:wave:post fragment, injected into the executor (#1164).\n\n     Why wave:post, not wave:pre (#1164 refinement A): execute-phase.md only\n     dispatches execute:wave:post today — wave:pre is declared in the loop host\n     contract but not rendered. Wiring wave:pre dispatch is a core-loop change\n     #1164 puts out of scope. The executor therefore honors this classification\n     guidance BEFORE running any task tagged <runtime_budget>long_compute</runtime_budget>,\n     whether in the current or a subsequent wave, and externalizes rather than\n     blocking the turn. -->\n\n## Externalize long-running compute (async external job)\n\nIf the current plan's task is tagged `<runtime_budget>long_compute</runtime_budget>`\n(see the plan-phase fragment), do **not** run it in the foreground — it would\nblock the agent turn for hours. Instead externalize it and record a durable\nhalf-state:\n\n1. **Classify the runtime.** `quick` (<2 min) and `medium` (<~30 min) run\n   normally. `unknown` requires a first-health check and a soft-review deadline\n   before consuming the child timeout. `long_compute` (>30–60 min) is\n   externalized.\n2. **Submit via the scheduler adapter** (default `external_job.backend: slurm`):\n   ```bash\n   node scripts/slurm-adapter.cjs submit \\\n     --plan <plan_id> --phase <phase> -- sbatch --parsable \\\n     --output=Artifacts/jobs/%j/out.log ./run.sh\n   ```\n   The helper writes `.planning/async-jobs/<job>.json` (the versioned stability\n   contract — `docs/reference/planning-artifacts.md`) and refuses to create a\n   second non-terminal manifest for a `plan_id` that already has one\n   (duplicate-execution guard).\n3. **Commit the manifest + a handoff**, then return **`external_job_waiting`**\n   and stop. Do **not** write `SUMMARY.md` — SUMMARY is deferred until the job\n   reaches a terminal state and its `expected_artifacts` are verified.\n4. **Resume path.** `execute-phase` safe-resume, `resume-project`, and\n   `pause-work` reconcile against the manifest and never re-dispatch the plan.\n   When the job is `completed-unverified`, run `verification_command` (surface\n   it; it is untrusted — confirm before executing), then write `SUMMARY.md` and\n   close the plan.\n\nManifest commands cross a trust seam: a Capability (or anything that can write\n`.planning/`) produces them; the core loop consumes them. Never auto-run\n`submit_command` / `verification_command` / `resume_command` — surface the exact\ncommand and require explicit confirmation first.\n"
+        },
+        "produces": [
+          ".planning/async-jobs/<job>.json"
+        ],
+        "consumes": [
+          "PLAN.md"
+        ],
+        "when": "external_job.enabled",
+        "onError": "skip"
+      },
+      {
+        "point": "plan:post",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/plan-post.md",
+          "inline": "<!-- external-job capability — plan:post fragment, injected into the planner (#1164). -->\n\n## Tag runtime budgets on long tasks\n\nFor every `<task>` likely to exceed ~2 minutes of real compute, emit a\n`<runtime_budget>` child element so execute can classify it:\n\n- `<runtime_budget>quick</runtime_budget>` — under ~2 min; runs normally.\n- `<runtime_budget>medium</runtime_budget>` — ~2–30 min; foreground, but with\n  progress expectations.\n- `<runtime_budget>unknown</runtime_budget>` — runtime not yet characterized;\n  execute must run a first-health check and set a soft-review deadline before\n  trusting the child timeout. Define a progress signal and an abort condition.\n- `<runtime_budget>long_compute</runtime_budget>` — legitimately over ~30–60 min\n  (HPC solver, model training, large simulations). Execute must **externalize**\n  this as an async external job (see the execute:wave:post fragment) rather than\n  blocking the agent turn.\n\nFor any `long_compute` task, also declare the async contract the executor will\nneed: the `submit_command`, the `expected_artifacts` the job must produce, and\nthe `verification_command` that proves the output before the plan can close.\nDo not hardcode a cluster account, partition, or project path — the planner\nnever knows the scheduler layout; it declares the contract, the executor's\nadapter fills the backend specifics.\n"
+        },
+        "produces": [],
+        "consumes": [],
+        "when": "external_job.enabled",
+        "onError": "skip"
+      }
+    ],
+    "gates": []
+  },
   "gap-analysis": {
     "id": "gap-analysis",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Post-planning gap analysis",
     "description": "Proactive, non-blocking post-planning coverage report. After all PLAN.md files are generated, cross-references every REQ-ID and D-ID from REQUIREMENTS.md and CONTEXT.md against plan bodies. Emits a Source | Item | Status table. Does not block phase advancement.",
     "tier": "standard",
@@ -759,67 +1317,10 @@ const capabilities = {
       }
     ]
   },
-  "gemini": {
-    "id": "gemini",
-    "role": "runtime",
-    "version": "1.6.1",
-    "title": "Gemini CLI",
-    "description": "Google Gemini CLI — commands-only artifact layout (TOML); Gemini hook event dialect; settings-json hook surface; tier-2 support.",
-    "tier": "core",
-    "requires": [],
-    "engines": {
-      "gsd": ">=1.6.0"
-    },
-    "runtime": {
-      "configHome": {
-        "kind": "dot-home",
-        "name": ".gemini",
-        "env": [
-          "GEMINI_CONFIG_DIR"
-        ]
-      },
-      "configFormat": "settings-json",
-      "artifactLayout": {
-        "global": [
-          {
-            "kind": "commands",
-            "destSubpath": "commands/gsd",
-            "prefix": "gsd-",
-            "nesting": "flat",
-            "recursive": false,
-            "converter": null
-          }
-        ],
-        "local": [
-          {
-            "kind": "commands",
-            "destSubpath": "commands/gsd",
-            "prefix": "gsd-",
-            "nesting": "flat",
-            "recursive": false,
-            "converter": null
-          }
-        ]
-      },
-      "commandStyle": "slash-hyphen",
-      "hooksSurface": "settings-json",
-      "hookEvents": "gemini",
-      "sandboxTier": "none",
-      "supportTier": 2,
-      "installSurface": "settings-json",
-      "writesSharedSettings": true,
-      "permissionWriter": null,
-      "extendedHookEvents": [
-        "BeforeAgent",
-        "AfterAgent",
-        "BeforeModel"
-      ]
-    }
-  },
   "graphify": {
     "id": "graphify",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Knowledge graph",
     "description": "Build, query, and inspect the project knowledge graph in `.planning/graphs/`; exposes graphify CLI subcommands (build, query, status, diff) and the /gsd-graphify skill.",
     "tier": "full",
@@ -860,7 +1361,7 @@ const capabilities = {
   "hermes": {
     "id": "hermes",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Hermes Agent",
     "description": "Hermes Agent (NousResearch) — skills nest under skills/gsd/ category bucket; nested skill layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -876,6 +1377,7 @@ const capabilities = {
           "HERMES_HOME"
         ]
       },
+      "localConfigDir": ".hermes",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -907,13 +1409,48 @@ const capabilities = {
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "extensionEvents": "hermes",
+      "hostBehaviors": {
+        "skillFrontmatterVersion": true,
+        "skillsManifestPrefix": "skills/gsd/",
+        "trackCategoryDescription": true,
+        "writeCategoryDescription": true,
+        "reportSkillsCount": true,
+        "legacyCommandsGsdCleanup": true,
+        "brandingRewrites": {
+          "CLAUDE.md": "HERMES.md",
+          "Claude Code": "Hermes Agent",
+          ".claude/": ".hermes/"
+        },
+        "reapplyCommand": "gsd-update --reapply (mention the skill name)",
+        "legacyCommandsGsdInstallMigration": true,
+        "legacyCommandsGsdUninstall": true,
+        "hyphenNameAgentBody": true
+      },
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-programmatic",
+        "dispatch": {
+          "namedDispatch": false,
+          "nested": true,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "read-only",
+          "backgroundDispatch": false
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "python"
+      }
     }
   },
   "intel": {
     "id": "intel",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Codebase intelligence",
     "description": "Code-intelligence store for codebase querying, diff, snapshot, and API-surface extraction; exposes `gsd-tools intel` subcommands (query, status, update, diff, snapshot, patch-meta, validate, extract-exports, api-surface) and backs `/gsd-map-codebase` and `gsd-intel-updater`.",
     "tier": "full",
@@ -965,7 +1502,7 @@ const capabilities = {
   "kilo": {
     "id": "kilo",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Kilo Code",
     "description": "Kilo Code — XDG-based config dir; global skills at ~/.kilo/skills (separate from XDG config); flat command/ + skills artifact layout; no lifecycle hook registration; tier-2 support.",
     "tier": "core",
@@ -988,6 +1525,7 @@ const capabilities = {
           "env": []
         }
       },
+      "localConfigDir": ".kilo",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -1029,20 +1567,52 @@ const capabilities = {
       },
       "commandStyle": "slash-hyphen",
       "hooksSurface": "none",
+      "extensionEvents": "kilo",
       "sandboxTier": "none",
       "supportTier": 2,
       "installSurface": "settings-json",
       "writesSharedSettings": false,
       "permissionWriter": "kilo",
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": -1,
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": false
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "bun"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "attributionConfigResolver": "kilo",
+        "flatCommandDir": "command",
+        "combinedFamilyInstall": true,
+        "frontmatterDialect": "kilo",
+        "nativePlugin": {
+          "dir": "plugins",
+          "file": "gsd-core.js",
+          "source": ".kilo/plugins/gsd-core.js"
+        },
+        "skipUpdateBannerCommand": true,
+        "skipSharedHooksInstall": true
+      }
     }
   },
   "kimi": {
     "id": "kimi",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Kimi CLI",
-    "description": "Kimi CLI (Moonshot AI) — generic agents root at ~/.config/agents; skills + kimi-agents artifact layout; no hook surface; no hook events; tier-2 support.",
+    "description": "Kimi CLI (Moonshot AI) — generic agents root at ~/.config/agents; skills + kimi-agents artifact layout; native config.toml [[hooks]] bus at ~/.kimi/config.toml; background dispatch; tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
@@ -1061,6 +1631,7 @@ const capabilities = {
         ],
         "probeExists": "skills"
       },
+      "localConfigDir": ".kimi-code",
       "configFormat": "none",
       "artifactLayout": {
         "global": [
@@ -1084,19 +1655,50 @@ const capabilities = {
         "local": []
       },
       "commandStyle": "slash-hyphen",
-      "hooksSurface": "none",
+      "hooksSurface": "kimi-hooks-toml",
+      "hookEvents": "claude",
       "sandboxTier": "none",
       "supportTier": 2,
       "installSurface": "profile-marker-only",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [
+        "SubagentStop",
+        "Stop",
+        "PreCompact",
+        "SubagentStart"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": true
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "python"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/skill:gsd-update --reapply",
+        "localInstallDeferred": true,
+        "verificationStyle": "kimi",
+        "agentManifestStyle": "kimi-nested",
+        "doneBannerStyle": "kimi-agent-file",
+        "skipSharedHooksInstall": true
+      }
     }
   },
   "mempalace": {
     "id": "mempalace",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "MemPalace memory",
     "description": "Cross-session, cross-project memory: deliberate recall before discuss/plan and verbatim capture + temporal-KG sync at phase boundaries, via the MemPalace MCP server and CLI.",
     "tier": "full",
@@ -1132,7 +1734,7 @@ const capabilities = {
           "replace"
         ],
         "default": "augment",
-        "description": "How MemPalace relates to GSD native memory. Only 'augment' (additive) is implemented today; 'kg_backend' and 'replace' are forward-declared (routing seam not yet built) and currently behave as 'augment'."
+        "description": "How MemPalace relates to GSD native memory during recall/capture. 'augment' (default): the palace is an additive layer alongside .planning/graphs/ — native memory stays authoritative. 'kg_backend': knowledge-graph queries resolve against the palace's temporal KG as the primary source, with .planning/graphs/ as fallback. 'replace': recall resolves through the palace as the source of truth, native memory as fallback. Every mode stays onError:skip and default-resilient — an unreachable palace degrades to native memory, and GSD keeps writing .planning/graphs/ so no memory is lost. Cross-mode migration of existing .planning/graphs/ into the palace is a separate, not-yet-implemented concern."
       },
       "mempalace.wing": {
         "type": "string",
@@ -1245,7 +1847,7 @@ const capabilities = {
         "into": "orchestrator",
         "fragment": {
           "path": "fragments/recall-discuss.md",
-          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the discuss:pre orchestrator prompt when `mempalace.recall_on_discuss` is true.\n  Contributes DATA (recall instructions), not control flow. onError: skip — never blocks discussion.\n-->\n### Memory recall (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.recall_on_discuss` is `false`, **skip this entire section** and continue the discussion unchanged. (This contribution is only injected when the capability is enabled; the `recall_on_discuss` check lets you turn discuss-time recall off without disabling the rest of the capability.)\n\nOtherwise — before gathering new context, surface what you already know. This is read-only and side-effect-free; if MemPalace is unreachable, note \"memory unavailable\" and continue — recall never blocks discussion.\n\n1. **Resolve the wing.** Use `mempalace.wing` if set; otherwise derive it from `project_code` (fall back to the project directory name).\n2. **Wake up (cheap, ~600–900 tokens).**\n   - Interactive run → call `mempalace_search` after a wake-up read of the wing.\n   - Headless/cron run (no MCP server) → run `mempalace wake-up --wing <wing>` via the CLI.\n3. **Targeted recall.** Search the palace for prior work on this phase's topic:\n   - Interactive → `mempalace_search(query=<phase topic>, wing=<wing>)` and, when `mempalace.mirror_kg` is on, `mempalace_kg_query` / `mempalace_kg_timeline` for decision facts and their validity windows.\n   - Headless → `mempalace search \"<phase topic>\" --wing <wing>`.\n4. **Mode awareness.** Only `augment` is currently wired: always treat the palace as an *additional* recall layer on top of GSD's native memory — never skip `.planning/graphs/` or STATE. `kg_backend`/`replace` are forward-declared and behave as `augment` today.\n5. **Surface, don't dump.** Fold the top relevant drawers, decisions, patterns, and *surprises* into the discussion as prior context — cite drawer/fact provenance. Do not paste raw search output.\n\nIf any MemPalace call errors or times out, skip the rest of recall and proceed with discussion as normal.\n"
+          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the discuss:pre orchestrator prompt when `mempalace.recall_on_discuss` is true.\n  Contributes DATA (recall instructions), not control flow. onError: skip — never blocks discussion.\n-->\n### Memory recall (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.recall_on_discuss` is `false`, **skip this entire section** and continue the discussion unchanged. (This contribution is only injected when the capability is enabled; the `recall_on_discuss` check lets you turn discuss-time recall off without disabling the rest of the capability.)\n\nOtherwise — before gathering new context, surface what you already know. This is read-only and side-effect-free; if MemPalace is unreachable, note \"memory unavailable\" and continue — recall never blocks discussion.\n\n1. **Resolve the wing.** Use `mempalace.wing` if set; otherwise derive it from `project_code` (fall back to the project directory name).\n2. **Wake up (cheap, ~600–900 tokens).**\n   - Interactive run → call `mempalace_search` after a wake-up read of the wing.\n   - Headless/cron run (no MCP server) → run `mempalace wake-up --wing <wing>` via the CLI.\n3. **Targeted recall.** Search the palace for prior work on this phase's topic:\n   - Interactive → `mempalace_search(query=<phase topic>, wing=<wing>)` and, when `mempalace.mirror_kg` is on, `mempalace_kg_query` / `mempalace_kg_timeline` for decision facts and their validity windows.\n   - Headless → `mempalace search \"<phase topic>\" --wing <wing>`.\n4. **Mode awareness** (`mempalace.memory_mode`). `augment` (default): the palace is an *additional* layer — never skip `.planning/graphs/` or STATE. `kg_backend`: query the palace's temporal KG as the *primary* graph source, with `.planning/graphs/` as fallback. `replace`: resolve recall *through the palace as the source of truth*, native memory as fallback. In every mode an unreachable palace falls back to native memory — recall never blocks.\n5. **Surface, don't dump.** Fold the top relevant drawers, decisions, patterns, and *surprises* into the discussion as prior context — cite drawer/fact provenance. Do not paste raw search output.\n\nIf any MemPalace call errors or times out, skip the rest of recall and proceed with discussion as normal.\n"
         },
         "produces": [],
         "consumes": [],
@@ -1257,7 +1859,7 @@ const capabilities = {
         "into": "verifier",
         "fragment": {
           "path": "fragments/capture-problems.md",
-          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the execute:wave:post verifier prompt when `mempalace.capture_artifacts` is true.\n  Contributes DATA (capture instructions), not control flow. onError: skip — never fails a wave.\n-->\n### Capture problems → fixes (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.capture_artifacts` is `false`, **skip this entire section** and let the wave complete unchanged. (This contribution is only injected when the capability is enabled; the `capture_artifacts` check lets you turn capture off without disabling the rest of the capability.)\n\nOtherwise — after verifying this wave, persist any *confirmed* problem→fix pairs into the palace so they are recalled in future phases. This is best-effort; if MemPalace is unreachable, skip silently — capture never fails a wave.\n\nFor each confirmed bug/issue resolved in this wave:\n\n1. **Resolve the wing** (`mempalace.wing`, else `project_code`, else project dir) and target `room: problems`.\n2. **Dedupe first.** Call `mempalace_check_duplicate` (interactive) before filing so re-runs don't create duplicate drawers.\n3. **File the drawer verbatim.** Store the problem statement and its fix as a drawer in `room: problems` — interactive: `mempalace_add_drawer`; headless: `mempalace mine` / `mempalace hook run`. Include provenance (`source_file`, phase id).\n4. **Mirror the KG fact** when `mempalace.mirror_kg` is on: add `(<bug>, fixed_by, <fix>)` with `valid_from` = the phase date via `mempalace_kg_add`.\n5. **Mode awareness.** Only `augment` is currently wired: the fact is an *additive* mirror alongside `.planning/graphs/` (never a replacement). `kg_backend`/`replace` are forward-declared and behave as `augment` today.\n\nCaptures are idempotent: deterministic drawer IDs + `check_duplicate` mean re-running the wave re-files the same content without duplication. On any error, skip and let the wave complete normally.\n"
+          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the execute:wave:post verifier prompt when `mempalace.capture_artifacts` is true.\n  Contributes DATA (capture instructions), not control flow. onError: skip — never fails a wave.\n-->\n### Capture problems → fixes (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.capture_artifacts` is `false`, **skip this entire section** and let the wave complete unchanged. (This contribution is only injected when the capability is enabled; the `capture_artifacts` check lets you turn capture off without disabling the rest of the capability.)\n\nOtherwise — after verifying this wave, persist any *confirmed* problem→fix pairs into the palace so they are recalled in future phases. This is best-effort; if MemPalace is unreachable, skip silently — capture never fails a wave.\n\nFor each confirmed bug/issue resolved in this wave:\n\n1. **Resolve the wing** (`mempalace.wing`, else `project_code`, else project dir) and target `room: problems`.\n2. **Dedupe first.** Call `mempalace_check_duplicate` (interactive) before filing so re-runs don't create duplicate drawers.\n3. **File the drawer verbatim.** Store the problem statement and its fix as a drawer in `room: problems` — interactive: `mempalace_add_drawer`; headless: stage the artifact under the `problems/` folder and run `mempalace mine` (no `--room` flag — see [CLI reference](https://mempalaceofficial.com/reference/cli.html); room assignment is via `detect_room()` folder-path match per the [mining guide](https://mempalaceofficial.com/guide/mining.html); use the same staging pattern documented in `gsd-mempalace-capture` Step 3). Include provenance (`source_file`, phase id).\n4. **Mirror the KG fact** when `mempalace.mirror_kg` is on: add `(<bug>, fixed_by, <fix>)` with `valid_from` = the phase date via `mempalace_kg_add`.\n5. **Mode awareness** (`mempalace.memory_mode`). Under `augment` the fact is an *additive* mirror alongside `.planning/graphs/`. Under `kg_backend`/`replace` the palace is the *authoritative* store for the fact; GSD still writes `.planning/graphs/` through its normal graphify, so an unreachable palace never loses it.\n\nCaptures are idempotent: deterministic drawer IDs + `check_duplicate` mean re-running the wave re-files the same content without duplication. On any error, skip and let the wave complete normally.\n"
         },
         "produces": [],
         "consumes": [],
@@ -1270,7 +1872,7 @@ const capabilities = {
   "nyquist": {
     "id": "nyquist",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Nyquist validation",
     "description": "Validation coverage audit that maps executed work back to tests and manual-only evidence.",
     "tier": "full",
@@ -1320,7 +1922,7 @@ const capabilities = {
   "opencode": {
     "id": "opencode",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "OpenCode",
     "description": "OpenCode — XDG-based config dir; flat command/ + skills artifact layout; settings-json config format; no lifecycle hook registration; tier-2 support.",
     "tier": "core",
@@ -1338,6 +1940,7 @@ const capabilities = {
           "XDG_CONFIG_HOME"
         ]
       },
+      "localConfigDir": ".opencode",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -1379,18 +1982,53 @@ const capabilities = {
       },
       "commandStyle": "slash-hyphen",
       "hooksSurface": "none",
+      "extensionEvents": "opencode",
       "sandboxTier": "none",
       "supportTier": 2,
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": "opencode",
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": true
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "bun"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "attributionConfigResolver": "opencode",
+        "flatCommandDir": "command",
+        "combinedFamilyInstall": true,
+        "frontmatterDialect": "opencode",
+        "nativePlugin": {
+          "dir": "plugins",
+          "file": "gsd-core.js",
+          "source": ".opencode/plugins/gsd-core.js"
+        },
+        "skipHomePrefixSubstitution": true,
+        "skipSettingsUi": true,
+        "skipUpdateBannerCommand": true,
+        "skipCodexSkillsManifest": true,
+        "reviewerCli": true
+      }
     }
   },
   "pattern-mapper": {
     "id": "pattern-mapper",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Pattern mapping",
     "description": "Optional codebase-pattern mapping before planning; owns the pattern mapper agent and workflow.pattern_mapper activation key.",
     "tier": "full",
@@ -1441,10 +2079,70 @@ const capabilities = {
     "contributions": [],
     "gates": []
   },
+  "pi": {
+    "id": "pi",
+    "role": "runtime",
+    "version": "1.7.0",
+    "title": "pi",
+    "description": "pi (pi.dev) — bun-runtime programmatic-CLI; TS ExtensionAPI (registerCommand/registerTool/registerProvider/pi.on); single native-extension file at ~/.pi/agent/extensions/gsd.cjs; no shared-settings hook surface; tier-2 support.",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.7.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "dot-home-nested",
+        "name": "agent",
+        "parent": ".pi",
+        "env": []
+      },
+      "localConfigDir": ".pi",
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [],
+        "local": []
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "none",
+      "extensionEvents": "pi",
+      "sandboxTier": "none",
+      "supportTier": 2,
+      "installSurface": "profile-marker-only",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-programmatic",
+        "dispatch": {
+          "namedDispatch": false,
+          "nested": false,
+          "maxDepth": 0,
+          "background": false,
+          "backgroundDispatch": false,
+          "subagentToolkit": "undocumented"
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "session-log-append",
+        "transport": "native-extension",
+        "runtime": "bun"
+      },
+      "hostBehaviors": {
+        "nativePlugin": {
+          "dir": "extensions",
+          "file": "gsd.cjs",
+          "source": "pi/gsd.cjs"
+        },
+        "pluginOnlyInstall": true
+      }
+    }
+  },
   "profile-pipeline": {
     "id": "profile-pipeline",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Developer profiling pipeline",
     "description": "Developer behavioral profiling from Claude Code session history; scans session JSONL files, extracts and samples user messages, and generates profile artifacts (USER-PROFILE.md, dev-preferences.md, CLAUDE.md sections). Exposes eight `gsd-tools` commands: scan-sessions, extract-messages, profile-sample (pipeline phase) and write-profile, profile-questionnaire, generate-dev-preferences, generate-claude-profile, generate-claude-md (output phase). Backs the /gsd-profile-user skill and gsd-user-profiler agent.",
     "tier": "full",
@@ -1521,7 +2219,7 @@ const capabilities = {
   "qwen": {
     "id": "qwen",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Qwen Code",
     "description": "Qwen Code (Alibaba) — nested-skill artifact layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -1537,6 +2235,7 @@ const capabilities = {
           "QWEN_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".qwen",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -1547,6 +2246,14 @@ const capabilities = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToQwenAgent"
           }
         ],
         "local": [
@@ -1557,6 +2264,14 @@ const capabilities = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToQwenAgent"
           }
         ]
       },
@@ -1571,14 +2286,45 @@ const capabilities = {
       "extendedHookEvents": [
         "SubagentStop",
         "Stop",
-        "PreCompact"
-      ]
+        "PreCompact",
+        "SubagentStart"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "skillPriorityFrontmatter": true,
+        "brandingRewrites": {
+          "CLAUDE.md": "QWEN.md",
+          "Claude Code": "Qwen Code",
+          ".claude/": ".qwen/"
+        },
+        "legacyCommandsGsdCleanup": true,
+        "legacyCommandsGsdInstallMigration": true,
+        "legacyCommandsGsdUninstall": true,
+        "hyphenNameAgentBody": true,
+        "reviewerCli": true
+      }
     }
   },
   "research": {
     "id": "research",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Phase research",
     "description": "Optional phase research before planning; owns the phase researcher agent and workflow.research activation key.",
     "tier": "standard",
@@ -1630,7 +2376,7 @@ const capabilities = {
   "schema-gate": {
     "id": "schema-gate",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Schema push detection gate",
     "description": "Detects ORM schema-relevant files in the phase scope during planning and injects a mandatory [BLOCKING] schema push task into the plan. Prevents false-positive verification where build/types pass because TypeScript types come from config, not the live database.",
     "tier": "full",
@@ -1676,7 +2422,7 @@ const capabilities = {
   "security": {
     "id": "security",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Security enforcement",
     "description": "Threat mitigation verification and ship-time security blocking for phases with security enforcement enabled.",
     "tier": "full",
@@ -1775,7 +2521,7 @@ const capabilities = {
   "tdd": {
     "id": "tdd",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Test-driven development",
     "description": "Injects TDD heuristics into the planner and enforces RED/GREEN gate compliance on type:tdd plans after execution. Owns workflow.tdd_mode; the --tdd CLI flag is the ephemeral override.",
     "tier": "full",
@@ -1828,7 +2574,7 @@ const capabilities = {
   "trae": {
     "id": "trae",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Trae IDE",
     "description": "Trae IDE — nested-skill artifact layout; no hook surface (profile-marker-only config); tier-2 support.",
     "tier": "core",
@@ -1844,6 +2590,7 @@ const capabilities = {
           "TRAE_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".trae",
       "configFormat": "none",
       "artifactLayout": {
         "global": [
@@ -1854,6 +2601,14 @@ const capabilities = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToTraeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToTraeAgent"
           }
         ],
         "local": [
@@ -1864,6 +2619,14 @@ const capabilities = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToTraeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToTraeAgent"
           }
         ]
       },
@@ -1874,13 +2637,34 @@ const capabilities = {
       "installSurface": "profile-marker-only",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "engine",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "skipSharedHooksInstall": true,
+        "soloStageMetadata": "workflow"
+      }
     }
   },
   "ui": {
     "id": "ui",
     "role": "feature",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "UI design contracts",
     "description": "UI-SPEC design contract + retrospective UI audit for frontend phases.",
     "tier": "full",
@@ -1972,12 +2756,63 @@ const capabilities = {
       }
     ]
   },
+  "vscode": {
+    "id": "vscode",
+    "role": "runtime",
+    "version": "1.7.0",
+    "title": "VS Code",
+    "description": "VS Code — Marketplace/VSIX extension; no file-projected config directory; IDE-profile reference host (active vscode.lm model, engine-owned hook bus, sandboxed globalState/workspaceState stateIO).",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.7.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "none",
+        "name": "vscode",
+        "env": []
+      },
+      "localConfigDir": null,
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [],
+        "local": []
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "none",
+      "extensionEvents": "none",
+      "sandboxTier": "none",
+      "supportTier": 1,
+      "installSurface": "none",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "palette",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 5,
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "active",
+        "hookBus": "engine",
+        "stateIO": "sandboxed-storage",
+        "transport": "mcp",
+        "runtime": "sandboxed-web"
+      }
+    }
+  },
   "windsurf": {
     "id": "windsurf",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Windsurf",
-    "description": "Windsurf (Codeium) — workspace workflow artifact layout for slash commands; no hook surface; no hook events; tier-2 support.",
+    "description": "Windsurf (Codeium) — workspace workflow artifact layout for slash commands; Cascade native hooks.json blocking hook bus (pre_write_code, pre_run_command); tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
@@ -1992,9 +2827,19 @@ const capabilities = {
           "WINDSURF_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".windsurf",
       "configFormat": "none",
       "artifactLayout": {
-        "global": [],
+        "global": [
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToWindsurfAgent"
+          }
+        ],
         "local": [
           {
             "kind": "commands",
@@ -2003,6 +2848,122 @@ const capabilities = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToWindsurfWorkflow"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToWindsurfAgent"
+          }
+        ]
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "windsurf-hooks-json",
+      "sandboxTier": "none",
+      "supportTier": 2,
+      "installSurface": "profile-marker-only",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": "undocumented",
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": "undocumented",
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "undocumented"
+      },
+      "hostBehaviors": {
+        "skipSharedHooksInstall": true,
+        "legacyDevinSkillsCleanup": true,
+        "installsCommandBodiesForWorkflowDelegation": true,
+        "verificationStyle": "windsurf-workflows"
+      }
+    }
+  },
+  "zcode": {
+    "id": "zcode",
+    "role": "runtime",
+    "version": "1.7.0",
+    "title": "ZCode",
+    "description": "ZCode (Z.ai) — desktop Agentic Development Environment for GLM-5.2; Claude-shaped nested skills at ~/.zcode/skills/<name>/SKILL.md, slash commands, named subagents, native MCP; declarative plugin surface; profile-marker install; tier-2 community support.",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.6.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "dot-home",
+        "name": ".zcode",
+        "env": [
+          "ZCODE_CONFIG_DIR"
+        ]
+      },
+      "localConfigDir": ".zcode",
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "nested",
+            "recursive": false,
+            "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "commands",
+            "destSubpath": "commands",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          }
+        ],
+        "local": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "nested",
+            "recursive": false,
+            "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "commands",
+            "destSubpath": "commands",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
           }
         ]
       },
@@ -2013,7 +2974,27 @@ const capabilities = {
       "installSurface": "profile-marker-only",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": false,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "electron"
+      },
+      "hostBehaviors": {
+        "skipSharedHooksInstall": true
+      }
     }
   }
 };
@@ -2058,7 +3039,7 @@ const byLoopPoint = {
         "into": "orchestrator",
         "fragment": {
           "path": "fragments/recall-discuss.md",
-          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the discuss:pre orchestrator prompt when `mempalace.recall_on_discuss` is true.\n  Contributes DATA (recall instructions), not control flow. onError: skip — never blocks discussion.\n-->\n### Memory recall (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.recall_on_discuss` is `false`, **skip this entire section** and continue the discussion unchanged. (This contribution is only injected when the capability is enabled; the `recall_on_discuss` check lets you turn discuss-time recall off without disabling the rest of the capability.)\n\nOtherwise — before gathering new context, surface what you already know. This is read-only and side-effect-free; if MemPalace is unreachable, note \"memory unavailable\" and continue — recall never blocks discussion.\n\n1. **Resolve the wing.** Use `mempalace.wing` if set; otherwise derive it from `project_code` (fall back to the project directory name).\n2. **Wake up (cheap, ~600–900 tokens).**\n   - Interactive run → call `mempalace_search` after a wake-up read of the wing.\n   - Headless/cron run (no MCP server) → run `mempalace wake-up --wing <wing>` via the CLI.\n3. **Targeted recall.** Search the palace for prior work on this phase's topic:\n   - Interactive → `mempalace_search(query=<phase topic>, wing=<wing>)` and, when `mempalace.mirror_kg` is on, `mempalace_kg_query` / `mempalace_kg_timeline` for decision facts and their validity windows.\n   - Headless → `mempalace search \"<phase topic>\" --wing <wing>`.\n4. **Mode awareness.** Only `augment` is currently wired: always treat the palace as an *additional* recall layer on top of GSD's native memory — never skip `.planning/graphs/` or STATE. `kg_backend`/`replace` are forward-declared and behave as `augment` today.\n5. **Surface, don't dump.** Fold the top relevant drawers, decisions, patterns, and *surprises* into the discussion as prior context — cite drawer/fact provenance. Do not paste raw search output.\n\nIf any MemPalace call errors or times out, skip the rest of recall and proceed with discussion as normal.\n"
+          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the discuss:pre orchestrator prompt when `mempalace.recall_on_discuss` is true.\n  Contributes DATA (recall instructions), not control flow. onError: skip — never blocks discussion.\n-->\n### Memory recall (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.recall_on_discuss` is `false`, **skip this entire section** and continue the discussion unchanged. (This contribution is only injected when the capability is enabled; the `recall_on_discuss` check lets you turn discuss-time recall off without disabling the rest of the capability.)\n\nOtherwise — before gathering new context, surface what you already know. This is read-only and side-effect-free; if MemPalace is unreachable, note \"memory unavailable\" and continue — recall never blocks discussion.\n\n1. **Resolve the wing.** Use `mempalace.wing` if set; otherwise derive it from `project_code` (fall back to the project directory name).\n2. **Wake up (cheap, ~600–900 tokens).**\n   - Interactive run → call `mempalace_search` after a wake-up read of the wing.\n   - Headless/cron run (no MCP server) → run `mempalace wake-up --wing <wing>` via the CLI.\n3. **Targeted recall.** Search the palace for prior work on this phase's topic:\n   - Interactive → `mempalace_search(query=<phase topic>, wing=<wing>)` and, when `mempalace.mirror_kg` is on, `mempalace_kg_query` / `mempalace_kg_timeline` for decision facts and their validity windows.\n   - Headless → `mempalace search \"<phase topic>\" --wing <wing>`.\n4. **Mode awareness** (`mempalace.memory_mode`). `augment` (default): the palace is an *additional* layer — never skip `.planning/graphs/` or STATE. `kg_backend`: query the palace's temporal KG as the *primary* graph source, with `.planning/graphs/` as fallback. `replace`: resolve recall *through the palace as the source of truth*, native memory as fallback. In every mode an unreachable palace falls back to native memory — recall never blocks.\n5. **Surface, don't dump.** Fold the top relevant drawers, decisions, patterns, and *surprises* into the discussion as prior context — cite drawer/fact provenance. Do not paste raw search output.\n\nIf any MemPalace call errors or times out, skip the rest of recall and proceed with discussion as normal.\n"
         },
         "produces": [],
         "consumes": [],
@@ -2188,6 +3169,38 @@ const byLoopPoint = {
     ],
     "contributions": [
       {
+        "capId": "ai-integration",
+        "point": "plan:pre",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/api-coverage-plan-pre.md",
+          "inline": "# API Coverage Decision Checkpoint\n\n> Full API Coverage by Default — Opt Out, Never Opt In. Fires when a phase\n> integrates an external API / SDK / service. Most non-API phases will not fire\n> it — that is the point.\n\n## Why this exists\n\n\"We integrated the API\" too often silently means \"we integrated whatever the\nfirst use case exercised.\" Every un-built capability is then an invisible hole,\ndiscovered later by a user who reasonably expected it to work. The phase sealed\ngreen because its tasks completed; nobody decided the gaps were acceptable,\nbecause nobody enumerated them. This checkpoint makes the surface **visible and\ndecided** before the phase can seal.\n\n## Detect whether this phase integrates an external API\n\nThe detector is a deterministic scan over the phase scope. It strips fenced\ncode blocks first, so a trigger term inside a code snippet does not fire. It\nreturns a typed result: `{ detected, signals[], terms }`. Run it on the phase\nscope (the concatenation of this phase's ROADMAP section + the PLAN body):\n\n```bash\nSCOPE=\"$(cat \"${PHASE_DIR}\"/*-PLAN.md 2>/dev/null) $(gsd_run query roadmap.get-phase \"${PHASE}\" 2>/dev/null || true)\"\nAPI_COVERAGE_JSON=$(printf '%s' \"$SCOPE\" | node gsd-core/bin/lib/api-coverage.cjs --json 2>/dev/null || echo '{\"detected\":false,\"signals\":[]}')\n```\n\nRead `API_COVERAGE_JSON.detected`. Act on it only — do **not** pattern-match the\nprose yourself.\n\n**If `detected` is `false`:** this phase does not integrate an external API. Skip\nthe checkpoint entirely and continue planning. Do not raise it with the user.\n\n**If `detected` is `true`:** an external-API integration is in scope. You MUST\nproduce a **coverage matrix** before the plan is finalized.\n\n## Produce the coverage matrix\n\nEnumerate the external API's full **capability surface** — the verb/endpoint/method\nlist (e.g. for a music service: `search`, `play`, `pause`, `skip`, `set_volume`,\n`get_playlist`, `create_playlist`, `add_to_playlist`, …). For each capability\nrecord a decision, starting from **full coverage** as the default:\n\n| capability | decision | reason |\n|---|---|---|\n| `<capability-id>` | `INTEGRATE` \\| `OPT-OUT` | `<one-line reason if OPT-OUT>` |\n\nRules:\n\n- **`INTEGRATE` is the default.** Every capability starts as INTEGRATE; the\n  matrix is the *subtraction record*.\n- **Every `OPT-OUT` MUST carry a one-line reason** (`not needed`, `not needed\n  yet`, `explicitly out of scope`, …). An opt-out without a reason is an\n  un-decided hole — the exact failure mode this gate exists to close.\n- **A second integration against the same need** (e.g. a second platform for the\n  same capability) starts from the **same full-coverage baseline** as the first.\n  Do not carry over the first integration's opt-outs silently — re-decide each\n  capability for the new surface, so a first-class/fallback asymmetry cannot\n  accumulate.\n\nWrite the matrix to `${PHASE_DIR}/COVERAGE.md` (canonical markdown-table form):\n\n```markdown\n# API Coverage — <service>\n\n> Full coverage by default. Opt-outs are explicit, reasoned decisions.\n\n| capability | decision | reason |\n|---|---|---|\n| search | INTEGRATE | |\n| playlists | INTEGRATE | |\n| skip | OPT-OUT | not needed yet — tracked for follow-up phase |\n```\n\nA fenced ` ```coverage ` JSON block is also accepted for machine-generated\nmatrices; the markdown table is preferred (human-editable, diff-friendly).\n\n## The seal-time gate\n\nThis checkpoint is enforced. At `verify:pre` the `api-coverage.verify-pre` gate\nruns `check api-coverage.verify-pre <phase-dir>`:\n\n- If `COVERAGE.md` exists, it is validated — every row needs a valid decision and\n  every `OPT-OUT` a reason. A malformed/partial matrix **blocks the seal**.\n- If `COVERAGE.md` is absent, the detector runs again over the phase scope. If a\n  strong external-API-integration signal is found, the seal is **blocked** until a\n  matrix is produced. If no signal is found, the phase is treated as a non-API\n  phase and the seal proceeds.\n\nSo: an API-integrating phase cannot seal without a decided matrix. Produce it at\nplan time; do not leave it for seal time.\n\n## Tuning the vocabulary (optional)\n\nThe trigger vocabulary is a curated, additive-only set in\n`gsd-core/bin/lib/api-coverage.cjs` (`DEFAULT_API_COVERAGE_TERMS`). To widen it\nfor a project, override at the call site:\n\n```bash\nprintf '%s' \"$SCOPE\" | node gsd-core/bin/lib/api-coverage.cjs --json \\\n  --verbs integrate,wrap,connect,embed --nouns api,sdk,rest,grpc,webhook,plugin\n```\n\nThe whole checkpoint is toggleable via `workflow.api_coverage_gate` in\n`.planning/config.json`.\n"
+        },
+        "produces": [
+          "COVERAGE.md"
+        ],
+        "consumes": [
+          "CONTEXT.md"
+        ],
+        "when": "workflow.api_coverage_gate",
+        "onError": "skip"
+      },
+      {
+        "capId": "assumption-delta",
+        "point": "plan:pre",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/plan-pre.md",
+          "inline": "# Assumption-Delta Architecture Checkpoint\n\n> Advisory, non-blocking. Fires **only** when the phase scope shows a singular→plural / required→optional / derived→chosen transition. When it fires, it surfaces ONE identity-model question before the plan is finalized. Most phases will not fire it — that is the point.\n\n## Why this exists\n\nMost quietly-imported architectural debt does not come from a missing upfront design phase. It comes at the *seam*: a later phase introduces a second case (a second platform, auth method, tenant, region, source of truth) and nobody re-asks whether the original abstraction still names the right thing. The phase that adds the second case is exactly the 20-minute conversation that prevents an afternoon of later cleanup.\n\n## Run the detector\n\nThe detector is a deterministic scan over the phase scope text. It strips fenced code blocks first, so a trigger word that appears only inside a code snippet does not fire. It returns a typed result: `{ detected, signals[], terms }`. Resolve it through the `assumption-delta scan` query (same phase-section resolver as `roadmap.get-phase`):\n\n```bash\nASSUMPTION_DELTA_JSON=$(gsd_run query assumption-delta scan \"${PHASE}\" --json 2>/dev/null || echo '{\"detected\":false,\"signals\":[],\"terms\":{}}')\n```\n\n> If the phase section cannot be resolved (no `ROADMAP.md` / unknown phase), the query emits `{ \"detected\": false, ... }` — the checkpoint does not fire. Do not block on it.\n>\n> Optional tuning — pass `--terms <comma-list>` to replace the curated pluralization cues for this project (the `optional`/`chosen` cues keep their defaults): `gsd_run query assumption-delta scan \"${PHASE}\" --json --terms second,alternative,fallback`.\n\n## Decision branch\n\nRead `ASSUMPTION_DELTA_JSON`. Act on `detected` only — do **not** pattern-match the human prose.\n\n**If `detected` is `false`:** this phase does not change a core assumption. Skip the checkpoint entirely and continue planning. Do not raise it with the user.\n\n**If `detected` is `true`:** a core assumption may have lost its monopoly. The `signals[]` array tells you which family fired:\n\n| `kind` | What changed | The question to answer |\n|---|---|---|\n| `pluralization` | A second X was introduced where there was one (second platform / auth method / tenant / region / source of truth) | Does the current primary key / identity model still name the right noun? |\n| `optional` | A required / `only` field became optional | Is the field still the right anchor, or has the anchor moved? |\n| `chosen` | A derived value became chosen, or a constant became a parameter | Has a configuration decision become a modeling decision? |\n\nBefore finalizing the plan, answer this for the user and record the decision explicitly:\n\n> **Promote vs. add-alongside.** The usual correct move when a generalization occurs is to **promote** the new general representation to the primary and **demote** the old specific one to a detail of one variant — *not* to add the new one alongside the still-required old one. Adding alongside silently contradicts the generalized intent (a later variant that does not fit the old primary can be stored but never confirmed as a default).\n\nRecord the outcome in the PLAN.md front matter / a `<assumption_delta_decision>` block:\n\n- The **noun** that is now primary (the generalized identity).\n- The **decision**: `promote` | `add-alongside` | `no-change`, with a one-line rationale.\n- If `add-alongside`: call it out as accepted debt and note what would force a later promote.\n\n## Optional companion: an invariant test\n\nWhen `detected` is `true`, suggest (do not require) a contract/invariant test that encodes the now-generalized intent — e.g. *\"every confirmed default round-trips through the primary use-path, for every supported variant.\"* That test goes red the instant a future phase reintroduces the singular assumption, so the regression cannot land silently. If the user accepts, add the test as a task in the plan.\n\n## Tuning the vocabulary (optional)\n\nThe trigger vocabulary is a curated, additive-only set in `gsd-core/bin/lib/assumption-delta.cjs` (`DEFAULT_ASSUMPTION_DELTA_TERMS`). Bare \"or\" is intentionally excluded — it is too common in prose and would make the gate fire constantly. To widen or narrow the cues for a project, override at the call site with `--terms <comma-list>` (replaces the pluralization cues; `optional`/`chosen` keep defaults). The whole checkpoint is toggleable via `workflow.assumption_delta` in `.planning/config.json`.\n\nThis checkpoint is advisory: it informs and records; it never blocks the phase.\n"
+        },
+        "produces": [],
+        "consumes": [
+          "CONTEXT.md"
+        ],
+        "when": "workflow.assumption_delta",
+        "onError": "skip"
+      },
+      {
         "capId": "schema-gate",
         "point": "plan:pre",
         "into": "planner",
@@ -2271,7 +3284,36 @@ const byLoopPoint = {
         "onError": "skip"
       }
     ],
-    "contributions": [],
+    "contributions": [
+      {
+        "capId": "claude-orchestration",
+        "point": "plan:post",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/plan-post.md",
+          "inline": "# Claude orchestration — ultraplan plan-offload ownership (BETA)\n\n> Injected at `plan:post` `into: planner` only when\n> `claude_orchestration.enabled` is true. Default-off; `onError: skip`.\n\n## Ownership declaration\n\nThe `gsd-ultraplan-phase` plan-offload surface (offloading GSD's plan phase to\nClaude Code's ultraplan cloud) is **owned by this capability**, not by a\nstandalone BETA skill. Both surfaces share one runtime gate\n(`claude_orchestration.enabled`), one BETA boundary, and one Claude-Code-only\ndetection seam.\n\n## When the planner should consider ultraplan offload\n\nWhen this contribution is active (capability enabled, Claude Code runtime), the\nplanner MAY offer the `/gsd-ultraplan-phase` path as an alternative to local\n`/gsd-plan-phase` for phases where cloud-assisted planning adds value. This is\nadvisory, not mandatory — the stable local planner remains the default.\n\n## Fallback contract\n\nIf the capability is disabled, or the runtime is not Claude Code, ultraplan\noffload is **not surfaced** and the planner proceeds with the standard local\n`/gsd-plan-phase`. The `gsd-ultraplan-phase` command itself remains installed\n(its own runtime gate already no-ops on non-Claude runtimes); this contribution\nonly governs whether the capability manifest advertises it as part of the\norchestration surface.\n"
+        },
+        "produces": [],
+        "consumes": [
+          "CONTEXT.md"
+        ],
+        "when": "claude_orchestration.enabled",
+        "onError": "skip"
+      },
+      {
+        "capId": "external-job",
+        "point": "plan:post",
+        "into": "planner",
+        "fragment": {
+          "path": "fragments/plan-post.md",
+          "inline": "<!-- external-job capability — plan:post fragment, injected into the planner (#1164). -->\n\n## Tag runtime budgets on long tasks\n\nFor every `<task>` likely to exceed ~2 minutes of real compute, emit a\n`<runtime_budget>` child element so execute can classify it:\n\n- `<runtime_budget>quick</runtime_budget>` — under ~2 min; runs normally.\n- `<runtime_budget>medium</runtime_budget>` — ~2–30 min; foreground, but with\n  progress expectations.\n- `<runtime_budget>unknown</runtime_budget>` — runtime not yet characterized;\n  execute must run a first-health check and set a soft-review deadline before\n  trusting the child timeout. Define a progress signal and an abort condition.\n- `<runtime_budget>long_compute</runtime_budget>` — legitimately over ~30–60 min\n  (HPC solver, model training, large simulations). Execute must **externalize**\n  this as an async external job (see the execute:wave:post fragment) rather than\n  blocking the agent turn.\n\nFor any `long_compute` task, also declare the async contract the executor will\nneed: the `submit_command`, the `expected_artifacts` the job must produce, and\nthe `verification_command` that proves the output before the plan can close.\nDo not hardcode a cluster account, partition, or project path — the planner\nnever knows the scheduler layout; it declares the contract, the executor's\nadapter fills the backend specifics.\n"
+        },
+        "produces": [],
+        "consumes": [],
+        "when": "external_job.enabled",
+        "onError": "skip"
+      }
+    ],
     "gates": [
       {
         "capId": "gap-analysis",
@@ -2299,12 +3341,44 @@ const byLoopPoint = {
     "steps": [],
     "contributions": [
       {
+        "capId": "claude-orchestration",
+        "point": "execute:wave:post",
+        "into": "executor",
+        "fragment": {
+          "path": "fragments/execute-wave-post.md",
+          "inline": "# Claude orchestration — Workflow execution backend (BETA)\n\n> Injected at `execute:wave:post` `into: executor` only when\n> `claude_orchestration.enabled` is true. Default-off; `onError: skip`.\n\n## When this contribution is active\n\nThe Claude orchestration capability is **default-off and BETA**. It activates only\nwhen ALL of the following hold:\n\n1. `claude_orchestration.enabled` is `true` in `.planning/config.json`, AND\n2. the active runtime is **Claude Code** (the Workflow tool is Claude / Agent\n   SDK-specific), AND\n3. `claude_orchestration.execution_backend` resolves to `workflow` — either\n   explicitly, or via `auto` — **and** the Agent SDK version is\n   `>= claude_orchestration.min_agent_sdk_version` (default `0.3.149`). The SDK\n   floor applies in both `auto` and `workflow` modes (fail-closed: a pre-release\n   or older SDK never activates the preview backend).\n\nDetection is fail-closed: any miss degrades to **inline, manual, one-agent-per-\nmessage dispatch** — exactly today's behaviour. On a non-Claude runtime this\ncontribution is a no-op.\n\n## What the executor does when the Workflow backend is active\n\nInstead of the orchestrator fanning out one `Agent(subagent_type=gsd-executor,\nisolation=worktree, run_in_background=true)` per message (which on Claude Code\ncannot nest further subagents — #853 — and so degrades to sequential inline\nexecution), execute-phase **emits a generated Workflow script** and lets the main\nloop orchestrate it:\n\n- **waves → one or more sequential `parallel()` barriers** — each wave is a\n  barrier group; when plans within a wave share `files_modified`, they are split\n  into separate sequential stages within that wave's barrier (the next wave\n  still waits for the previous wave to complete).\n- **plans → `agent(brief, { agentType: 'gsd-executor', isolation: 'worktree' })`**\n  — the SAME executor agent and worktree isolation the inline path uses, so the\n  produced `SUMMARY.md` and commits are identical.\n- **`files_modified` overlap → separate sequential stages** — two plans that\n  touch the same file are placed in different stages within the wave (the same\n  overlap rule execute-phase already applies inline).\n- **`resumeFromRunId`** — wired to the phase run id, so an interrupted phase\n  resumes without re-running completed plans.\n- **`budget(tokens)`** — a shared token pool across the whole phase when the\n  orchestrator passes a `budgetTokens` value to `emitWorkflowScript` (it is a\n  function parameter, not a config key; the orchestrator decides the budget).\n\nThe emitter is a pure function exposed through the capability command surface:\n`gsd-tools claude-orchestration emit-workflow --waves <manifest.json> --run-id <id>\n[--phase-dir <dir>] [--budget <n>]` (or `require('gsd-core/bin/lib/claude-orchestration.cjs').emitWorkflowScript`\ndirectly). It maps the phase's wave/plan manifest to the Workflow script string\nand never invokes the Workflow tool itself; the orchestrator runs the emitted\nscript. Detection is resolved by the orchestrator calling the pure\n`detectWorkflowBackend` with the LIVE host descriptor (the CLI\n`gsd-tools claude-orchestration detect-backend` is a simulation harness that\nassumes a capable host unless `--no-nested-dispatch` is passed — it does not probe\nthe real runtime; the orchestrator supplies the real descriptor).\n\n## Fallback contract\n\nIf detection resolves to `inline` (tool absent, SDK too old, runtime not Claude,\nor the capability disabled), execute-phase MUST proceed with the standard inline\nwave dispatch. The executor MUST NOT assume parallelism, a shared budget, or\nresume-from-run-id semantics in that mode.\n"
+        },
+        "produces": [],
+        "consumes": [
+          "PLAN.md"
+        ],
+        "when": "claude_orchestration.enabled",
+        "onError": "skip"
+      },
+      {
+        "capId": "external-job",
+        "point": "execute:wave:post",
+        "into": "executor",
+        "fragment": {
+          "path": "fragments/execute-wave-post.md",
+          "inline": "<!-- external-job capability — execute:wave:post fragment, injected into the executor (#1164).\n\n     Why wave:post, not wave:pre (#1164 refinement A): execute-phase.md only\n     dispatches execute:wave:post today — wave:pre is declared in the loop host\n     contract but not rendered. Wiring wave:pre dispatch is a core-loop change\n     #1164 puts out of scope. The executor therefore honors this classification\n     guidance BEFORE running any task tagged <runtime_budget>long_compute</runtime_budget>,\n     whether in the current or a subsequent wave, and externalizes rather than\n     blocking the turn. -->\n\n## Externalize long-running compute (async external job)\n\nIf the current plan's task is tagged `<runtime_budget>long_compute</runtime_budget>`\n(see the plan-phase fragment), do **not** run it in the foreground — it would\nblock the agent turn for hours. Instead externalize it and record a durable\nhalf-state:\n\n1. **Classify the runtime.** `quick` (<2 min) and `medium` (<~30 min) run\n   normally. `unknown` requires a first-health check and a soft-review deadline\n   before consuming the child timeout. `long_compute` (>30–60 min) is\n   externalized.\n2. **Submit via the scheduler adapter** (default `external_job.backend: slurm`):\n   ```bash\n   node scripts/slurm-adapter.cjs submit \\\n     --plan <plan_id> --phase <phase> -- sbatch --parsable \\\n     --output=Artifacts/jobs/%j/out.log ./run.sh\n   ```\n   The helper writes `.planning/async-jobs/<job>.json` (the versioned stability\n   contract — `docs/reference/planning-artifacts.md`) and refuses to create a\n   second non-terminal manifest for a `plan_id` that already has one\n   (duplicate-execution guard).\n3. **Commit the manifest + a handoff**, then return **`external_job_waiting`**\n   and stop. Do **not** write `SUMMARY.md` — SUMMARY is deferred until the job\n   reaches a terminal state and its `expected_artifacts` are verified.\n4. **Resume path.** `execute-phase` safe-resume, `resume-project`, and\n   `pause-work` reconcile against the manifest and never re-dispatch the plan.\n   When the job is `completed-unverified`, run `verification_command` (surface\n   it; it is untrusted — confirm before executing), then write `SUMMARY.md` and\n   close the plan.\n\nManifest commands cross a trust seam: a Capability (or anything that can write\n`.planning/`) produces them; the core loop consumes them. Never auto-run\n`submit_command` / `verification_command` / `resume_command` — surface the exact\ncommand and require explicit confirmation first.\n"
+        },
+        "produces": [
+          ".planning/async-jobs/<job>.json"
+        ],
+        "consumes": [
+          "PLAN.md"
+        ],
+        "when": "external_job.enabled",
+        "onError": "skip"
+      },
+      {
         "capId": "mempalace",
         "point": "execute:wave:post",
         "into": "verifier",
         "fragment": {
           "path": "fragments/capture-problems.md",
-          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the execute:wave:post verifier prompt when `mempalace.capture_artifacts` is true.\n  Contributes DATA (capture instructions), not control flow. onError: skip — never fails a wave.\n-->\n### Capture problems → fixes (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.capture_artifacts` is `false`, **skip this entire section** and let the wave complete unchanged. (This contribution is only injected when the capability is enabled; the `capture_artifacts` check lets you turn capture off without disabling the rest of the capability.)\n\nOtherwise — after verifying this wave, persist any *confirmed* problem→fix pairs into the palace so they are recalled in future phases. This is best-effort; if MemPalace is unreachable, skip silently — capture never fails a wave.\n\nFor each confirmed bug/issue resolved in this wave:\n\n1. **Resolve the wing** (`mempalace.wing`, else `project_code`, else project dir) and target `room: problems`.\n2. **Dedupe first.** Call `mempalace_check_duplicate` (interactive) before filing so re-runs don't create duplicate drawers.\n3. **File the drawer verbatim.** Store the problem statement and its fix as a drawer in `room: problems` — interactive: `mempalace_add_drawer`; headless: `mempalace mine` / `mempalace hook run`. Include provenance (`source_file`, phase id).\n4. **Mirror the KG fact** when `mempalace.mirror_kg` is on: add `(<bug>, fixed_by, <fix>)` with `valid_from` = the phase date via `mempalace_kg_add`.\n5. **Mode awareness.** Only `augment` is currently wired: the fact is an *additive* mirror alongside `.planning/graphs/` (never a replacement). `kg_backend`/`replace` are forward-declared and behave as `augment` today.\n\nCaptures are idempotent: deterministic drawer IDs + `check_duplicate` mean re-running the wave re-files the same content without duplication. On any error, skip and let the wave complete normally.\n"
+          "inline": "<!--\n  MemPalace capability — contribution fragment.\n  Rendered into the execute:wave:post verifier prompt when `mempalace.capture_artifacts` is true.\n  Contributes DATA (capture instructions), not control flow. onError: skip — never fails a wave.\n-->\n### Capture problems → fixes (MemPalace)\n\n**Gate first.** Read `.planning/config.json`. If `mempalace.enabled` is not `true`, or `mempalace.capture_artifacts` is `false`, **skip this entire section** and let the wave complete unchanged. (This contribution is only injected when the capability is enabled; the `capture_artifacts` check lets you turn capture off without disabling the rest of the capability.)\n\nOtherwise — after verifying this wave, persist any *confirmed* problem→fix pairs into the palace so they are recalled in future phases. This is best-effort; if MemPalace is unreachable, skip silently — capture never fails a wave.\n\nFor each confirmed bug/issue resolved in this wave:\n\n1. **Resolve the wing** (`mempalace.wing`, else `project_code`, else project dir) and target `room: problems`.\n2. **Dedupe first.** Call `mempalace_check_duplicate` (interactive) before filing so re-runs don't create duplicate drawers.\n3. **File the drawer verbatim.** Store the problem statement and its fix as a drawer in `room: problems` — interactive: `mempalace_add_drawer`; headless: stage the artifact under the `problems/` folder and run `mempalace mine` (no `--room` flag — see [CLI reference](https://mempalaceofficial.com/reference/cli.html); room assignment is via `detect_room()` folder-path match per the [mining guide](https://mempalaceofficial.com/guide/mining.html); use the same staging pattern documented in `gsd-mempalace-capture` Step 3). Include provenance (`source_file`, phase id).\n4. **Mirror the KG fact** when `mempalace.mirror_kg` is on: add `(<bug>, fixed_by, <fix>)` with `valid_from` = the phase date via `mempalace_kg_add`.\n5. **Mode awareness** (`mempalace.memory_mode`). Under `augment` the fact is an *additive* mirror alongside `.planning/graphs/`. Under `kg_backend`/`replace` the palace is the *authoritative* store for the fact; GSD still writes `.planning/graphs/` through its normal graphify, so an unreachable palace never loses it.\n\nCaptures are idempotent: deterministic drawer IDs + `check_duplicate` mean re-running the wave re-files the same content without duplication. On any error, skip and let the wave complete normally.\n"
         },
         "produces": [],
         "consumes": [],
@@ -2380,7 +3454,18 @@ const byLoopPoint = {
   "verify:pre": {
     "steps": [],
     "contributions": [],
-    "gates": []
+    "gates": [
+      {
+        "capId": "ai-integration",
+        "point": "verify:pre",
+        "check": {
+          "query": "api-coverage.verify-pre"
+        },
+        "when": "workflow.api_coverage_gate",
+        "blocking": true,
+        "onError": "halt"
+      }
+    ]
   },
   "verify:post": {
     "steps": [
@@ -2490,12 +3575,22 @@ const byLoopPoint = {
 
 const configKeys = {
   "workflow.ai_integration_phase": "ai-integration",
+  "workflow.api_coverage_gate": "ai-integration",
+  "workflow.assumption_delta": "assumption-delta",
+  "claude_orchestration.enabled": "claude-orchestration",
+  "claude_orchestration.execution_backend": "claude-orchestration",
+  "claude_orchestration.min_agent_sdk_version": "claude-orchestration",
   "workflow.code_review": "code-review",
   "workflow.code_review_depth": "code-review",
   "workflow.drift_threshold": "drift",
   "workflow.drift_action": "drift",
   "workflow.schema_drift_gate": "drift",
   "workflow.plan_drift_precheck": "drift",
+  "external_job.enabled": "external-job",
+  "external_job.backend": "external-job",
+  "external_job.artifact_dir": "external-job",
+  "external_job.submit_timeout_ms": "external-job",
+  "external_job.poll_timeout_ms": "external-job",
   "workflow.post_planning_gaps": "gap-analysis",
   "graphify.enabled": "graphify",
   "intel.enabled": "intel",
@@ -2529,6 +3624,41 @@ const configSchema = {
     "type": "boolean",
     "default": true,
     "description": "Prompt for an AI-SPEC design contract before planning phases that involve AI systems."
+  },
+  "workflow.api_coverage_gate": {
+    "owner": "ai-integration",
+    "type": "boolean",
+    "default": true,
+    "description": "Require an explicit API-coverage decision (full-by-default, opt-out-not-opt-in) before a phase that integrates an external API/SDK/service can seal. At plan:pre the planner is prompted to enumerate the API surface into COVERAGE.md; at verify:pre a blocking gate fails the seal unless the matrix exists with every non-integrated capability an explicit, reasoned opt-out. Independent of ai_integration_phase (applies to any external-API integration, not only AI)."
+  },
+  "workflow.assumption_delta": {
+    "owner": "assumption-delta",
+    "type": "boolean",
+    "default": true,
+    "description": "Enable the assumption-delta architecture checkpoint during planning. When a pluralization/optional/chosen signal is detected in the phase scope, the planner is prompted to re-ask whether the primary key / identity model still names the right thing. Advisory (non-blocking)."
+  },
+  "claude_orchestration.enabled": {
+    "owner": "claude-orchestration",
+    "type": "boolean",
+    "default": false,
+    "description": "Master toggle for the Claude orchestration capability. Default-off + BETA: the Workflow-tool execution backend and the ultraplan plan-offload surface are inert unless this is true. When false, loop behaviour is byte-identical to a non-Claude runtime (inline/manual dispatch)."
+  },
+  "claude_orchestration.execution_backend": {
+    "owner": "claude-orchestration",
+    "type": "enum",
+    "default": "auto",
+    "description": "Which execute-phase dispatch backend to use when the capability is enabled. 'auto' (default) activates the Workflow backend only when the runtime is Claude AND the Workflow tool is detected AND the Agent SDK meets claude_orchestration.min_agent_sdk_version; otherwise it falls back to inline. 'workflow' forces the Workflow backend when the tool is present AND the Agent SDK meets the floor (still fails closed to inline if the tool is absent or the SDK is too old — the floor applies in both modes). 'inline' forces today's manual one-agent-per-message dispatch regardless of tool availability.",
+    "values": [
+      "auto",
+      "workflow",
+      "inline"
+    ]
+  },
+  "claude_orchestration.min_agent_sdk_version": {
+    "owner": "claude-orchestration",
+    "type": "string",
+    "default": "0.3.149",
+    "description": "Minimum Agent SDK version required to activate the Workflow backend under execution_backend='auto'. Defaults to 0.3.149 (the release that introduced the Workflow tool). Raise to pin a higher floor; the detection seam fails closed to inline for any runtime reporting an older or unknown version."
   },
   "workflow.code_review": {
     "owner": "code-review",
@@ -2575,6 +3705,39 @@ const configSchema = {
     "default": true,
     "description": "Enable the non-blocking codebase drift pre-check at plan:pre, before /gsd:plan-phase spawns the planner. When enabled, a stale STRUCTURE.md (structural additions exceeding drift_threshold) is surfaced up front as a warn-only advisory pointing to /gsd:map-codebase; it never blocks planning and never spawns the mapper agent. Separate from schema_drift_gate so autonomous/CI runs can silence the plan-time advisory while keeping the execute:wave:post gates enabled."
   },
+  "external_job.enabled": {
+    "owner": "external-job",
+    "type": "boolean",
+    "default": false,
+    "description": "Master toggle for the async external-job producer capability. Default-off: the core loop consumes manifests whether or not this is on, but no manifest is ever written unless an executor opts in here."
+  },
+  "external_job.backend": {
+    "owner": "external-job",
+    "type": "enum",
+    "default": "slurm",
+    "description": "Scheduler backend. SLURM is the first adapter; the field is the pluggability seam for future backends (LSF, PBS, Kubernetes batch). Core never interprets this value.",
+    "values": [
+      "slurm"
+    ]
+  },
+  "external_job.artifact_dir": {
+    "owner": "external-job",
+    "type": "string",
+    "default": "Artifacts/jobs",
+    "description": "Root for per-job artifact directories (e.g. Artifacts/jobs/<jobid>/). Avoids fixed log paths and hardcoding a cluster/project layout. Surfaced by the adapter (`slurm-adapter.cjs submit` prints the resolved value); override via GSD_EXTERNAL_JOB_ARTIFACT_DIR."
+  },
+  "external_job.submit_timeout_ms": {
+    "owner": "external-job",
+    "type": "number",
+    "default": 30000,
+    "description": "Hard timeout (ms) for the scheduler submit subprocess (e.g. sbatch). Bounded per CLAUDE.md unbounded-subprocess policy. Read by the adapter (env GSD_SLURM_SUBMIT_TIMEOUT_MS overrides)."
+  },
+  "external_job.poll_timeout_ms": {
+    "owner": "external-job",
+    "type": "number",
+    "default": 15000,
+    "description": "Hard timeout (ms) for the scheduler poll subprocess (squeue, with sacct fallback). Read by the adapter (env GSD_SLURM_POLL_TIMEOUT_MS overrides)."
+  },
   "workflow.post_planning_gaps": {
     "owner": "gap-analysis",
     "type": "boolean",
@@ -2603,7 +3766,7 @@ const configSchema = {
     "owner": "mempalace",
     "type": "enum",
     "default": "augment",
-    "description": "How MemPalace relates to GSD native memory. Only 'augment' (additive) is implemented today; 'kg_backend' and 'replace' are forward-declared (routing seam not yet built) and currently behave as 'augment'.",
+    "description": "How MemPalace relates to GSD native memory during recall/capture. 'augment' (default): the palace is an additive layer alongside .planning/graphs/ — native memory stays authoritative. 'kg_backend': knowledge-graph queries resolve against the palace's temporal KG as the primary source, with .planning/graphs/ as fallback. 'replace': recall resolves through the palace as the source of truth, native memory as fallback. Every mode stays onError:skip and default-resilient — an unreachable palace degrades to native memory, and GSD keeps writing .planning/graphs/ so no memory is lost. Cross-mode migration of existing .planning/graphs/ into the palace is a separate, not-yet-implemented concern.",
     "values": [
       "augment",
       "kg_backend",
@@ -2743,7 +3906,7 @@ const runtimes = {
   "antigravity": {
     "id": "antigravity",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Antigravity",
     "description": "Google Antigravity IDE — nested under ~/.gemini/antigravity; probed across 1.x and 2.x layouts; Gemini hook event dialect; flat skill layout; tier-1 support.",
     "tier": "core",
@@ -2766,6 +3929,7 @@ const runtimes = {
         ],
         "probeExists": "gsd-core/VERSION"
       },
+      "localConfigDir": ".agents",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -2776,6 +3940,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToAntigravitySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAntigravityAgent"
           }
         ],
         "local": [
@@ -2786,6 +3958,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToAntigravitySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAntigravityAgent"
           }
         ]
       },
@@ -2796,14 +3976,38 @@ const runtimes = {
       "supportTier": 1,
       "installSurface": "settings-json",
       "writesSharedSettings": true,
-      "permissionWriter": null,
-      "extendedHookEvents": []
+      "permissionWriter": "antigravity",
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": "undocumented",
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "go"
+      },
+      "hostBehaviors": {
+        "reviewerCli": true,
+        "projectInstructionFile": "GEMINI.md",
+        "noPathRewrite": true,
+        "hookPathStyle": "raw",
+        "globalDirResolver": "antigravity"
+      }
     }
   },
   "augment": {
     "id": "augment",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Augment Code",
     "description": "Augment Code CLI — commands + nested-skill artifact layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -2819,6 +4023,7 @@ const runtimes = {
           "AUGMENT_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".augment",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -2837,6 +4042,14 @@ const runtimes = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToAugmentSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAugmentAgent"
           }
         ],
         "local": [
@@ -2855,6 +4068,14 @@ const runtimes = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToAugmentSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToAugmentAgent"
           }
         ]
       },
@@ -2866,13 +4087,34 @@ const runtimes = {
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostBehaviors": {
+        "commandBodyConverter": "convertClaudeToAugmentMarkdown",
+        "mcpCompanion": "settings-json"
+      },
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      }
     }
   },
   "claude": {
     "id": "claude",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Claude Code",
     "description": "Anthropic Claude Code — primary development runtime; tier-1 support with full hook surface and skills-based global install.",
     "tier": "core",
@@ -2888,6 +4130,7 @@ const runtimes = {
           "CLAUDE_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".claude",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -2932,13 +4175,51 @@ const runtimes = {
         "Stop",
         "PreCompact",
         "FileChanged"
-      ]
+      ],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 5,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "attributionSource": "settings-json-commit",
+        "authorsCanonicalWorkflow": true,
+        "localInstallStyle": "legacy-flat",
+        "permissionsSchema": "claude",
+        "settingsFileByScope": {
+          "local": "settings.local.json",
+          "global": "settings.json"
+        },
+        "sourceMarkerFile": ".gsd-source",
+        "agentFrontmatterExtensions": [
+          "effort"
+        ],
+        "ownsClaudePaths": true,
+        "nativeModelAliases": true,
+        "skillsGlobalOnboarding": true,
+        "legacyCommandsGsdInstallMigration": true,
+        "legacyCommandsGsdUninstall": "global",
+        "hyphenNameAgentBody": true,
+        "reviewerCli": true
+      }
     }
   },
   "cline": {
     "id": "cline",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Cline",
     "description": "Cline (VS Code extension) — global-only nested-skill layout; cline-rules hook surface (.clinerules); no hook events emitted; tier-2 support.",
     "tier": "core",
@@ -2954,6 +4235,7 @@ const runtimes = {
           "CLINE_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".cline",
       "configFormat": "markdown-dir",
       "artifactLayout": {
         "global": [
@@ -2975,13 +4257,38 @@ const runtimes = {
       "installSurface": "cline-rules",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "read-only",
+          "backgroundDispatch": false
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "frontmatterDialect": "cline",
+        "skipSharedHooksInstall": true,
+        "localTargetIsProjectRoot": true,
+        "clineRulesSurface": true,
+        "localCommandsViaRules": true
+      }
     }
   },
   "codebuddy": {
     "id": "codebuddy",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "CodeBuddy",
     "description": "CodeBuddy (Tencent) — converted commands + skills artifact layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -2997,6 +4304,7 @@ const runtimes = {
           "CODEBUDDY_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".codebuddy",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -3015,6 +4323,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCodebuddySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCodebuddyAgent"
           }
         ],
         "local": [
@@ -3033,6 +4349,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCodebuddySkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCodebuddyAgent"
           }
         ]
       },
@@ -3044,13 +4368,38 @@ const runtimes = {
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [
+        "SubagentStop",
+        "Stop",
+        "PreCompact",
+        "SubagentStart"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "reportCommandsDir": true
+      }
     }
   },
   "codex": {
     "id": "codex",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "OpenAI Codex CLI",
     "description": "OpenAI Codex CLI — shell-var command style; per-agent sandbox tiers; config.toml + hooks.json hook surface; tier-1 support.",
     "tier": "core",
@@ -3066,6 +4415,7 @@ const runtimes = {
           "CODEX_HOME"
         ]
       },
+      "localConfigDir": ".codex",
       "configFormat": "toml",
       "artifactLayout": {
         "global": [
@@ -3075,7 +4425,8 @@ const runtimes = {
             "prefix": "gsd-",
             "nesting": "flat",
             "recursive": false,
-            "converter": "convertClaudeCommandToCodexSkill"
+            "converter": "convertClaudeCommandToCodexSkill",
+            "home": ".agents"
           }
         ],
         "local": [
@@ -3085,7 +4436,8 @@ const runtimes = {
             "prefix": "gsd-",
             "nesting": "flat",
             "recursive": false,
-            "converter": "convertClaudeCommandToCodexSkill"
+            "converter": "convertClaudeCommandToCodexSkill",
+            "home": ".agents"
           }
         ]
       },
@@ -3097,13 +4449,42 @@ const runtimes = {
       "installSurface": "codex-toml",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [
+        "SubagentStop",
+        "Stop",
+        "PreCompact"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": true
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "$gsd-update --reapply",
+        "tomlConfigInstall": true,
+        "cleanupSkillSidecars": true,
+        "agentTomlFiles": true,
+        "frontmatterDialect": "codex",
+        "reviewerCli": true
+      }
     }
   },
   "copilot": {
     "id": "copilot",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "GitHub Copilot",
     "description": "GitHub Copilot (VS Code) — markdown config format; copilot-inline hook surface; no hook events emitted; flat skill nesting (unconfirmed recursive loader); tier-2 support.",
     "tier": "core",
@@ -3120,6 +4501,7 @@ const runtimes = {
           "COPILOT_HOME"
         ]
       },
+      "localConfigDir": ".github",
       "configFormat": "markdown",
       "artifactLayout": {
         "global": [
@@ -3130,6 +4512,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCopilotSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCopilotAgent"
           }
         ],
         "local": [
@@ -3140,6 +4530,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCopilotSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCopilotAgent"
           }
         ]
       },
@@ -3150,13 +4548,36 @@ const runtimes = {
       "installSurface": "copilot-instructions",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "undocumented"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "agentFileExtension": ".agent.md",
+        "skipSharedHooksInstall": true,
+        "noPathRewrite": true
+      }
     }
   },
   "cursor": {
     "id": "cursor",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Cursor",
     "description": "Cursor IDE — skills + converted commands artifact layout; hooks.json surface; Claude hook event dialect; recursive skill loader (flat nesting); tier-2 support.",
     "tier": "core",
@@ -3172,6 +4593,7 @@ const runtimes = {
           "CURSOR_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".cursor",
       "configFormat": "none",
       "artifactLayout": {
         "global": [
@@ -3190,6 +4612,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCursorCommand"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCursorAgent"
           }
         ],
         "local": [
@@ -3208,6 +4638,14 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToCursorCommand"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToCursorAgent"
           }
         ]
       },
@@ -3219,70 +4657,48 @@ const runtimes = {
       "installSurface": "cursor-hooks-json",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
-    }
-  },
-  "gemini": {
-    "id": "gemini",
-    "role": "runtime",
-    "version": "1.6.1",
-    "title": "Gemini CLI",
-    "description": "Google Gemini CLI — commands-only artifact layout (TOML); Gemini hook event dialect; settings-json hook surface; tier-2 support.",
-    "tier": "core",
-    "requires": [],
-    "engines": {
-      "gsd": ">=1.6.0"
-    },
-    "runtime": {
-      "configHome": {
-        "kind": "dot-home",
-        "name": ".gemini",
-        "env": [
-          "GEMINI_CONFIG_DIR"
-        ]
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 2,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": true
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
       },
-      "configFormat": "settings-json",
-      "artifactLayout": {
-        "global": [
-          {
-            "kind": "commands",
-            "destSubpath": "commands/gsd",
-            "prefix": "gsd-",
-            "nesting": "flat",
-            "recursive": false,
-            "converter": null
-          }
+      "hostBehaviors": {
+        "reapplyCommand": "gsd-update --reapply (mention the skill name)",
+        "frontmatterDialect": "cursor",
+        "hooksJsonSurface": true,
+        "skipSharedHooksInstall": true,
+        "reportCommandsDir": true,
+        "skipUpdateBannerCommand": true,
+        "skipSettingsUi": true,
+        "managedHookEvents": [
+          "sessionStart",
+          "postToolUse",
+          "preToolUse",
+          "stop",
+          "subagentStart",
+          "subagentStop"
         ],
-        "local": [
-          {
-            "kind": "commands",
-            "destSubpath": "commands/gsd",
-            "prefix": "gsd-",
-            "nesting": "flat",
-            "recursive": false,
-            "converter": null
-          }
-        ]
-      },
-      "commandStyle": "slash-hyphen",
-      "hooksSurface": "settings-json",
-      "hookEvents": "gemini",
-      "sandboxTier": "none",
-      "supportTier": 2,
-      "installSurface": "settings-json",
-      "writesSharedSettings": true,
-      "permissionWriter": null,
-      "extendedHookEvents": [
-        "BeforeAgent",
-        "AfterAgent",
-        "BeforeModel"
-      ]
+        "reviewerCli": true
+      }
     }
   },
   "hermes": {
     "id": "hermes",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Hermes Agent",
     "description": "Hermes Agent (NousResearch) — skills nest under skills/gsd/ category bucket; nested skill layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -3298,6 +4714,7 @@ const runtimes = {
           "HERMES_HOME"
         ]
       },
+      "localConfigDir": ".hermes",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -3329,13 +4746,48 @@ const runtimes = {
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "extensionEvents": "hermes",
+      "hostBehaviors": {
+        "skillFrontmatterVersion": true,
+        "skillsManifestPrefix": "skills/gsd/",
+        "trackCategoryDescription": true,
+        "writeCategoryDescription": true,
+        "reportSkillsCount": true,
+        "legacyCommandsGsdCleanup": true,
+        "brandingRewrites": {
+          "CLAUDE.md": "HERMES.md",
+          "Claude Code": "Hermes Agent",
+          ".claude/": ".hermes/"
+        },
+        "reapplyCommand": "gsd-update --reapply (mention the skill name)",
+        "legacyCommandsGsdInstallMigration": true,
+        "legacyCommandsGsdUninstall": true,
+        "hyphenNameAgentBody": true
+      },
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-programmatic",
+        "dispatch": {
+          "namedDispatch": false,
+          "nested": true,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "read-only",
+          "backgroundDispatch": false
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "python"
+      }
     }
   },
   "kilo": {
     "id": "kilo",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Kilo Code",
     "description": "Kilo Code — XDG-based config dir; global skills at ~/.kilo/skills (separate from XDG config); flat command/ + skills artifact layout; no lifecycle hook registration; tier-2 support.",
     "tier": "core",
@@ -3358,6 +4810,7 @@ const runtimes = {
           "env": []
         }
       },
+      "localConfigDir": ".kilo",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -3399,20 +4852,52 @@ const runtimes = {
       },
       "commandStyle": "slash-hyphen",
       "hooksSurface": "none",
+      "extensionEvents": "kilo",
       "sandboxTier": "none",
       "supportTier": 2,
       "installSurface": "settings-json",
       "writesSharedSettings": false,
       "permissionWriter": "kilo",
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": -1,
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": false
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "bun"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "attributionConfigResolver": "kilo",
+        "flatCommandDir": "command",
+        "combinedFamilyInstall": true,
+        "frontmatterDialect": "kilo",
+        "nativePlugin": {
+          "dir": "plugins",
+          "file": "gsd-core.js",
+          "source": ".kilo/plugins/gsd-core.js"
+        },
+        "skipUpdateBannerCommand": true,
+        "skipSharedHooksInstall": true
+      }
     }
   },
   "kimi": {
     "id": "kimi",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Kimi CLI",
-    "description": "Kimi CLI (Moonshot AI) — generic agents root at ~/.config/agents; skills + kimi-agents artifact layout; no hook surface; no hook events; tier-2 support.",
+    "description": "Kimi CLI (Moonshot AI) — generic agents root at ~/.config/agents; skills + kimi-agents artifact layout; native config.toml [[hooks]] bus at ~/.kimi/config.toml; background dispatch; tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
@@ -3431,6 +4916,7 @@ const runtimes = {
         ],
         "probeExists": "skills"
       },
+      "localConfigDir": ".kimi-code",
       "configFormat": "none",
       "artifactLayout": {
         "global": [
@@ -3454,19 +4940,50 @@ const runtimes = {
         "local": []
       },
       "commandStyle": "slash-hyphen",
-      "hooksSurface": "none",
+      "hooksSurface": "kimi-hooks-toml",
+      "hookEvents": "claude",
       "sandboxTier": "none",
       "supportTier": 2,
       "installSurface": "profile-marker-only",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [
+        "SubagentStop",
+        "Stop",
+        "PreCompact",
+        "SubagentStart"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": true
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "python"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/skill:gsd-update --reapply",
+        "localInstallDeferred": true,
+        "verificationStyle": "kimi",
+        "agentManifestStyle": "kimi-nested",
+        "doneBannerStyle": "kimi-agent-file",
+        "skipSharedHooksInstall": true
+      }
     }
   },
   "opencode": {
     "id": "opencode",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "OpenCode",
     "description": "OpenCode — XDG-based config dir; flat command/ + skills artifact layout; settings-json config format; no lifecycle hook registration; tier-2 support.",
     "tier": "core",
@@ -3484,6 +5001,7 @@ const runtimes = {
           "XDG_CONFIG_HOME"
         ]
       },
+      "localConfigDir": ".opencode",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -3525,18 +5043,113 @@ const runtimes = {
       },
       "commandStyle": "slash-hyphen",
       "hooksSurface": "none",
+      "extensionEvents": "opencode",
       "sandboxTier": "none",
       "supportTier": 2,
       "installSurface": "settings-json",
       "writesSharedSettings": true,
       "permissionWriter": "opencode",
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": true
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "bun"
+      },
+      "hostBehaviors": {
+        "reapplyCommand": "/gsd-update --reapply",
+        "attributionConfigResolver": "opencode",
+        "flatCommandDir": "command",
+        "combinedFamilyInstall": true,
+        "frontmatterDialect": "opencode",
+        "nativePlugin": {
+          "dir": "plugins",
+          "file": "gsd-core.js",
+          "source": ".opencode/plugins/gsd-core.js"
+        },
+        "skipHomePrefixSubstitution": true,
+        "skipSettingsUi": true,
+        "skipUpdateBannerCommand": true,
+        "skipCodexSkillsManifest": true,
+        "reviewerCli": true
+      }
+    }
+  },
+  "pi": {
+    "id": "pi",
+    "role": "runtime",
+    "version": "1.7.0",
+    "title": "pi",
+    "description": "pi (pi.dev) — bun-runtime programmatic-CLI; TS ExtensionAPI (registerCommand/registerTool/registerProvider/pi.on); single native-extension file at ~/.pi/agent/extensions/gsd.cjs; no shared-settings hook surface; tier-2 support.",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.7.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "dot-home-nested",
+        "name": "agent",
+        "parent": ".pi",
+        "env": []
+      },
+      "localConfigDir": ".pi",
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [],
+        "local": []
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "none",
+      "extensionEvents": "pi",
+      "sandboxTier": "none",
+      "supportTier": 2,
+      "installSurface": "profile-marker-only",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-programmatic",
+        "dispatch": {
+          "namedDispatch": false,
+          "nested": false,
+          "maxDepth": 0,
+          "background": false,
+          "backgroundDispatch": false,
+          "subagentToolkit": "undocumented"
+        },
+        "modelMode": "active",
+        "hookBus": "host",
+        "stateIO": "session-log-append",
+        "transport": "native-extension",
+        "runtime": "bun"
+      },
+      "hostBehaviors": {
+        "nativePlugin": {
+          "dir": "extensions",
+          "file": "gsd.cjs",
+          "source": "pi/gsd.cjs"
+        },
+        "pluginOnlyInstall": true
+      }
     }
   },
   "qwen": {
     "id": "qwen",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Qwen Code",
     "description": "Qwen Code (Alibaba) — nested-skill artifact layout; settings-json hook surface; Claude hook event dialect; tier-2 support.",
     "tier": "core",
@@ -3552,6 +5165,7 @@ const runtimes = {
           "QWEN_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".qwen",
       "configFormat": "settings-json",
       "artifactLayout": {
         "global": [
@@ -3562,6 +5176,14 @@ const runtimes = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToQwenAgent"
           }
         ],
         "local": [
@@ -3572,6 +5194,14 @@ const runtimes = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToQwenAgent"
           }
         ]
       },
@@ -3586,14 +5216,45 @@ const runtimes = {
       "extendedHookEvents": [
         "SubagentStop",
         "Stop",
-        "PreCompact"
-      ]
+        "PreCompact",
+        "SubagentStart"
+      ],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": false,
+          "maxDepth": 1,
+          "background": true,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "skillPriorityFrontmatter": true,
+        "brandingRewrites": {
+          "CLAUDE.md": "QWEN.md",
+          "Claude Code": "Qwen Code",
+          ".claude/": ".qwen/"
+        },
+        "legacyCommandsGsdCleanup": true,
+        "legacyCommandsGsdInstallMigration": true,
+        "legacyCommandsGsdUninstall": true,
+        "hyphenNameAgentBody": true,
+        "reviewerCli": true
+      }
     }
   },
   "trae": {
     "id": "trae",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Trae IDE",
     "description": "Trae IDE — nested-skill artifact layout; no hook surface (profile-marker-only config); tier-2 support.",
     "tier": "core",
@@ -3609,6 +5270,7 @@ const runtimes = {
           "TRAE_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".trae",
       "configFormat": "none",
       "artifactLayout": {
         "global": [
@@ -3619,6 +5281,14 @@ const runtimes = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToTraeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToTraeAgent"
           }
         ],
         "local": [
@@ -3629,6 +5299,14 @@ const runtimes = {
             "nesting": "nested",
             "recursive": false,
             "converter": "convertClaudeCommandToTraeSkill"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToTraeAgent"
           }
         ]
       },
@@ -3639,15 +5317,87 @@ const runtimes = {
       "installSurface": "profile-marker-only",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "engine",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "node"
+      },
+      "hostBehaviors": {
+        "skipSharedHooksInstall": true,
+        "soloStageMetadata": "workflow"
+      }
+    }
+  },
+  "vscode": {
+    "id": "vscode",
+    "role": "runtime",
+    "version": "1.7.0",
+    "title": "VS Code",
+    "description": "VS Code — Marketplace/VSIX extension; no file-projected config directory; IDE-profile reference host (active vscode.lm model, engine-owned hook bus, sandboxed globalState/workspaceState stateIO).",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.7.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "none",
+        "name": "vscode",
+        "env": []
+      },
+      "localConfigDir": null,
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [],
+        "local": []
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "none",
+      "extensionEvents": "none",
+      "sandboxTier": "none",
+      "supportTier": 1,
+      "installSurface": "none",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "imperative",
+        "commandSurface": "palette",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": true,
+          "maxDepth": 5,
+          "background": true,
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "active",
+        "hookBus": "engine",
+        "stateIO": "sandboxed-storage",
+        "transport": "mcp",
+        "runtime": "sandboxed-web"
+      }
     }
   },
   "windsurf": {
     "id": "windsurf",
     "role": "runtime",
-    "version": "1.6.1",
+    "version": "1.7.0",
     "title": "Windsurf",
-    "description": "Windsurf (Codeium) — workspace workflow artifact layout for slash commands; no hook surface; no hook events; tier-2 support.",
+    "description": "Windsurf (Codeium) — workspace workflow artifact layout for slash commands; Cascade native hooks.json blocking hook bus (pre_write_code, pre_run_command); tier-2 support.",
     "tier": "core",
     "requires": [],
     "engines": {
@@ -3662,9 +5412,19 @@ const runtimes = {
           "WINDSURF_CONFIG_DIR"
         ]
       },
+      "localConfigDir": ".windsurf",
       "configFormat": "none",
       "artifactLayout": {
-        "global": [],
+        "global": [
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToWindsurfAgent"
+          }
+        ],
         "local": [
           {
             "kind": "commands",
@@ -3673,6 +5433,122 @@ const runtimes = {
             "nesting": "flat",
             "recursive": false,
             "converter": "convertClaudeCommandToWindsurfWorkflow"
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": "convertClaudeAgentToWindsurfAgent"
+          }
+        ]
+      },
+      "commandStyle": "slash-hyphen",
+      "hooksSurface": "windsurf-hooks-json",
+      "sandboxTier": "none",
+      "supportTier": 2,
+      "installSurface": "profile-marker-only",
+      "writesSharedSettings": false,
+      "permissionWriter": null,
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": "undocumented",
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": "undocumented",
+          "subagentToolkit": "undocumented",
+          "backgroundDispatch": "undocumented"
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "undocumented"
+      },
+      "hostBehaviors": {
+        "skipSharedHooksInstall": true,
+        "legacyDevinSkillsCleanup": true,
+        "installsCommandBodiesForWorkflowDelegation": true,
+        "verificationStyle": "windsurf-workflows"
+      }
+    }
+  },
+  "zcode": {
+    "id": "zcode",
+    "role": "runtime",
+    "version": "1.7.0",
+    "title": "ZCode",
+    "description": "ZCode (Z.ai) — desktop Agentic Development Environment for GLM-5.2; Claude-shaped nested skills at ~/.zcode/skills/<name>/SKILL.md, slash commands, named subagents, native MCP; declarative plugin surface; profile-marker install; tier-2 community support.",
+    "tier": "core",
+    "requires": [],
+    "engines": {
+      "gsd": ">=1.6.0"
+    },
+    "runtime": {
+      "configHome": {
+        "kind": "dot-home",
+        "name": ".zcode",
+        "env": [
+          "ZCODE_CONFIG_DIR"
+        ]
+      },
+      "localConfigDir": ".zcode",
+      "configFormat": "none",
+      "artifactLayout": {
+        "global": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "nested",
+            "recursive": false,
+            "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "commands",
+            "destSubpath": "commands",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          }
+        ],
+        "local": [
+          {
+            "kind": "skills",
+            "destSubpath": "skills",
+            "prefix": "gsd-",
+            "nesting": "nested",
+            "recursive": false,
+            "converter": "convertClaudeCommandToClaudeSkill"
+          },
+          {
+            "kind": "commands",
+            "destSubpath": "commands",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
+          },
+          {
+            "kind": "agents",
+            "destSubpath": "agents",
+            "prefix": "gsd-",
+            "nesting": "flat",
+            "recursive": false,
+            "converter": null
           }
         ]
       },
@@ -3683,7 +5559,27 @@ const runtimes = {
       "installSurface": "profile-marker-only",
       "writesSharedSettings": false,
       "permissionWriter": null,
-      "extendedHookEvents": []
+      "extendedHookEvents": [],
+      "hostIntegration": {
+        "embeddingMode": "declarative",
+        "commandSurface": "slash-file",
+        "dispatch": {
+          "namedDispatch": true,
+          "nested": "undocumented",
+          "maxDepth": "undocumented",
+          "background": false,
+          "subagentToolkit": "full",
+          "backgroundDispatch": false
+        },
+        "modelMode": "passive",
+        "hookBus": "host",
+        "stateIO": "filesystem",
+        "transport": "mcp",
+        "runtime": "electron"
+      },
+      "hostBehaviors": {
+        "skipSharedHooksInstall": true
+      }
     }
   }
 };
@@ -3698,6 +5594,11 @@ const commandFamilies = {
     "capId": "audit",
     "module": "audit-command-router.cjs",
     "router": "routeAuditUat"
+  },
+  "claude-orchestration": {
+    "capId": "claude-orchestration",
+    "module": "claude-orchestration-command-router.cjs",
+    "router": "routeClaudeOrchestrationCommand"
   },
   "extract-messages": {
     "capId": "profile-pipeline",
@@ -3834,9 +5735,11 @@ const profileMembership = {
 const _requiresGraph = {
   "ai-integration": [],
   "antigravity": [],
+  "assumption-delta": [],
   "audit": [],
   "augment": [],
   "claude": [],
+  "claude-orchestration": [],
   "cline": [],
   "code-review": [],
   "codebuddy": [],
@@ -3844,8 +5747,8 @@ const _requiresGraph = {
   "copilot": [],
   "cursor": [],
   "drift": [],
+  "external-job": [],
   "gap-analysis": [],
-  "gemini": [],
   "graphify": [],
   "hermes": [],
   "intel": [],
@@ -3857,6 +5760,7 @@ const _requiresGraph = {
   "pattern-mapper": [
     "research"
   ],
+  "pi": [],
   "profile-pipeline": [],
   "qwen": [],
   "research": [],
@@ -3865,7 +5769,9 @@ const _requiresGraph = {
   "tdd": [],
   "trae": [],
   "ui": [],
-  "windsurf": []
+  "vscode": [],
+  "windsurf": [],
+  "zcode": []
 };
 
 function requiresClosure(id) {

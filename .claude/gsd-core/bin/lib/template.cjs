@@ -11,6 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
+const clock_cjs_1 = require("./clock.cjs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ioMod = require("./io.cjs");
 const { output, error } = ioMod;
@@ -85,7 +86,7 @@ function cmdTemplateFill(cwd, templateType, options, raw) {
         return;
     }
     const padded = normalizePhaseName(options.phase);
-    const today = new Date().toISOString().split('T')[0];
+    const today = clock_cjs_1.realClock.localToday();
     const phaseName = options.name || phaseInfo.phase_name || 'Unnamed';
     const phaseSlug = phaseInfo.phase_slug || generateSlugInternal(phaseName);
     const phaseId = `${padded}-${phaseSlug}`;

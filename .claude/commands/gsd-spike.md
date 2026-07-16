@@ -30,9 +30,9 @@ Does not require prior new-project setup — auto-creates `.planning/spikes/` if
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/spike.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/spike-wrap-up.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/spike.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/spike-wrap-up.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
 </execution_context>
 
 <runtime_note>

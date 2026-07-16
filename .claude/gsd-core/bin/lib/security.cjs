@@ -34,7 +34,6 @@ exports.safeJsonParse = safeJsonParse;
 exports.validatePhaseNumber = validatePhaseNumber;
 exports.validateFieldName = validateFieldName;
 exports.validatePromptStructure = validatePromptStructure;
-exports.scanEntropyAnomalies = scanEntropyAnomalies;
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_os_1 = __importDefault(require("node:os"));
 const node_path_1 = __importDefault(require("node:path"));
@@ -342,7 +341,7 @@ function sanitizeForDisplay(text) {
     let sanitized = sanitizeForPrompt(text);
     const protocolLeakPatterns = [
         /^\s*(?:assistant|user|system)\s+to=[^:\s]+:[^\n]+$/i,
-        /^\s*<\|(?:assistant|user|system)[^|]*\|>\s*$/i,
+        /^\s*<\|(?:assistant|user|system)[^|]*\|>\s*$/i, // allow-adhoc-markdown: not a GFM table-cell scan — matches `<|role|>` protocol-leak marker tokens (prompt-injection sanitization), a false-positive on the table-regex pipe+cell-class fingerprint
     ];
     sanitized = sanitized
         .split('\n')
@@ -443,38 +442,9 @@ function validatePromptStructure(text, fileType) {
     }
     return { valid: violations.length === 0, violations };
 }
-// ─── Layer 4: Paragraph-Level Entropy Anomaly Detection ─────────────────────────────────────────────────────────────────────
-function shannonEntropy(text) {
-    if (!text || text.length === 0)
-        return 0;
-    const freq = {};
-    for (const ch of text) {
-        freq[ch] = (freq[ch] || 0) + 1;
-    }
-    const len = text.length;
-    let entropy = 0;
-    for (const count of Object.values(freq)) {
-        const p = count / len;
-        entropy -= p * Math.log2(p);
-    }
-    return entropy;
-}
-/**
- * Scan text for paragraphs with anomalously high Shannon entropy.
- */
-function scanEntropyAnomalies(text) {
-    if (!text || typeof text !== 'string') {
-        return { clean: true, findings: [] };
-    }
-    const findings = [];
-    const paragraphs = text.split(/\n\n+/);
-    for (const para of paragraphs) {
-        if (para.length <= 50)
-            continue;
-        const entropy = shannonEntropy(para);
-        if (entropy > 5.5) {
-            findings.push(`High-entropy paragraph detected (${entropy.toFixed(2)} bits/char) — possible encoded payload`);
-        }
-    }
-    return { clean: findings.length === 0, findings };
-}
+// NOTE (#2198): scanEntropyAnomalies + shannonEntropy were removed as dead exports.
+// They had zero production callers — the live hooks (gsd-prompt-guard.js,
+// gsd-read-injection-scanner.js) inline their own pattern subsets for hook
+// independence and never called these functions. scanForInjection is retained
+// below: it serves as the CI codebase-scanner engine
+// (tests/prompt-injection-scan.security.test.cjs), not as a live hook.

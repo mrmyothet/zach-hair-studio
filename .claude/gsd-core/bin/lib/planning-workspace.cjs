@@ -120,6 +120,22 @@ function planningDir(cwd, ws, project) {
 function planningRoot(cwd) {
     return node_path_1.default.join(cwd, '.planning');
 }
+// Sorted list of workstream directory names under `<root>/.planning/workstreams`,
+// or `[]` when the project is flat (no workstreams dir). Single source of truth
+// for the "workstream mode" detection shared by the #1912/#2028 fail-safe guards
+// (init.progress, phase.complete) so the two paths cannot drift.
+function listAvailableWorkstreams(cwd) {
+    try {
+        return node_fs_1.default
+            .readdirSync(node_path_1.default.join(planningRoot(cwd), 'workstreams'), { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => e.name)
+            .sort();
+    }
+    catch {
+        return [];
+    }
+}
 function planningPaths(cwd, ws) {
     const base = planningDir(cwd, ws);
     return {
@@ -260,7 +276,7 @@ function withPlanningLock(cwd, fn, clock) {
                         const stolen = lockPath + '.stale-' + process.pid + '-' + clock.now() + '-' + (_planningStealSeq++);
                         let renamed = false;
                         try {
-                            node_fs_1.default.renameSync(lockPath, stolen);
+                            (0, shell_command_projection_cjs_1.retryRenameSync)(lockPath, stolen);
                             renamed = true;
                         }
                         catch { /* another racer won */ }
@@ -364,6 +380,7 @@ module.exports = {
     createMemoryPointerAdapter,
     planningDir,
     planningRoot,
+    listAvailableWorkstreams,
     planningPaths,
     withPlanningLock,
     getActiveWorkstream,

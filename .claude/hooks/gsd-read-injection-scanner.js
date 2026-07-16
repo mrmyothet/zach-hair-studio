@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// gsd-hook-version: 1.6.1
+// gsd-hook-version: 1.7.0
 // GSD Read Injection Scanner — PostToolUse hook (#2201)
 // Pattern-based pre-filter / blocklist: scans content returned by Read, WebFetch,
 // and WebSearch for known prompt-injection patterns (regex + heuristic rules).

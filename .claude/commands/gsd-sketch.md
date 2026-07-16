@@ -30,13 +30,13 @@ Does not require prior new-project setup — auto-creates `.planning/sketches/` 
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/sketch.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/sketch-wrap-up.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-theme-system.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-interactivity.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-tooling.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-variant-patterns.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/sketch.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/sketch-wrap-up.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-theme-system.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-interactivity.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-tooling.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/sketch-variant-patterns.md
 </execution_context>
 
 <runtime_note>

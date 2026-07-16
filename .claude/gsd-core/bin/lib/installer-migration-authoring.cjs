@@ -14,6 +14,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateInstallerMigrationRecord = validateInstallerMigrationRecord;
 exports.validateInstallerMigrationActions = validateInstallerMigrationActions;
 const node_path_1 = __importDefault(require("node:path"));
+const shell_command_projection_cjs_1 = require("./shell-command-projection.cjs");
 function getStr(record, field) {
     const v = record[field];
     return typeof v === 'string' ? v : '';
@@ -56,7 +57,7 @@ function requireActionEvidence(action, field, migration) {
 }
 function validateSafeRelPath(relPath, migration, actionType) {
     const source = actionSource(migration, { relPath });
-    const normalized = relPath.replace(/\\/g, '/');
+    const normalized = (0, shell_command_projection_cjs_1.posixNormalize)(relPath);
     if (node_path_1.default.isAbsolute(normalized) || node_path_1.default.win32.isAbsolute(normalized)) {
         throw new Error(`migration action ${actionType} relPath must stay inside configDir: ${source}`);
     }

@@ -13,6 +13,7 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_os_1 = __importDefault(require("node:os"));
 const validate_cjs_1 = require("./validate.cjs");
+const clock_cjs_1 = require("./clock.cjs");
 const validate_cjs_2 = require("./validate.cjs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- planning-workspace.cjs is an export= CommonJS module
 const planningWorkspace = require("./planning-workspace.cjs");
@@ -29,6 +30,7 @@ const package_identity_cjs_1 = require("./package-identity.cjs");
 const runtime_slash_cjs_1 = require("./runtime-slash.cjs");
 const schema_detect_cjs_1 = require("./schema-detect.cjs");
 const artifacts_cjs_1 = require("./artifacts.cjs");
+const markdown_sectionizer_cjs_1 = require("./markdown-sectionizer.cjs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- agent-install-check.cjs is an export= CommonJS module
 const agentInstallCheck = require("./agent-install-check.cjs");
 const { checkAgentsInstalled } = agentInstallCheck;
@@ -40,7 +42,7 @@ const configLoaderMod = require("./config-loader.cjs");
 const { loadConfig, CONFIG_DEFAULTS } = configLoaderMod;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const phaseIdMod = require("./phase-id.cjs");
-const { normalizePhaseName, phaseTokenMatches, escapeRegex, getMilestoneFromPhaseId } = phaseIdMod;
+const { normalizePhaseName, phaseTokenMatches, escapeRegex, getMilestoneFromPhaseId, OPTIONAL_PHASE_TAG_SOURCE, PHASE_NUMBER_TOKEN_SOURCE } = phaseIdMod;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const phaseLocatorMod = require("./phase-locator.cjs");
 const { findPhaseInternal } = phaseLocatorMod;
@@ -183,8 +185,13 @@ function scanNegativeGrepCommentEcho(content) {
     //    command, not the whole line) so a pasted verify command does not self-flag
     //    while a prose echo on the same line is still caught.
     const cmdSpanRe = /grep(?:\s+-{1,2}[A-Za-z][A-Za-z-]*)+\s+(?:'[^']*'|"[^"]*"|[^\s'"|>&;]+)[^\n]*?(?:==|-eq|=)\s*0\b/g;
+    // Security scan: must see the FULL text up to the first </action> — including a
+    // malformed inner <action> — so a grep-echo-0 trick cannot hide behind a
+    // deliberately-unclosed tag. Use a bounded to-first-close scan (ReDoS-safe via
+    // the {0,20000} cap, #2128), NOT the stop-at-next-open extractTaggedBlocks seam
+    // (which would drop the span before an unterminated inner <action>).
     const actionZones = [];
-    const actionRe = /<action>([\s\S]*?)<\/action>/g;
+    const actionRe = /<action>([\s\S]{0,20000}?)<\/action>/g;
     let acm;
     while ((acm = actionRe.exec(text)) !== null)
         actionZones.push(acm[1]);
@@ -329,34 +336,23 @@ function scanFileWideNegativeGateConflict(content) {
             return true;
         return false;
     };
-    const taskRe = /<task[^>]*>([\s\S]*?)<\/task>/g;
     const tasks = [];
-    let tm;
-    while ((tm = taskRe.exec(text)) !== null) {
-        const tc = tm[1];
+    for (const tc of (0, markdown_sectionizer_cjs_1.extractTaggedBlocks)(text, 'task', true)) {
         // Extract task name.
-        const namem = tc.match(/<name>([\s\S]*?)<\/name>/);
-        const name = namem ? namem[1].trim() : 'unnamed';
+        const namem = (0, markdown_sectionizer_cjs_1.extractTaggedBlocks)(tc, 'name');
+        const name = namem.length ? namem[0].trim() : 'unnamed';
         // Extract <files> entries.
-        const filesm = tc.match(/<files>([\s\S]*?)<\/files>/);
-        const filesText = filesm ? filesm[1] : '';
+        const filesArr = (0, markdown_sectionizer_cjs_1.extractTaggedBlocks)(tc, 'files');
+        const filesText = filesArr.length ? filesArr[0] : '';
         const files = filesText.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
         // Gate text: <verify>/<automated>/<acceptance_criteria>.
         const gateFragments = [];
-        for (const tag of ['verify', 'automated', 'acceptance_criteria']) {
-            const re = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'g');
-            let mm;
-            while ((mm = re.exec(tc)) !== null)
-                gateFragments.push(mm[1]);
-        }
+        for (const tag of ['verify', 'automated', 'acceptance_criteria'])
+            gateFragments.push(...(0, markdown_sectionizer_cjs_1.extractTaggedBlocks)(tc, tag));
         // Requirement text: <action>/<acceptance_criteria>.
         const reqFragments = [];
-        for (const tag of ['action', 'acceptance_criteria']) {
-            const re = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 'g');
-            let mm;
-            while ((mm = re.exec(tc)) !== null)
-                reqFragments.push(mm[1]);
-        }
+        for (const tag of ['action', 'acceptance_criteria'])
+            reqFragments.push(...(0, markdown_sectionizer_cjs_1.extractTaggedBlocks)(tc, tag));
         // Strip XML tags from gate text so segments containing embedded
         // XML closing tags (e.g. <automated>cmd</automated> nested inside <verify>)
         // don't bleed into the file-path token extraction.
@@ -538,18 +534,15 @@ function cmdVerifyPlanStructure(cwd, filePath, raw) {
         if (fm[field] === undefined)
             errors.push(`Missing required frontmatter field: ${field}`);
     }
-    const taskPattern = /<task[^>]*>([\s\S]*?)<\/task>/g;
     const tasks = [];
-    let taskMatch;
-    while ((taskMatch = taskPattern.exec(content)) !== null) {
-        const taskContent = taskMatch[1];
-        const nameMatch = taskContent.match(/<name>([\s\S]*?)<\/name>/);
-        const taskName = nameMatch ? nameMatch[1].trim() : 'unnamed';
+    for (const taskContent of (0, markdown_sectionizer_cjs_1.extractTaggedBlocks)(content, 'task', true)) {
+        const nameArr = (0, markdown_sectionizer_cjs_1.extractTaggedBlocks)(taskContent, 'name');
+        const taskName = nameArr.length ? nameArr[0].trim() : 'unnamed';
         const hasFiles = /<files>/.test(taskContent);
         const hasAction = /<action>/.test(taskContent);
         const hasVerify = /<verify>/.test(taskContent);
         const hasDone = /<done>/.test(taskContent);
-        if (!nameMatch)
+        if (nameArr.length === 0)
             errors.push('Task missing <name> element');
         if (!hasAction)
             errors.push(`Task '${taskName}' missing <action>`);
@@ -983,7 +976,7 @@ function collectDiskPhases(planBase) {
 function checkMilestonePrefixMismatches(roadmapContent, { getMilestoneFromPhaseId }) {
     const mismatches = [];
     const sections = [];
-    const sectionRx = /^#{1,3}\s+(?:\[[^\]]+\]\s*)?.*v(\d+\.\d+)/gim;
+    const sectionRx = /^#{1,3}\s+(?:\[[^\]]{1,200}\]\s*)?.*v(\d+\.\d+)/gim;
     let m;
     while ((m = sectionRx.exec(roadmapContent)) !== null) {
         if (sections.length > 0)
@@ -992,7 +985,8 @@ function checkMilestonePrefixMismatches(roadmapContent, { getMilestoneFromPhaseI
     }
     for (const section of sections) {
         const content = roadmapContent.slice(section.start, section.end);
-        const phaseRx = /#{2,4}\s*(?:\[[^\]]+\]\s*)?Phase\s+([\w][\w.-]*)\s*:/gi;
+        // #1729: `(?:\s*\([^)\n]{0,200}\))?` tolerates a pre-colon ( ) tag (literal mirror of OPTIONAL_PHASE_TAG_SOURCE).
+        const phaseRx = /#{2,4}\s*(?:\[[^\]]{1,200}\]\s*)?Phase\s+([\w][\w.-]*)(?:\s*\([^)\n]{0,200}\))?\s*:/gi;
         let pm;
         while ((pm = phaseRx.exec(content)) !== null) {
             const phaseId = pm[1];
@@ -1056,7 +1050,7 @@ function cmdValidateConsistency(cwd, raw) {
                 .sort();
             for (const dir of dirs) {
                 const phasePath = node_path_1.default.join(phaseRoot, dir);
-                const phaseLabel = node_path_1.default.relative(planBase, phasePath).replace(/\\/g, '/');
+                const phaseLabel = (0, shell_command_projection_cjs_1.posixNormalize)(node_path_1.default.relative(planBase, phasePath));
                 const phaseFiles = node_fs_1.default.readdirSync(phasePath);
                 const plans = phaseFiles.filter((f) => f.endsWith('-PLAN.md')).sort();
                 const planNums = plans
@@ -1165,12 +1159,16 @@ function cmdValidateHealth(cwd, options, raw) {
     }
     else {
         const stateContent = node_fs_1.default.readFileSync(statePath, 'utf-8');
-        const phaseRefs = [...stateContent.matchAll(/[Pp]hase\s+(\d+[A-Z]?(?:\.\d+)*)/g)].map((m) => m[1]);
+        const phaseRefs = [
+            ...stateContent.matchAll(new RegExp(`[Pp]hase\\s+(${PHASE_NUMBER_TOKEN_SOURCE})`, 'g')),
+        ].map((m) => m[1]);
         const validPhases = collectDiskPhases(planBase);
         try {
             if (node_fs_1.default.existsSync(roadmapPath)) {
                 const roadmapRaw = node_fs_1.default.readFileSync(roadmapPath, 'utf-8');
-                const all = [...roadmapRaw.matchAll(/#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)/gi)];
+                const all = [
+                    ...roadmapRaw.matchAll(new RegExp(`#{2,4}\\s*Phase\\s+(${PHASE_NUMBER_TOKEN_SOURCE})`, 'gi')),
+                ];
                 for (const m of all)
                     validPhases.add(m[1]);
             }
@@ -1351,7 +1349,7 @@ function cmdValidateHealth(cwd, options, raw) {
                 stateContent.match(/Current Phase:\s*(\S+)/i);
             if (currentPhaseMatch) {
                 const statePhase = currentPhaseMatch[1].replace(/^0+/, '');
-                const phaseCheckboxRe = new RegExp(`-\\s*\\[x\\].*Phase\\s+0*${escapeRegex(statePhase)}[:\\s]`, 'i');
+                const phaseCheckboxRe = new RegExp(`-\\s*\\[x\\].*Phase\\s+0*${escapeRegex(statePhase)}${OPTIONAL_PHASE_TAG_SOURCE}[:\\s]`, 'i');
                 if (phaseCheckboxRe.test(roadmapContentFull)) {
                     const stateStatus = stateContent.match(/\*\*Status:\*\*\s*(.+)/i);
                     const statusVal = stateStatus ? stateStatus[1].trim().toLowerCase() : '';
@@ -1509,7 +1507,8 @@ function cmdValidateHealth(cwd, options, raw) {
             if (isMarkedComplete) {
                 const roadmapRaw = node_fs_1.default.readFileSync(roadmapPath, 'utf-8');
                 const scopedContent = extractCurrentMilestone(roadmapRaw, cwd);
-                const phasePattern = /#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:\s*([^\n]+)/gi;
+                // #1729: `(?:\s*\([^)\n]{0,200}\))?` tolerates a pre-colon ( ) tag (literal mirror of OPTIONAL_PHASE_TAG_SOURCE).
+                const phasePattern = new RegExp(`#{2,4}\\s*Phase\\s+(${PHASE_NUMBER_TOKEN_SOURCE})(?:\\s*\\([^)\\n]{0,200}\\))?\\s*:\\s*([^\\n]+)`, 'gi');
                 const unstarted = [];
                 let pm;
                 // Non-hoisted: load-order matters (circular dep guard)
@@ -1593,7 +1592,7 @@ function cmdValidateHealth(cwd, options, raw) {
                         stateContent += `**Current phase:** (determining...)\n`;
                         stateContent += `**Status:** Resuming\n\n`;
                         stateContent += `## Session Log\n\n`;
-                        stateContent += `- ${new Date().toISOString().split('T')[0]}: STATE.md regenerated by ${slash('health')} --repair\n`;
+                        stateContent += `- ${clock_cjs_1.realClock.localToday()}: STATE.md regenerated by ${slash('health')} --repair\n`;
                         writeStateMd(statePath, stateContent, cwd);
                         repairActions.push({ action: repair, success: true, path: 'STATE.md' });
                         break;
@@ -1649,7 +1648,7 @@ function cmdValidateHealth(cwd, options, raw) {
                     case 'backfillMilestones': {
                         if (!options['backfill'] && !options['repair'])
                             break;
-                        const today = new Date().toISOString().split('T')[0];
+                        const today = clock_cjs_1.realClock.localToday();
                         let backfilled = 0;
                         for (const ver of missingFromRegistry) {
                             try {
@@ -1774,7 +1773,7 @@ function cmdVerifySchemaDrift(cwd, phaseArg, skipFlag, raw) {
     const planFiles = node_fs_1.default.readdirSync(phaseDir).filter((f) => f.endsWith('-PLAN.md'));
     for (const pf of planFiles) {
         const content = node_fs_1.default.readFileSync(node_path_1.default.join(phaseDir, pf), 'utf-8');
-        const fmMatch = content.match(/files_modified:\s*\[([^\]]*)\]/);
+        const fmMatch = content.match(/files_modified:\s*\[([^\]]{0,8000})\]/);
         if (fmMatch) {
             const files = fmMatch[1].split(',').map((f) => f.trim()).filter(Boolean);
             allFiles.push(...files);

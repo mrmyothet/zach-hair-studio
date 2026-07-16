@@ -28,7 +28,7 @@ function isCompletedInventory(status) {
     return /\bmilestone\s+complete\b/.test(s) || /\barchived\b/.test(s);
 }
 function buildWorkstreamInventory(inputs) {
-    const { name, projectDir, workstreamDir, phaseDirNames, activeWorkstreamName, phaseFilesCounts, roadmapPhaseCount, stateProjection, filesExist, } = inputs;
+    const { name, projectDir, workstreamDir, phaseDirNames, activeWorkstreamName, phaseFilesCounts, roadmapPhaseCount, stateProjection, filesExist, milestoneShipped, } = inputs;
     // Index counts by directory for O(1) lookup during sort/iteration
     const countsMap = new Map();
     for (const entry of phaseFilesCounts) {
@@ -56,6 +56,14 @@ function buildWorkstreamInventory(inputs) {
             summary_count: counts.summaryCount,
         });
     }
+    // #1913: derive status from authoritative shipped signals rather than trusting
+    // the mutable STATE.md `Status` field. When a shipped signal is present, the
+    // workstream is "milestone complete" regardless of a stale field value.
+    const fieldStatus = stateProjection.status;
+    const useDerived = milestoneShipped;
+    const status = useDerived ? 'milestone complete' : fieldStatus;
+    const status_source = useDerived ? 'derived' : 'field';
+    const status_conflict = useDerived && !isCompletedInventory(fieldStatus);
     return {
         name,
         path: toPosixPath(node_path_1.default.relative(projectDir, workstreamDir)),
@@ -65,7 +73,9 @@ function buildWorkstreamInventory(inputs) {
             state: filesExist.state,
             requirements: filesExist.requirements,
         },
-        status: stateProjection.status,
+        status,
+        status_source,
+        status_conflict,
         current_phase: stateProjection.current_phase,
         last_activity: stateProjection.last_activity,
         phases,

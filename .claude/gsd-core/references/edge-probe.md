@@ -1,7 +1,7 @@
 # Edge-Probe — Spec-Completeness Reference
 
 Shared reference for the spec/requirements phase. Companion to
-`@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/domain-probes.md`: `domain-probes` covers the
+`@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/domain-probes.md`: `domain-probes` covers the
 **technology axis** (auth, search, caching, deployment); this covers the
 **data/behavior-shape axis** (boundaries, adjacency, encoding, ordering…). Walk each
 requirement against the closed taxonomy below, propose a concrete candidate edge for each

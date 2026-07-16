@@ -39,19 +39,28 @@ exports.buildRoadmapPhaseVariants = buildRoadmapPhaseVariants;
 exports.buildNotStartedPhaseVariants = buildNotStartedPhaseVariants;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const phaseIdMod = require("./phase-id.cjs");
-const { OPTIONAL_PROJECT_CODE_PREFIX_SOURCE } = phaseIdMod;
+const { OPTIONAL_PROJECT_CODE_PREFIX_SOURCE, PHASE_NUMBER_TOKEN_SOURCE } = phaseIdMod;
 // ── Issue #26: regex constants (W005, W006-archived) ────────────────────────
 // Matches legacy numeric dirs (01-setup), milestone-prefixed dirs (02-01-setup),
 // deep dirs (02-04-01-deep), and project-code-prefixed variants (GSD-02-01-setup).
 exports.phaseDirNameRe = new RegExp(`^${OPTIONAL_PROJECT_CODE_PREFIX_SOURCE}\\d{2,}(?:-\\d+)*(?:\\.\\d+)*-[\\w-]+$`, 'i');
 // Extracts the full phase token from a directory name, including milestone-prefixed
 // multi-segment tokens like "02-01" from "02-01-setup" or "GSD-02-01-setup".
-// Greedily captures all leading all-digit segments before the first letter-start segment.
-exports.PHASE_TOKEN_FROM_DIR_RE = new RegExp(`^${OPTIONAL_PROJECT_CODE_PREFIX_SOURCE}(\\d+(?:-\\d+)*[A-Z]?(?:\\.\\d+)*)(?:-[a-z]|$)`, 'i');
+// #2043: a *continuation* sub-phase segment must be zero-padded (≥2 digits), so a
+// single-digit slug word after a phase number (e.g. "46-6-rs-…", slug "6 Rs …") is
+// NOT absorbed — it captures "46", not "46-6". The first component stays "\d+"
+// (with the "[A-Z]?" suffix) so single-digit letter-suffixed phase ids ("1A") and
+// milestone-prefixed single-digit sub-phases ("M1-2" → prefix "M1-" stripped, then
+// "2") still match. The trailing boundary "(?:-|$)" (was "(?:-[a-z]|$)") lets a slug
+// that starts with a digit terminate the token.
+exports.PHASE_TOKEN_FROM_DIR_RE = new RegExp(`^${OPTIONAL_PROJECT_CODE_PREFIX_SOURCE}(\\d+(?:-\\d{2,})*[A-Z]?(?:\\.\\d+)*)(?:-|$)`, 'i');
 exports.MILESTONE_ARCHIVE_DIR_RE = /^v\d+.*-phases$/i;
 // ── Issue #26: I001 canonicalization ────────────────────────────────────────
 function canonicalPlanStem(stem) {
-    const m = stem.match(/^(\d+[A-Z]?(?:\.\d+)*-\d+)/i);
+    // #2043: the plan component (after the phase number) must be zero-padded
+    // (≥2 digits), so a digit-leading slug word (e.g. "46-6-rs-…") is not mistaken
+    // for a "46-6" phase/plan pair.
+    const m = stem.match(new RegExp(`^(${PHASE_NUMBER_TOKEN_SOURCE}-\\d{2,})`, 'i'));
     return m ? m[1] : stem;
 }
 // ── Issue #6: phase variant helpers (W006/W007) ──────────────────────────────
@@ -93,7 +102,8 @@ function buildRoadmapPhaseVariants(roadmapContent) {
     const roadmapPhaseVariants = new Set();
     // Matches both legacy numeric (Phase 1:), decimal (Phase 2.1:), milestone-prefixed (Phase 2-01:),
     // and bracket-prefixed (### [GSD] Phase 2-01:) headings.
-    const phasePattern = /#{2,4}\s*(?:\[[^\]]+\]\s*)?Phase\s+([\w][\w.-]*)\s*:/gi;
+    // #1729: `(?:\s*\([^)\n]{0,200}\))?` tolerates a pre-colon ( ) tag (literal mirror of OPTIONAL_PHASE_TAG_SOURCE).
+    const phasePattern = /#{2,4}\s*(?:\[[^\]]{1,200}\]\s*)?Phase\s+([\w][\w.-]*)(?:\s*\([^)\n]{0,200}\))?\s*:/gi;
     let m;
     while ((m = phasePattern.exec(roadmapContent)) !== null) {
         roadmapPhases.add(m[1]);
