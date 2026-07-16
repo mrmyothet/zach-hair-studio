@@ -118,7 +118,7 @@ Plans:
   4. "No-show" behaves as a distinct terminal status from "cancelled" — queryable and reportable separately, not folded into the same enum meaning
   5. Attempting to reach the dashboard or its API without staff authentication is rejected
 
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 
 **Wave 1**
 
@@ -131,7 +131,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-04-PLAN.md — dashboard/ scaffold + OpenAPI client + staff login/guard (DASH-05 frontend)
+- [x] 03-04-PLAN.md — dashboard/ scaffold + OpenAPI client + staff login/guard (DASH-05 frontend)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -231,7 +231,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
 | 2. Booking Core | 7/8 | In Progress|  |
-| 3. Staff Dashboard (Schedule) | 3/4 | In Progress|  |
+| 3. Staff Dashboard (Schedule) | 4/5 | In Progress|  |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
 | 6. Cart & Checkout | 0/TBD | Not started | - |
