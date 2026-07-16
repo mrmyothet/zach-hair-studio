@@ -38,6 +38,7 @@ exports.resolveConfigHomeFromDescriptor = resolveConfigHomeFromDescriptor;
 exports.resolveAntigravityGlobalDir = resolveAntigravityGlobalDir;
 exports.detectAntigravityDirAmbiguity = detectAntigravityDirAmbiguity;
 exports.resolveKimiGlobalDir = resolveKimiGlobalDir;
+exports.resolveKimiHooksTomlDir = resolveKimiHooksTomlDir;
 exports.getGlobalConfigDir = getGlobalConfigDir;
 exports.resolveSkillsBaseFromDescriptor = resolveSkillsBaseFromDescriptor;
 exports.getGlobalSkillsBase = getGlobalSkillsBase;
@@ -256,6 +257,27 @@ function resolveKimiGlobalDir(opts = {}) {
     }, { env, home, existsSync: existsSyncFn });
 }
 /**
+ * Resolve the directory holding Kimi CLI's OWN native config.toml (the file
+ * Kimi itself reads for providers/models/hooks/etc — see
+ * moonshotai.github.io/kimi-cli/en/configuration/data-locations.html and
+ * .../reference/kimi-command.html). Default `~/.kimi`, overridden by
+ * `KIMI_SHARE_DIR` per Kimi's own upstream env-var (NOT `KIMI_CONFIG_DIR`,
+ * which is a GSD-installer write-location override for the unrelated generic
+ * Agent-Skills root resolved by resolveKimiGlobalDir above).
+ *
+ * This is deliberately a SEPARATE directory from GSD's kimi configHome
+ * (~/.config/agents): Kimi's own docs confirm the Agent-Skills search path is
+ * independent of KIMI_SHARE_DIR ("This variable does not affect Agent Skills
+ * search paths, which are handled separately"). #2095 Upgrade 1 writes GSD's
+ * native [[hooks]] entries into `<this dir>/config.toml`, never into the
+ * skills configDir.
+ */
+function resolveKimiHooksTomlDir(opts = {}) {
+    const env = opts.env ?? process.env;
+    const home = opts.home ?? node_os_1.default.homedir();
+    return resolveConfigHomeFromDescriptor({ kind: 'dot-home', name: '.kimi', env: ['KIMI_SHARE_DIR'] }, { env, home });
+}
+/**
  * Return the global config base directory for the given runtime.
  * Respects the same env-var overrides as bin/install.js getGlobalDir().
  *
@@ -296,6 +318,14 @@ function getGlobalSkillsBase(runtime) {
     const runtimeEntry = getRegistry().runtimes[runtime];
     const descriptor = runtimeEntry?.runtime;
     const globalSkillsKind = descriptor?.artifactLayout?.global?.find((entry) => entry.kind === 'skills');
+    // ADR-1239 upgrade 3 (#2088): honor a skills-kind `home` override (e.g. Codex
+    // → $HOME/.agents/skills, independent of $CODEX_HOME) so the reported skills
+    // root matches where the installer actually writes (the artifact layout /
+    // _resolveSkillsRootDir). Without this, `--skills-root` and the sync-skills
+    // workflow would look under configHome/skills while skills live under ~/.agents.
+    if (globalSkillsKind?.home && globalSkillsKind?.destSubpath) {
+        return node_path_1.default.join(node_os_1.default.homedir(), globalSkillsKind.home, globalSkillsKind.destSubpath);
+    }
     if (descriptor?.configHome && globalSkillsKind?.destSubpath) {
         return resolveSkillsBaseFromDescriptor(descriptor.configHome, { env: process.env, home: node_os_1.default.homedir(), existsSync: node_fs_1.default.existsSync }, globalSkillsKind.destSubpath);
     }

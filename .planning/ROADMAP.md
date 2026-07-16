@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Service Catalog** - Clients browse services (name, description, duration, price); API built on a real service layer from day one (completed 2026-07-09)
 - [x] **Phase 2: Booking Core** - Clients pick a service, see real open slots, and confirm a double-booking-safe appointment (completed 2026-07-10)
-- [ ] **Phase 3: Staff Dashboard (Schedule)** - Staff view the day's/week's appointments and update status behind a staff-only auth gate
+- [x] **Phase 3: Staff Dashboard (Schedule)** - Staff view the day's/week's appointments and update status behind a staff-only auth gate (completed 2026-07-16)
 - [ ] **Phase 4: Staff Management (Services & Availability)** - Staff self-serve CRUD for services and stylist availability, conflict-checked against existing bookings
 - [ ] **Phase 5: Product Catalog** - Clients browse a curated product catalog surfaced as stylist-recommended add-ons
 - [ ] **Phase 6: Cart & Checkout** - Clients buy recommended products through a trustworthy, server-authoritative checkout, as a guest or logged in
@@ -73,7 +73,7 @@ Plans:
   4. Two near-simultaneous booking attempts for the same stylist/slot result in exactly one success and one clear "slot taken" rejection, enforced by a database-level uniqueness/overlap guarantee, not just an app-level check
   5. Appointment and availability times are stored as `DateTimeOffset` against a configured salon IANA timezone, verified correct across a DST-transition date
 
-**Plans**: 6/6 plans complete
+**Plans**: 7/8 plans executed
 Plans:
 **Wave 1**
 
@@ -96,6 +96,11 @@ Plans:
 
 - [x] 02-06-PLAN.md — Human-verify: drive /book in a browser, confirm real email delivery + 409 recovery (BOOK-02..BOOK-06)
 
+**Gap-closure (Wave 6)** *(from 02-VERIFICATION.md — added by `/gsd-plan-phase 2 --gaps`)*
+
+- [x] 02-07-PLAN.md — De-date-bomb the booking test suite (relative-to-now helper), prove shipped create-path salon-offset on real SQL, record SC5 DST descope for Asia/Yangon (BOOK-03, BOOK-05)
+- [ ] 02-08-PLAN.md — [BLOCKING HUMAN] Fresh full-suite run + real booking email inspection for all five BOOK-03 fields (BOOK-03, BOOK-05)
+
 **Research flag**: yes — highest-correctness-risk phase in the roadmap; run a focused research pass on DB-level uniqueness/overlap constraint design, DateTimeOffset/timezone strategy, and seeded-availability-model shape before planning (research complete — see 02-RESEARCH.md)
 **UI hint**: yes
 
@@ -113,7 +118,7 @@ Plans:
   4. "No-show" behaves as a distinct terminal status from "cancelled" — queryable and reportable separately, not folded into the same enum meaning
   5. Attempting to reach the dashboard or its API without staff authentication is rejected
 
-**Plans**: 3/5 plans executed
+**Plans**: 5/5 plans complete
 
 **Wave 1**
 
@@ -126,11 +131,11 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-04-PLAN.md — dashboard/ scaffold + OpenAPI client + staff login/guard (DASH-05 frontend)
+- [x] 03-04-PLAN.md — dashboard/ scaffold + OpenAPI client + staff login/guard (DASH-05 frontend)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-05-PLAN.md — Day/week schedule UI + detail + status actions + polling + Owner add-staff (DASH-01..04 frontend)
+- [x] 03-05-PLAN.md — Day/week schedule UI + detail + status actions + polling + Owner add-staff (DASH-01..04 frontend)
 
 **UI hint**: yes
 
@@ -225,8 +230,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 6/6 | Complete   | 2026-07-10 |
-| 3. Staff Dashboard (Schedule) | 3/4 | In Progress|  |
+| 2. Booking Core | 7/8 | In Progress|  |
+| 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 0/TBD | Not started | - |
 | 5. Product Catalog | 0/TBD | Not started | - |
 | 6. Cart & Checkout | 0/TBD | Not started | - |

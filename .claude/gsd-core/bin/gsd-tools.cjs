@@ -27,6 +27,12 @@
  *   list-todos [area]                  Count and enumerate pending todos
  *   list-seeds [status]                List captured seeds (optional status filter)
  *   verify-path-exists <path>          Check file/directory existence
+ *   quick-tasks-append --task <text>   Append a row to STATE.md's "Quick Tasks
+ *                                      Completed" table (schema-backed via
+ *                                      markdown-table.cjs; #2133/ADR-2143).
+ *                                      Fails loud (non-zero exit) on a missing
+ *                                      or unrecognized table instead of the old
+ *                                      awk NF-2 silent-skip guess.
  *   config-ensure-section              Initialize .planning/config.json
  *   history-digest                     Aggregate all SUMMARY.md data
  *   summary-extract <path> [--fields]  Extract structured data from SUMMARY.md
@@ -57,7 +63,7 @@
  * Milestone Operations:
  *   milestone complete <version>       Archive milestone, create MILESTONES.md
  *     [--name <name>]
- *     [--archive-phases]               Move phase dirs to milestones/vX.Y-phases/
+ *     [--no-archive-phases]          Skip moving phase dirs to milestones/vX.Y-phases/ (archived by default)
  *
  * User Story Validation:
  *   user-story validate --story "..."  Validate "As a / I want to / so that" format
@@ -179,14 +185,23 @@
  *
  * Loop Extension Point Queries (ADR-857 phase 3c):
  *   loop render-hooks <point>            Resolve + render active Capability hooks at a loop point
+ *                                        [--config-dir <path>] [--runtime <r>] [--active-cap <capId>]
  *                                        Returns JSON envelope { point, activeHooks, rendered }
  *                                        Valid points: discuss:pre/post, plan:pre/post,
  *                                        execute:pre/wave:pre/wave:post/post, verify:pre/post, ship:pre/post
+ *                                        --runtime: override the auto-detected runtime (#2003) so the config
+ *                                                   dir resolves to that runtime's home even when
+ *                                                   .planning/config.json persists a different runtime.
  *
  * Capability State (ADR-857 phase 4b):
- *   capability state [--config-dir <path>]  Resolve per-capability install/surface/hook-activation state
+ *   capability state [--config-dir <path>] [--runtime <r>]  Resolve per-capability install/surface/hook-activation state
  *                                           Returns JSON envelope { runtimeConfigDir, capabilities[] }
  *                                           --config-dir: runtime config dir (default: auto-detect current runtime)
+ *                                           --runtime: override the auto-detected runtime (#2003); bypasses the
+ *                                                      GSD_RUNTIME → config.runtime → 'claude' precedence so a
+ *                                                      repo with a persisted runtime can still resolve another
+ *                                                      runtime's config dir (e.g. driving Claude Code from a
+ *                                                      repo that persists runtime:"codex").
  *
  * GSD-2 Migration:
  *   from-gsd2 [--path <dir>] [--force] [--dry-run]
@@ -195,6 +210,24 @@
 
 const fs = require('fs');
 const path = require('path');
+
+// #2002 — self-healing runtime build. The compiled ./lib/*.cjs modules this
+// entrypoint require()s below are gitignored build artifacts (ADR-457), shipped
+// prebuilt in the npm tarball. The Claude Code plugin-marketplace channel never
+// runs `npm run build:lib` or bin/install.js, so on that path they can be
+// absent and every command dies at module load. Compile them once (lock-guarded,
+// idempotent, a no-op when already built) before the ./lib requires run.
+const { ensureRuntimeBuild } = require('./ensure-runtime-build.cjs');
+try {
+  ensureRuntimeBuild();
+} catch (bootErr) {
+  process.stderr.write((bootErr && bootErr.message ? bootErr.message : String(bootErr)) + '\n');
+  // Fatal bootstrap failure before the CLI's ExitError/runMain machinery (which
+  // lives in ./lib) is available to load, so a direct exit is the only option.
+  // eslint-disable-next-line n/no-process-exit
+  process.exit(1);
+}
+
 const { ExitError, runMain } = require('./lib/cli-exit.cjs');
 const io = require('./lib/io.cjs');
 const { error, ERROR_REASON, setJsonErrorMode, output } = io;
@@ -204,11 +237,31 @@ const projectRoot = require('./lib/project-root.cjs');
 // against any require/load-ordering edge where the export isn't bound yet
 // when this entrypoint is first required (#604).
 const findProjectRoot = (...args) => projectRoot.findProjectRoot(...args);
+
+// #1754: CLI skew detection — warn (stderr, non-blocking) if this gsd-tools.cjs
+// is NOT the project-local install while a project-local install exists. Catches
+// the shadowing scenario from #1748 (stale global canary shadowing project-local).
+try {
+  const _skew = require('./lib/cli-skew-check.cjs');
+  const _skewRoot = findProjectRoot(process.cwd());
+  if (_skewRoot) {
+    const _skewLocal = path.join(_skewRoot, '.claude', 'gsd-core', 'bin', 'gsd-tools.cjs');
+    const _skewWarn = _skew.checkCliSkew({
+      resolvedPath: path.resolve(__filename),
+      projectRoot: _skewRoot,
+      projectLocalExists: fs.existsSync(_skewLocal),
+    });
+    if (_skewWarn) process.stderr.write(_skewWarn + '\n');
+  }
+} catch { /* advisory — never block */ }
+
 const { getActiveWorkstream } = require('./lib/planning-workspace.cjs');
 const { resolveActiveWorkstream, applyResolvedWorkstreamEnv } = require('./lib/active-workstream-store.cjs');
 const state = require('./lib/state.cjs');
 const phase = require('./lib/phase.cjs');
 const roadmap = require('./lib/roadmap.cjs');
+// #1561 — assumption-delta advisory checkpoint detector (pure function).
+const { detectAssumptionDelta } = require('./lib/assumption-delta.cjs');
 const verify = require('./lib/verify.cjs');
 const config = require('./lib/config.cjs');
 const template = require('./lib/template.cjs');
@@ -227,6 +280,10 @@ const evalMod = require('./lib/eval.cjs');
 const { routeVerificationCommand } = require('./lib/verification-command-router.cjs');
 const verification = require('./lib/verification.cjs');
 const { routeInitCommand } = require('./lib/init-command-router.cjs');
+// Stale-bake guard (#1688): warns once when model config changed since agents
+// were last baked on static-frontmatter runtimes (codex/opencode). Lazy-required
+// here, invoked from case 'init' below.
+const { warnIfStaleBake } = require('./lib/stale-bake-guard.cjs');
 const loopResolver = require('./lib/loop-resolver.cjs');
 const capabilityState = require('./lib/capability-state.cjs');
 const capabilityWriter = require('./lib/capability-writer.cjs');
@@ -235,6 +292,7 @@ const { routePhasesCommand } = require('./lib/phases-command-router.cjs');
 const { routeValidateCommand } = require('./lib/validate-command-router.cjs');
 const { routeRoadmapCommand } = require('./lib/roadmap-command-router.cjs');
 const { routeAgentCommand } = require('./lib/agent-command-router.cjs');
+const smartEntryMod = require('./lib/smart-entry.cjs');
 const { routeCheckCommand } = require('./lib/check-command-router.cjs');
 const { routeTaskCommand } = require('./lib/task-command-router.cjs');
 const { parseNamedArgs, parseMultiwordArg } = require('./lib/command-arg-projection.cjs');
@@ -635,13 +693,13 @@ async function main() {
   // discovery; previously it was a partial subset that didn't include
   // phase / roadmap / milestone / progress / etc.
   const TOP_LEVEL_USAGE = 'Usage: gsd-tools <command> [args] [--raw] [--pick <field>] [--cwd <path>] [--ws <name>] [--json-errors]\n' +
-    'Commands: agent, agent-skills, audit-open, audit-uat, check, check-commit, commit, commit-to-subrepo, pr-subrepo, ' +
-    'config-ensure-section, config-get, config-new-project, config-path, config-set, migrate-config, ' +
+    'Commands: agent, agent-skills, assumption-delta, audit-open, audit-uat, check, check-commit, commit, commit-to-subrepo, pr-subrepo, ' +
+    'config-ensure-section, config-get, config-new-project, config-path, config-set, migrate-config, normalize-test-command, ' +
     'current-timestamp, detect-custom-files, docs-init, drift-guard, effort, extract-messages, find-phase, ' +
     'from-gsd2, frontmatter, gap-analysis, generate-claude-md, generate-claude-profile, ' +
     'generate-dev-preferences, generate-slug, graphify, history-digest, init, intel, ' +
     'capability, classify-confidence, git, learnings, list-seeds, list-todos, loop, milestone, package-legitimacy, phase, phase-plan-index, phases, profile-questionnaire, ' +
-    'profile-sample, progress, project-instruction-file, prompt-budget, requirements, research-plan, research-store, resolve-granularity, resolve-model, roadmap, scaffold, state, ' +
+    'profile-sample, progress, project-instruction-file, prompt-budget, quick-tasks-append, requirements, research-plan, research-store, resolve-granularity, resolve-model, roadmap, scaffold, smart-entry, state, ' +
     'task, template, user-story, validate, verify, verify-path-exists, verify-summary, eval, workstream, worktree\n\n' +
     'Global flags:\n' +
     '  --raw              Emit raw output without post-processing\n' +
@@ -806,6 +864,11 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
   switch (command) {
     case 'agent': {
       routeAgentCommand({ args, raw });
+      break;
+    }
+
+    case 'smart-entry': {
+      smartEntryMod.runSmartEntry(cwd, args, raw);
       break;
     }
 
@@ -1156,6 +1219,59 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
       break;
     }
 
+    case 'quick-tasks-append': {
+      // #2133 / ADR-2143 §3,§7: schema-backed replacement for fast.md's inline
+      // `awk NF-2` Quick Tasks column arithmetic. Row construction is delegated
+      // to the pure appendQuickTaskRow (markdown-table.cjs); this case only
+      // handles the I/O (read STATE.md, resolve date/commit, write STATE.md).
+      const qtaArgs = args.slice(1);
+      const qtaTask = parseNamedArgs(qtaArgs, ['task']).task || args[1];
+      if (!qtaTask) {
+        error('quick-tasks-append requires --task <description> (or a positional description)', ERROR_REASON.USAGE);
+      }
+
+      const statePath = path.join(cwd, '.planning', 'STATE.md');
+      if (!fs.existsSync(statePath)) {
+        error(`quick-tasks-append: STATE.md not found at ${statePath}`, ERROR_REASON.USAGE);
+      }
+
+      const date = new Date().toISOString().slice(0, 10);
+      const { execGit } = require('./lib/shell-command-projection.cjs');
+      const hashResult = execGit(['rev-parse', '--short', 'HEAD'], { cwd });
+      const commit = hashResult.exitCode === 0 && hashResult.stdout ? hashResult.stdout : '—';
+
+      const { appendQuickTaskRow } = require('./lib/markdown-table.cjs');
+
+      // #2242 review fix: route the read -> mutate -> write cycle through
+      // state.readModifyWriteStateMd (lib/state.cjs) instead of a raw
+      // fs.readFileSync + fs.writeFileSync pair, so the whole read-modify-write
+      // is atomic under STATE.md's lockfile — closing the lost-update race a
+      // raw read/write pair left open (cf. #500/#905/#1230). This mirrors the
+      // pattern every other STATE.md-mutating case in state.cts uses (e.g.
+      // cmdStateAddBlocker, cmdStateAddDecision): a mutable outer variable
+      // captures the pure helper's side output, and a fail-loud reason throws
+      // ExitError from INSIDE the transform (readModifyWriteStateMd's finally
+      // still releases the lock before the throw propagates; the transform
+      // throws before returning new content, so nothing is ever written).
+      let mutation;
+      state.readModifyWriteStateMd(statePath, (content) => {
+        const result = appendQuickTaskRow(content, { description: qtaTask, date, commit });
+        if (!result.ok) {
+          // Mirrors fast.md's old "skip with a brief log" behaviour (#2133): this
+          // is an expected, recoverable condition (no table / unrecognized
+          // schema), not a hard crash. ExitError sets a non-zero exit code (so
+          // fast.md's `|| echo ...` fallback fires) without calling
+          // process.exit() directly — stdout stays flushed and untouched.
+          throw new ExitError(1, `⚠ quick-tasks-append: ${result.reason}`);
+        }
+        mutation = result.value;
+        return result.value.content;
+      }, cwd);
+
+      output({ ok: true, row: mutation.row, variant: mutation.variant }, raw, mutation.row);
+      break;
+    }
+
     case 'config-ensure-section': {
       // Phase 6 (#3575): dispatch via SDK executeForCjs. The catalog rebinds
       // 'config-ensure-section' to configNewProject in
@@ -1231,6 +1347,66 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
         output: output,
       });
       if (!handled) config.cmdConfigGet(cwd, args[1], raw, defaultValue);
+      break;
+    }
+
+    case 'normalize-test-command': {
+      // #1857: rewrite a resolved test command to a one-shot form so a
+      // watch-mode runner (vitest/jest) cannot hang a verification gate. Shared
+      // by the regression gate and the post-merge gate. args[1] is the raw
+      // resolved command; --cwd (already parsed into `cwd`) locates package.json.
+      const testCommandNormalizer = require('./lib/normalize-test-command.cjs');
+      testCommandNormalizer.cmdNormalizeTestCommand(cwd, args[1]);
+      break;
+    }
+
+    case 'dispatch-should-flatten': {
+      // #1708 / #853: typed query replacing the `RUNTIME === 'codex'` prose rule.
+      //
+      // Resolves the current runtime (GSD_RUNTIME > config.runtime > 'claude'),
+      // looks up registry.runtimes[id].runtime.hostIntegration.dispatch, and
+      // calls shouldFlattenDispatch(dispatch) from host-integration.cjs.
+      //
+      // Fail-closed: any unknown runtime, missing dispatch, or thrown error
+      // yields `true` (inline — the always-safe default).
+      //
+      // Output:
+      //   --raw   → prints exactly `true` or `false`
+      //   --json  → prints { runtime, shouldFlatten, dispatch }
+      //   default → same as --raw
+      try {
+        // Resolve runtime using the same precedence as `config-get runtime`.
+        const { resolveRuntime } = require('./lib/runtime-slash.cjs');
+        const runtimeId = resolveRuntime(cwd);
+
+        // Look up dispatch from the capability registry.
+        const registry = require('./lib/capability-registry.cjs');
+        const runtimeEntry = registry.runtimes != null
+          ? registry.runtimes[runtimeId]
+          : null;
+        const dispatch = runtimeEntry?.runtime?.hostIntegration?.dispatch ?? null;
+
+        // Call shouldFlattenDispatch from host-integration.cjs.
+        const hostIntegration = require('./lib/host-integration.cjs');
+        const shouldFlat = dispatch !== null
+          ? hostIntegration.shouldFlattenDispatch(dispatch)
+          : true; // fail-closed: unknown runtime → inline
+
+        const jsonIdx = args.indexOf('--json');
+        if (jsonIdx !== -1) {
+          output({
+            runtime: runtimeId,
+            shouldFlatten: shouldFlat,
+            dispatch: dispatch,
+          }, raw);
+        } else {
+          // --raw or default: print exactly true or false
+          process.stdout.write(shouldFlat ? 'true' : 'false');
+        }
+      } catch {
+        // Fail-closed on any error: inline is always safe.
+        process.stdout.write('true');
+      }
       break;
     }
 
@@ -1310,6 +1486,43 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
       break;
     }
 
+    case 'assumption-delta': {
+      // #1561 — advisory architecture checkpoint. `scan <phase>` reads the
+      // phase section via the same resolver as roadmap.get-phase and runs the
+      // deterministic detectAssumptionDelta, emitting the typed IR as JSON.
+      const sub = args[1];
+      if (sub === 'scan') {
+        const phaseNum = args[2];
+        // Reject missing or flag-shaped phase values (QA matrix: values that
+        // look like flags). `scan --json` must not treat "--json" as a phase.
+        if (!phaseNum || phaseNum.startsWith('-')) {
+          error('Usage: assumption-delta scan <phase> [--terms <csv>]', ERROR_REASON.SDK_UNKNOWN_COMMAND);
+          break;
+        }
+        // Optional --terms <csv> override (replaces the pluralization cues;
+        // optional/chosen keep defaults). An EMPTY value ("") or a flag-shaped
+        // value restores the curated defaults (does NOT disable pluralization).
+        // Terms are normalized (deduped, alphanumeric-only, capped) by
+        // detectAssumptionDelta's resolveTerms.
+        let termsOverride;
+        const termsIdx = args.indexOf('--terms');
+        const termsVal = termsIdx !== -1 ? args[termsIdx + 1] : undefined;
+        if (typeof termsVal === 'string' && !termsVal.startsWith('-')) {
+          const list = termsVal
+            .split(',')
+            .map((t) => t.trim().toLowerCase())
+            .filter((t) => t.length > 0);
+          termsOverride = list.length > 0 ? { pluralization: list } : undefined;
+        }
+        const section = roadmap.getRoadmapPhaseWithFallback(cwd, phaseNum);
+        const result = detectAssumptionDelta(section ?? '', termsOverride);
+        output(result, raw);
+        break;
+      }
+      error(`Unknown assumption-delta subcommand: ${sub}. Available: scan`, ERROR_REASON.SDK_UNKNOWN_COMMAND);
+      break;
+    }
+
     case 'requirements': {
       const subcommand = args[1];
       if (subcommand === 'mark-complete') {
@@ -1342,9 +1555,13 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
       const subcommand = args[1];
       if (subcommand === 'complete') {
         const milestoneName = parseMultiwordArg(args, 'name');
-        const archivePhases = args.includes('--archive-phases');
+        // #1871: archive phase dirs by default on milestone complete so the next
+        // new-milestone never inherits un-archived dirs. --no-archive-phases opts out.
+        const archivePhases = !args.includes('--no-archive-phases');
         const force = args.includes('--force');
-        milestone.cmdMilestoneComplete(cwd, args[2], { name: milestoneName, archivePhases, force }, raw);
+        // #2118: --dry-run prints a preview plan without mutating.
+        const dryRun = args.includes('--dry-run');
+        milestone.cmdMilestoneComplete(cwd, args[2], { name: milestoneName, archivePhases, force, dryRun }, raw);
       } else {
         error('Unknown milestone subcommand. Available: complete', ERROR_REASON.SDK_UNKNOWN_COMMAND);
       }
@@ -1414,6 +1631,10 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
     }
 
     case 'init': {
+      // #1688: warn (at most once per process) if the user edited model_overrides
+      // without re-running `gsd install <runtime>` on a static-frontmatter runtime.
+      // Best-effort, stderr-only, swallowed errors — never blocks the command.
+      try { warnIfStaleBake(cwd); } catch { /* guard must never break init */ }
       routeInitCommand({
         init,
         args,
@@ -1457,9 +1678,28 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
           }
           loopActiveCap = value;
         }
+        // --runtime <r> (#2003): explicit runtime override so the config-dir
+        // resolution bypasses the persisted-runtime fallback (GSD_RUNTIME →
+        // config.runtime). Mirrors the --config-dir dual-form (--runtime X /
+        // --runtime=X) and the capability-set --runtime precedent.
+        let loopRuntime = undefined;
+        const runtimeEqArg = args.find(arg => arg.startsWith('--runtime='));
+        const runtimeIdx = args.indexOf('--runtime');
+        if (runtimeEqArg) {
+          const value = runtimeEqArg.slice('--runtime='.length).trim();
+          if (!value) error('Missing value for --runtime', ERROR_REASON ? ERROR_REASON.USAGE : undefined);
+          loopRuntime = value;
+        } else if (runtimeIdx !== -1) {
+          const value = args[runtimeIdx + 1];
+          if (!value || value.startsWith('--')) {
+            error('Missing value for --runtime', ERROR_REASON ? ERROR_REASON.USAGE : undefined);
+          }
+          loopRuntime = value;
+        }
         loopResolver.cmdLoopRenderHooks(cwd, args[2], raw, {
           configDir: loopConfigDir ? path.resolve(loopConfigDir) : undefined,
           activeCap: loopActiveCap,
+          runtime: loopRuntime,
         });
       } else {
         error(
@@ -1550,13 +1790,22 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
         return undefined;
       };
       // Running GSD version (hard gate for engines.gsd at install/load); fail-closed to 0.0.0.
+      // #1920: prefer the authoritative gsd-core/VERSION the installer writes for EVERY runtime
+      // (gsd-core/bin/ -> ../VERSION), so installed layouts report the true version even when the
+      // walked-up ../../package.json is the versionless CommonJS marker or the user's own project.
+      // Fall back to the runtime-root package.json (dev/source tree), then fail-closed. Mirrors
+      // readHostVersion() in capability-loader.cts.
       const capHostVersion = () => {
+        const SEMVER_PREFIX = /^\d+\.\d+\.\d+/;
         try {
-          const pkg = require('../../package.json'); // gsd-core/bin/ -> repo root is two up
-          return typeof pkg.version === 'string' && pkg.version ? pkg.version : '0.0.0';
-        } catch {
-          return '0.0.0';
-        }
+          const v = fs.readFileSync(path.join(__dirname, '..', 'VERSION'), 'utf8').trim();
+          if (SEMVER_PREFIX.test(v)) return v;
+        } catch { /* not an installed tree (no gsd-core/VERSION) */ }
+        try {
+          const pkg = require(path.join(__dirname, '..', '..', 'package.json')); // gsd-core/bin/ -> repo root is two up
+          if (pkg && typeof pkg.version === 'string' && SEMVER_PREFIX.test(pkg.version)) return pkg.version;
+        } catch { /* runtime root has no package.json */ }
+        return '0.0.0';
       };
       // #1459: the USER-OWNED consent home (GSD_HOME||homedir()) where project-scope consent records
       // live — OUTSIDE any repo. SAME rule as the loader/consent-store path resolution so a record
@@ -1602,7 +1851,24 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
           configDir = configDirVal;
         }
         const resolvedConfigDir = configDir ? path.resolve(configDir) : null;
-        capabilityState.cmdCapabilityState(cwd, resolvedConfigDir, raw, {});
+        // --runtime <r> (#2003): explicit runtime override so the config-dir
+        // resolution bypasses the persisted-runtime fallback. Dual-form like
+        // --config-dir (--runtime X / --runtime=X).
+        let stateRuntime = undefined;
+        const stateRuntimeEqArg = args.find(arg => arg.startsWith('--runtime='));
+        const stateRuntimeIdx = args.indexOf('--runtime');
+        if (stateRuntimeEqArg) {
+          const value = stateRuntimeEqArg.slice('--runtime='.length).trim();
+          if (!value) error('Missing value for --runtime', ERROR_REASON ? ERROR_REASON.USAGE : undefined);
+          stateRuntime = value;
+        } else if (stateRuntimeIdx !== -1) {
+          const value = args[stateRuntimeIdx + 1];
+          if (!value || value.startsWith('--')) {
+            error('Missing value for --runtime', ERROR_REASON ? ERROR_REASON.USAGE : undefined);
+          }
+          stateRuntime = value;
+        }
+        capabilityState.cmdCapabilityState(cwd, resolvedConfigDir, raw, { runtime: stateRuntime });
       } else if (capSubcommand === 'set') {
         // capability set <id> [--on|--off|--enable|--disable] [--gate <key>=<bool>]... [--config-dir <dir>] [--runtime <r>] [--scope <s>]
         const capId = args[2];
@@ -1945,6 +2211,28 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
             }
           }
         } catch { /* best-effort — list still works without the inactive annotation */ }
+        // Issue #2045 (DEFECT 3): derive each capability's SURFACED state from the
+        // SAME resolver `capability state` uses (resolveCapabilityRuntimeState), so
+        // `list` and `state` stop disagreeing. `list` previously derived `status`
+        // purely from ledger-entry existence — an installed-but-not-surfaced cap
+        // reported active in `list` and absent in `state`. Surfaced is evaluated at
+        // the default runtime config dir (the resolver resolves it when undefined),
+        // matching `capability state <id>` with no --config-dir. Best-effort: a
+        // resolver failure leaves surfacedById empty (rows report surfaced:null).
+        const surfacedById = {};
+        // surfacedById is keyed by capId only (NOT `${scope} ${capId}`): surface
+        // state is single-source — one runtime config dir → one .gsd-surface.json
+        // → one surfaced truth per capId — and the loader dedupes overlay caps to
+        // one registry entry per id (first-party-wins). So a cap installed in both
+        // scopes correctly shares one surfaced value across its list rows.
+        try {
+          const surfaceState = capabilityState.resolveCapabilityRuntimeState(cwd, undefined);
+          for (const cap of (surfaceState && surfaceState.capabilities) || []) {
+            if (cap && typeof cap.id === 'string') {
+              surfacedById[cap.id] = cap.surfaced === true;
+            }
+          }
+        } catch { /* best-effort — list still works without the surfaced annotation */ }
         for (const capId of Object.keys(fp)) {
           const cap = fp[capId] || {};
           rows.push({
@@ -1955,6 +2243,7 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
             source: 'first-party',
             scope: 'first-party',
             status: 'active',
+            surfaced: Object.prototype.hasOwnProperty.call(surfacedById, capId) ? surfacedById[capId] === true : null,
             title: cap.title || null,
           });
         }
@@ -2004,6 +2293,12 @@ async function runCommand(command, args, cwd, raw, defaultValue, originalCommand
               scope: sc,
               status,
               reason,
+              // Issue #2045 (DEFECT 3): surfaced reflects surface composition, so
+              // list and state agree. An inactive (unconsented/incompatible) cap is
+              // surfaced:false by definition; otherwise defer to the resolver.
+              surfaced: status === 'active'
+                ? (Object.prototype.hasOwnProperty.call(surfacedById, capId) ? surfacedById[capId] === true : null)
+                : false,
               title: manifest.title || null,
             });
           }

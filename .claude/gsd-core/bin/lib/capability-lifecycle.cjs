@@ -33,7 +33,7 @@ const consentMod = require('./capability-consent.cjs');
 const projectRootMod = require('./project-root.cjs');
 // #1459 finding 4: the SHARED hardened lock primitive (single source of truth for lifecycle + consent).
 const lockMod = require('./capability-lock.cjs');
-const { platformWriteSync } = require('./shell-command-projection.cjs');
+const { platformWriteSync, retryRenameSync } = require('./shell-command-projection.cjs');
 // #1463: numeric major.minor.patch comparison for the outdated check (the SAME compare the resolver
 // and capability list use). -1 (a<b), 0 (equal), 1 (a>b).
 const semverMod = require('./semver-compare.cjs');
@@ -369,16 +369,16 @@ function promoteStagingToFinal(stagingDir, finalDir, backupName) {
             ? node_path_1.default.join(parent, backupName)
             // CONC-3: a random nonce in the unnamed-branch backup name prevents same-ms cross-process collision.
             : node_path_1.default.join(parent, newBackupName(node_path_1.default.basename(finalDir)));
-        node_fs_1.default.renameSync(finalDir, backupDir);
+        retryRenameSync(finalDir, backupDir);
         // DUR-3: fsync the parent dir so the old→backup rename is durable BEFORE the second rename —
         // a crash here must not lose the backup (the only recovery path for reconcile).
         fsyncDir(parent);
         try {
-            node_fs_1.default.renameSync(stagingDir, finalDir);
+            retryRenameSync(stagingDir, finalDir);
         }
         catch (err) {
             try {
-                node_fs_1.default.renameSync(backupDir, finalDir);
+                retryRenameSync(backupDir, finalDir);
             }
             catch { /* best-effort restore */ }
             throw err;
@@ -388,7 +388,7 @@ function promoteStagingToFinal(stagingDir, finalDir, backupName) {
         return { backupDir };
     }
     node_fs_1.default.mkdirSync(parent, { recursive: true });
-    node_fs_1.default.renameSync(stagingDir, finalDir);
+    retryRenameSync(stagingDir, finalDir);
     fsyncDir(parent); // DUR-3: durable fresh-install promotion.
     return { backupDir: null };
 }
@@ -1330,8 +1330,8 @@ function reconcileCapabilities(opts) {
                             //   - crash after step (b): old bundle live at finalDir; only the aside copy leaks → swept.
                             const discard = `${finalDir}.discard-${process.pid}-${Date.now()}-${node_crypto_1.default.randomBytes(4).toString('hex')}`;
                             if (node_fs_1.default.existsSync(finalDir))
-                                node_fs_1.default.renameSync(finalDir, discard); // (a) set the new dir aside
-                            node_fs_1.default.renameSync(backupDir, finalDir); // (b) restore the old bundle
+                                retryRenameSync(finalDir, discard); // (a) set the new dir aside
+                            retryRenameSync(backupDir, finalDir); // (b) restore the old bundle
                             fsyncDir(root); // make the restore durable
                             try {
                                 node_fs_1.default.rmSync(discard, { recursive: true, force: true });

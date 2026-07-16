@@ -32,9 +32,9 @@ Mode routing:
 </routing>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings-advanced.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings-integrations.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings-advanced.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings-integrations.md
 </execution_context>
 
 <context>

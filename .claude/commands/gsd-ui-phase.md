@@ -21,8 +21,8 @@ Flow: Validate → Research UI → Verify UI-SPEC → Done
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ui-phase.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ui-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
 </execution_context>
 
 <context>

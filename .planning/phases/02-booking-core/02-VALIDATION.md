@@ -88,6 +88,27 @@ these rows (or add a row).
 
 ---
 
+## SC5 DST-Transition Clause — Descope Decision (Plan 02-07)
+
+The deployed salon zone is **Asia/Yangon** (fixed UTC+06:30, per `appsettings.json`
+`Salon:IanaTimeZoneId`), which has never observed Daylight Saving Time. SC5's clause
+"verified correct across a DST-transition date" therefore cannot occur in production
+for this deployment and is **deliberately descoped**.
+
+Standing proofs that preserve DST correctness if the zone is ever reconfigured to a
+DST-observing one:
+
+- `DstBoundaryTests` — `SalonTimeZone` gap/ambiguity resolution at a DST boundary.
+- `DstRoundTripTests` — real-SQL `datetimeoffset` round-trip across both 2026
+  US-Eastern DST transitions (spring-forward `-04:00`, fall-back `-05:00`).
+- `WritePathOffsetTests` — proves the shipped create path
+  (`POST /api/appointments` end-to-end) persists the correct salon offset on real
+  SQL Server, closing the write-path proof gap for the actual deployed zone.
+
+This does not reword the ROADMAP success criterion itself — it records why the
+DST-transition clause is unreachable for the current deployment and names the
+proofs that remain standing.
+
 ## Validation Sign-Off
 
 - [ ] All tasks have `<automated>` verify or Wave 0 dependencies

@@ -31,7 +31,7 @@ Output: {padded_phase}-REVIEW.md in phase directory + inline summary of findings
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/code-review.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/code-review.md
 </execution_context>
 
 <context>

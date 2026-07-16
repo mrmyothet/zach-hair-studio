@@ -24,9 +24,9 @@ Phase 1 of the vertical-mvp-slice PRD shipped the planner-side machinery; this c
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/mvp-phase.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/spidr-splitting.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/user-story-template.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/mvp-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/spidr-splitting.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/user-story-template.md
 </execution_context>
 
 <runtime_note>
@@ -40,6 +40,6 @@ The phase must already exist in ROADMAP.md (created via `/gsd new-project`, `/gs
 </context>
 
 <process>
-Execute the mvp-phase workflow from @D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/mvp-phase.md end-to-end.
+Execute the mvp-phase workflow from @C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/mvp-phase.md end-to-end.
 Preserve all gates: phase existence, status guard (refuse in_progress/completed), user-story format validation, SPIDR splitting check, ROADMAP write confirmation, plan-phase delegation.
 </process>

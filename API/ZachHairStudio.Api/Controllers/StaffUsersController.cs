@@ -23,6 +23,10 @@ public class StaffUsersController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(StaffUserResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<StaffUserResponseDto>> Create([FromBody] StaffUserCreateDto request)
     {
         var validation = await _createValidator.ValidateAsync(request);

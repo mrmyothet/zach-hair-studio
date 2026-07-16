@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ZachHairStudio.Api.Tests.TestSupport;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Services;
@@ -20,8 +21,6 @@ public class AppointmentsControllerTests : IClassFixture<CustomWebApplicationFac
 {
     private readonly CustomWebApplicationFactory _factory;
 
-    // 2026-07-15 is a Wednesday covered by the seeded Tue-Sat working hours and within
-    // the 60-day horizon of the test env's "today" (2026-07-10).
     private const int ServiceId = 1; // Precision Cut, 45 min (seeded).
 
     public AppointmentsControllerTests(CustomWebApplicationFactory factory)
@@ -42,10 +41,10 @@ public class AppointmentsControllerTests : IClassFixture<CustomWebApplicationFac
 
     private static readonly SalonTimeZone SalonTz = SalonTimeZone.FromOptions(new SalonOptions());
 
-    // Resolved through the configured salon zone rather than a hardcoded offset, so these
-    // slots follow Salon:IanaTimeZoneId instead of drifting off-grid when it changes.
+    // Resolved through the shared BookingDates helper (relative-to-now, seeded working day),
+    // so these slots stay future/in-horizon regardless of the calendar date.
     private static DateTimeOffset Slot(int hour, int minute = 0)
-        => SalonTz.ToSalonInstant(new DateTime(2026, 7, 15, hour, minute, 0))!.Value;
+        => BookingDates.NextBookableSlot(hour, minute);
 
     [Fact]
     public async Task Post_ValidBooking_Returns201WithFullDetails()

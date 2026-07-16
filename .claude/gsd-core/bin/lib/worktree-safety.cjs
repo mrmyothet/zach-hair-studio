@@ -440,7 +440,7 @@ function rescueSummaryArtifacts(worktreePath, repoRoot, deps) {
         // relPath is the path relative to the worktree root (e.g. ".planning/q1-SUMMARY.md")
         // Normalize to forward slashes so the Set comparison against `git status --porcelain`
         // output works on Windows too (git always emits forward slashes in porcelain output).
-        const relPath = absPath.slice(worktreePath.length).replace(/^[/\\]/, '').replace(/\\/g, '/');
+        const relPath = (0, shell_command_projection_cjs_1.posixNormalize)(absPath.slice(worktreePath.length).replace(/^[/\\]/, ''));
         // #706: skip rescue when the SUMMARY is already committed on the branch.
         // Use `git cat-file -e HEAD:<relPath>` (not `ls-files --error-unmatch`) so
         // the check is against the committed tree, not the index.  ls-files also

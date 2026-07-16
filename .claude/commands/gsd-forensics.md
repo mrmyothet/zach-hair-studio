@@ -20,7 +20,7 @@ Output: Forensic report saved to `.planning/forensics/`, presented inline, with 
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/forensics.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/forensics.md
 </execution_context>
 
 <context>

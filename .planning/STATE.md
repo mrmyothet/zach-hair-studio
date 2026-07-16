@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 03
-current_phase_name: staff-dashboard-schedule
-status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-07-11T06:51:13.840Z"
-last_activity: 2026-07-11
-last_activity_desc: Phase 03 execution started
+current_phase: 4
+current_phase_name: Services & Availability
+status: verifying
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-07-16T12:35:36.310Z"
+last_activity: 2026-07-16
+last_activity_desc: "Completed quick task 260716-qfe: Fix gitleaks false positives on GSD manifest checksums"
 progress:
   total_phases: 8
-  completed_phases: 2
-  total_plans: 14
-  completed_plans: 13
-  percent: 25
+  completed_phases: 3
+  total_plans: 17
+  completed_plans: 17
+  percent: 38
 ---
 
 # Project State
@@ -28,18 +28,18 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 
 ## Current Position
 
-Phase: 03 (staff-dashboard-schedule) — EXECUTING
-Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-07-11 — Phase 03 execution started
+Phase: 4 — Staff Management (Services & Availability)
+Plan: Not started
+Status: Phase 03 plans complete — awaiting verify-work
+Last activity: 2026-07-16 — Completed quick task 260716-qfe: Fix gitleaks false positives on GSD manifest checksums
 
-Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
+Progress: [████░░░░░░] 38%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 8
+- Total plans completed: 13
 - Average duration: 60 min
 - Total execution time: 3h 58m
 
@@ -49,6 +49,7 @@ Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 |-------|-------|-------|----------|
 | 1. Service Catalog | 4 | 3h 58m | 60 min |
 | 01 | 4 | - | - |
+| 03 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -60,6 +61,8 @@ Progress: [█░░░░░░░░░] 13% (1 of 8 phases complete)
 | Phase 03 P01 | 14min | 3 tasks | 13 files |
 | Phase 03 P02 | 10min | 3 tasks | 9 files |
 | Phase 03 P03 | 25min | 3 tasks | 10 files |
+| Phase 02 P07 | 25min | 3 tasks | 8 files |
+| Phase 03 P05 | close-out | 4 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -90,6 +93,11 @@ Recent decisions affecting current work:
 - [Phase 03]: Phase 3 Plan 02: StaffUsersController uses an explicit [Route("api/staff-users")] (not the [controller] token) since the default token would yield /api/staffusers with no hyphen.
 - [Phase 03]: Phase 3 Plan 03: Global JsonStringEnumConverter registered in Program.cs so enum request/response fields (AppointmentStatusUpdateDto.NewStatus) round-trip as strings, matching AppointmentResponseDto.Status's existing string shape.
 - [Phase 03]: Phase 3 Plan 03: UpdateStatusAsync re-reads the current status from the DB and checks the single AllowedTransitions map before mutating - the one reusable slot-release path for Cancel/NoShow, never a forked copy.
+- [Phase ?]: Phase 2 Plan 07: SC5's DST-transition clause is descoped for the Asia/Yangon deployment (fixed UTC+06:30, never observes DST); DstBoundaryTests, DstRoundTripTests, and WritePathOffsetTests remain as the standing DST/offset proofs.
+- [Phase ?]: Phase 2 Plan 07: Create-path test dates derive from a shared TestSupport.BookingDates helper (relative-to-now via SalonTimeZone) instead of hardcoded calendar literals, for any test crossing the future-gated AppointmentCreateDtoValidator.
+- [Phase ?]: Phase 3 Plan 05: Hand-rolled CSS Grid day view with Asia/Yangon scheduleTime helpers — no calendar library.
+- [Phase ?]: Phase 3 Plan 05: Schedule fetches all statuses; Cancelled/NoShow reveal is client-side includeCancelled toggle (D-08).
+- [Phase ?]: Phase 3 Plan 05: POST /api/staff-users 201 Created treated as success on Owner add-staff form.
 
 ### Pending Todos
 
@@ -103,6 +111,15 @@ Recent decisions affecting current work:
 - ~~Default `MSSQLLocalDB` fails on this machine~~ — **resolved 2026-07-09.** The corrupted automatic instance was deleted and recreated (now v17.0.4025.3); migrations apply cleanly to `(localdb)\MSSQLLocalDB`, database `ZachHairStudio`. The API also runs against Azure SQL (`zachhairstudio.database.windows.net`) via a `ConnectionStrings__DefaultConnection` env-var override — note the Azure SQL firewall must allow the client IP.
 - `appsettings.json` `DefaultConnection` is `Server=localhost;...`, which disagrees with the `(localdb)\MSSQLLocalDB` documented in CLAUDE.md. Use `dotnet user-secrets` (not `appsettings.json`) for any connection string carrying a password — gitleaks scanning is wired to the pre-commit hook.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260712-tds | Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs) | 2026-07-12 | 40e3207 | [260712-tds-fix-semgrep-ci-findings-semgrepignore-ve](./quick/260712-tds-fix-semgrep-ci-findings-semgrepignore-ve/) |
+| 260716-qfe | Fix gitleaks false positives on GSD manifest checksums (rule-targeted regex allowlist replaces stale .gitleaksignore fingerprints) | 2026-07-16 | 8e7a1d2 | [260716-qfe-fix-gitleaks-false-positives-on-gsd-mani](./quick/260716-qfe-fix-gitleaks-false-positives-on-gsd-mani/) |
+| 3 | Bump CI gitleaks v8.18.4 -> v8.30.1 so [[allowlists]] config applies in security.yml scan | 2026-07-16 | 1221ba5 | — |
+| 4 | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies | 2026-07-16 | b130c2d | — |
+
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
@@ -113,8 +130,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T06:49:27.192Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-07-16T10:56:00.000Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None
 
-Next action: run the flagged research pass for Phase 2 (Booking Core), then `/gsd-plan-phase 2`. Phase 2 is the highest-correctness-risk phase — DB-level double-booking constraint design, `DateTimeOffset`/timezone strategy, and the seeded-availability model shape all need research before planning.
+Next action: Phase 03 plans 01–05 complete (ROADMAP 5/5). Run `/gsd-verify-work` for Phase 03 when ready — do not start Phase 04 until verification.

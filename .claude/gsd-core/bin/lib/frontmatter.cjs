@@ -126,6 +126,49 @@ function extractFrontmatter(content) {
     }
     return frontmatter;
 }
+/**
+ * Escape a string for emission inside a YAML double-quoted scalar (#1779).
+ * Backslash must be escaped first so the backslashes added for embedded quotes
+ * (and control chars) are not themselves doubled. Without this, a value
+ * carrying an indicator (`:`/`#`) that also contains a literal `"` serializes
+ * to invalid YAML, e.g. `upstream: "https://x (Tom; "Git. Ship. Done")"`. A
+ * literal newline/tab/control char inside the quotes likewise breaks (or
+ * silently alters) the scalar, so those are escaped to their YAML forms too.
+ */
+function escapeDoubleQuoted(s) {
+    return s
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t')
+        .replace(/\r/g, '\\r')
+        // Remaining C0 controls + DEL → \xHH (a valid YAML double-quoted escape).
+        .replace(/[\u0000-\u001f\u007f]/g, (c) => `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`);
+}
+/**
+ * A plain (unquoted) scalar that would mis-parse or round-trip lossily when
+ * emitted bare must instead go through the double-quoted + escaped form
+ * (#1779): the empty string (bare `k:` reloads as null), an embedded `"`/`\`
+ * or control char, a leading YAML indicator (quote, `&`/`*`/`!` anchor/alias/
+ * tag, `|`/`>` block scalar, flow `[]{},`, `#`, reserved `%`/`@`/backtick, or
+ * `-`/`?`/`:` before a space), or leading/trailing whitespace. This helper is
+ * the correctness complement of `escapeDoubleQuoted`: it broadens the *trigger*
+ * for quoting without broadening the lossy object-list handling deferred to
+ * #1572/#1660.
+ */
+function scalarNeedsDoubleQuoting(s) {
+    if (s === '')
+        return true;
+    if (/["\\\u0000-\u001f\u007f]/.test(s))
+        return true;
+    // Always-unsafe leading indicators, or leading/trailing whitespace.
+    if (/^[,[\]{}#&*!|>'"%@`]/.test(s) || /^\s|\s$/.test(s))
+        return true;
+    // `-` `?` `:` only start a plain scalar safely when NOT followed by a space.
+    if (/^[-?:](\s|$)/.test(s))
+        return true;
+    return false;
+}
 function reconstructFrontmatter(obj) {
     const lines = [];
     for (const [key, value] of Object.entries(obj)) {
@@ -141,7 +184,7 @@ function reconstructFrontmatter(obj) {
             else {
                 lines.push(`${key}:`);
                 for (const item of value) {
-                    lines.push(`  - ${typeof item === 'string' && (item.includes(':') || item.includes('#')) ? `"${item}"` : item}`);
+                    lines.push(`  - ${typeof item === 'string' && (item.includes(':') || item.includes('#') || scalarNeedsDoubleQuoting(item)) ? `"${escapeDoubleQuoted(item)}"` : item}`);
                 }
             }
         }
@@ -160,7 +203,7 @@ function reconstructFrontmatter(obj) {
                     else {
                         lines.push(`  ${subkey}:`);
                         for (const item of subval) {
-                            lines.push(`    - ${typeof item === 'string' && (item.includes(':') || item.includes('#')) ? `"${item}"` : item}`);
+                            lines.push(`    - ${typeof item === 'string' && (item.includes(':') || item.includes('#') || scalarNeedsDoubleQuoting(item)) ? `"${escapeDoubleQuoted(item)}"` : item}`);
                         }
                     }
                 }
@@ -189,14 +232,14 @@ function reconstructFrontmatter(obj) {
                 else {
                     // eslint-disable-next-line @typescript-eslint/no-base-to-string
                     const sv = String(subval);
-                    lines.push(`  ${subkey}: ${sv.includes(':') || sv.includes('#') ? `"${sv}"` : sv}`);
+                    lines.push(`  ${subkey}: ${sv.includes(':') || sv.includes('#') || scalarNeedsDoubleQuoting(sv) ? `"${escapeDoubleQuoted(sv)}"` : sv}`);
                 }
             }
         }
         else {
             const sv = String(value);
-            if (sv.includes(':') || sv.includes('#') || sv.startsWith('[') || sv.startsWith('{')) {
-                lines.push(`${key}: "${sv}"`);
+            if (sv.includes(':') || sv.includes('#') || sv.startsWith('[') || sv.startsWith('{') || scalarNeedsDoubleQuoting(sv)) {
+                lines.push(`${key}: "${escapeDoubleQuoted(sv)}"`);
             }
             else {
                 lines.push(`${key}: ${sv}`);
@@ -448,7 +491,11 @@ function parseMustHavesBlock(content, blockName) {
             else {
                 const kvMatch = trimmed.match(/^(\w+):\s*"?([^"]*)"?\s*$/);
                 if (kvMatch) {
-                    const val = kvMatch[2];
+                    // Trim: a quoted value like `"backstop "` captures the inner trailing space in group 2.
+                    // Left untrimmed, a hand-authored `must_haves` marker degrades (a `backstop` truth silently
+                    // grades green instead of abstaining — #1905, the #1154 false-pass; also the sibling
+                    // check_target/violationFixture path). Whitespace is never semantic in a scalar KV value.
+                    const val = kvMatch[2].trim();
                     // Try to parse as number
                     (current)[kvMatch[1]] = /^\d+$/.test(val) ? parseInt(val, 10) : val;
                 }
@@ -475,6 +522,27 @@ const FRONTMATTER_SCHEMAS = {
     summary: { required: ['phase', 'plan', 'subsystem', 'tags', 'duration', 'completed'] },
     verification: { required: ['phase', 'verified', 'status', 'score'] },
 };
+/**
+ * Strip ALL frontmatter blocks from the start of `content`.
+ *
+ * Handles CRLF line endings and multiple stacked blocks (corruption
+ * recovery): greedily strips consecutive `---...---` blocks separated by
+ * optional whitespace, so a doubled/tripled frontmatter header (e.g. from a
+ * botched merge) is fully removed, not just the first block.
+ *
+ * Canonical home for this primitive (#2143 audit dedup): previously
+ * duplicated byte-identically in both `state.cts` and `state-transition.cts`.
+ */
+function stripFrontmatter(content) {
+    let result = content;
+    while (true) {
+        const stripped = result.replace(/^\s*---\r?\n[\s\S]*?\r?\n---\s*/, '');
+        if (stripped === result)
+            break;
+        result = stripped;
+    }
+    return result;
+}
 function cmdFrontmatterGet(cwd, filePath, field, raw) {
     if (!filePath) {
         error('file path required');
@@ -607,6 +675,7 @@ module.exports = {
     parseFrontmatter: extractFrontmatter,
     reconstructFrontmatter,
     spliceFrontmatter,
+    stripFrontmatter,
     noOpObjectListSetError,
     parseMustHavesBlock,
     FRONTMATTER_SCHEMAS,

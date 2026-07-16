@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using ZachHairStudio.Api.Tests.TestSupport;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
@@ -18,15 +19,18 @@ namespace ZachHairStudio.Api.Tests.Features.Appointments;
 /// </summary>
 public class AnyStylistAssignmentTests
 {
-    // 2026-07-15 is a Wednesday within the 60-day horizon of the test env's "today" (2026-07-10).
-    private static readonly DateOnly BookingDate = new(2026, 7, 15);
+    // Resolved through the shared BookingDates helper (relative-to-now, seeded working day),
+    // so this suite stays future/in-horizon regardless of the calendar date. This test calls
+    // AppointmentsService.CreateAsync directly with a real AppointmentCreateDtoValidator, so
+    // it DOES cross the future-gated validator and is date-bombed the same as the HTTP-path
+    // tests (correcting the plan's original exclusion rationale for this file).
+    private static readonly DateOnly BookingDate = BookingDates.NextBookableDate();
 
     // 10:00 salon-local is the authoritative instant, resolved through the configured salon
     // zone rather than a hardcoded offset (follows Salon:IanaTimeZoneId).
     private static readonly SalonTimeZone SalonTz = SalonTimeZone.FromOptions(new SalonOptions());
 
-    private static readonly DateTimeOffset SlotInstant =
-        SalonTz.ToSalonInstant(new DateTime(2026, 7, 15, 10, 0, 0))!.Value;
+    private static readonly DateTimeOffset SlotInstant = BookingDates.NextBookableSlot(10);
 
     private static AppointmentCreateDto AnyStylistRequest() => new()
     {
@@ -113,7 +117,7 @@ public class AnyStylistAssignmentTests
 
         var request = AnyStylistRequest();
         // 03:00 salon-local is outside the seeded 09:00-18:00 working hours — not a real slot.
-        request.StartsAt = SalonTz.ToSalonInstant(new DateTime(2026, 7, 15, 3, 0, 0))!.Value;
+        request.StartsAt = BookingDates.NextBookableSlot(3);
 
         var result = await service.CreateAsync(request);
 

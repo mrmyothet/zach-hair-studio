@@ -19,8 +19,8 @@ Produces EVAL-REVIEW.md with score, verdict, gaps, and remediation plan.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/eval-review.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-evals.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/eval-review.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-evals.md
 </execution_context>
 
 <context>

@@ -697,21 +697,45 @@ const VALID_CONVERTER_NAMES = new Set([
   'convertClaudeAgentToCodebuddyAgent',
   'convertClaudeAgentToClineAgent',
   'convertClaudeAgentToCodexAgent',
+  // ADR-1239 / #2092 Phase B Upgrade 1 — native .qwen/agents/*.md subagent projection.
+  'convertClaudeAgentToQwenAgent',
 ]);
 
 // C3: Validate role:runtime body
 const VALID_CONFIG_FORMATS = new Set(['settings-json', 'toml', 'markdown', 'markdown-dir', 'none']);
-const VALID_CONFIG_HOME_KINDS = new Set(['dot-home', 'dot-home-nested', 'xdg', 'generic-agents-root']);
+// 'none' added #2103 — Marketplace/VSIX-distributed hosts (e.g. VS Code) with
+// no file-projected config directory at all.
+const VALID_CONFIG_HOME_KINDS = new Set(['dot-home', 'dot-home-nested', 'xdg', 'generic-agents-root', 'none']);
 const VALID_COMMAND_STYLES = new Set(['slash-hyphen', 'shell-var']);
-const VALID_HOOKS_SURFACES = new Set(['settings-json', 'codex-hooks-json', 'cursor-hooks-json', 'copilot-inline', 'cline-rules', 'none']);
-const VALID_HOOK_EVENTS = new Set(['claude', 'gemini', 'opencode-subset']);
+const VALID_HOOKS_SURFACES = new Set(['settings-json', 'codex-hooks-json', 'cursor-hooks-json', 'copilot-inline', 'cline-rules', 'kimi-hooks-toml', 'windsurf-hooks-json', 'none']);
+const VALID_HOOK_EVENTS = new Set(['claude', 'gemini']);
+// extensionEvents — the plugin/extension-system event dialect (ADR-1239 amendment / #1943).
+// DISTINCT from hookEvents (managed-hook dialect): extensionEvents describes the
+// plugin-owned event subset imperative hosts expose (opencode / pi); 'none' = the
+// host exposes no extension surface (engine owns the bus, e.g. VS Code).
+const VALID_EXTENSION_EVENTS = new Set(['opencode', 'pi', 'hermes', 'kilo', 'none']);
 const VALID_SANDBOX_TIERS = new Set(['none', 'codex-agent-sandbox']);
 const VALID_ARTIFACT_KIND_NAMES = new Set(['commands', 'agents', 'skills', 'kimi-agents']);
 const VALID_ARTIFACT_NESTINGS = new Set(['flat', 'nested']);
 const FEATURE_FIELDS_FORBIDDEN_ON_RUNTIME = ['skills', 'agents', 'steps', 'contributions', 'gates', 'hooks', 'activationKey'];
-const VALID_INSTALL_SURFACES = new Set(['settings-json', 'codex-toml', 'copilot-instructions', 'cline-rules', 'cursor-hooks-json', 'profile-marker-only']);
-const VALID_PERMISSION_WRITERS = new Set(['opencode', 'kilo']);
-const VALID_EXTENDED_HOOK_EVENTS = new Set(['SubagentStop', 'Stop', 'PreCompact', 'FileChanged', 'BeforeAgent', 'AfterAgent', 'BeforeModel']);
+// 'none' added #2103 — Marketplace/VSIX-distributed hosts (e.g. VS Code) that
+// are never CLI-installed (no allRuntimes membership, no install flag).
+const VALID_INSTALL_SURFACES = new Set(['settings-json', 'codex-toml', 'copilot-instructions', 'cline-rules', 'cursor-hooks-json', 'profile-marker-only', 'none']);
+// 'antigravity' added #2096 Phase B Upgrade 1 — settings.json permissions.allow writer.
+const VALID_PERMISSION_WRITERS = new Set(['opencode', 'kilo', 'antigravity']);
+// SubagentStart added #2092 Phase B Upgrade 2 (qwen-only today — see
+// capabilities/qwen/capability.json's extendedHookEvents).
+const VALID_EXTENDED_HOOK_EVENTS = new Set(['SubagentStop', 'Stop', 'PreCompact', 'FileChanged', 'BeforeAgent', 'AfterAgent', 'BeforeModel', 'SubagentStart']);
+
+// ADR-1239 Phase A: hostIntegration axes (MUST stay parity-identical to HOST_INTEGRATION_AXES in src/host-integration.cts)
+const VALID_EMBEDDING_MODES   = new Set(['imperative', 'declarative']);
+const VALID_COMMAND_SURFACES  = new Set(['slash-file', 'slash-programmatic', 'slash-toml', 'palette', 'prose-only']);
+const VALID_MODEL_MODES       = new Set(['active', 'passive']);
+const VALID_HOOK_BUSES        = new Set(['host', 'engine', 'none']);
+const VALID_STATE_IO          = new Set(['filesystem', 'sandboxed-storage', 'session-log-append']);
+const VALID_TRANSPORTS        = new Set(['mcp', 'native-extension']);
+const VALID_HOST_RUNTIMES     = new Set(['node', 'bun', 'sandboxed-web', 'python', 'go', 'rust', 'electron', 'other']);
+const VALID_SUBAGENT_TOOLKITS = new Set(['full', 'read-only']);
 
 // GATE A: installSurface → allowed hooksSurface values (DEFECT.GENERATIVE-FIX: parity invariant)
 // Derived from the actual pairings in the 16 real runtime descriptors.
@@ -721,13 +745,18 @@ const INSTALL_SURFACE_TO_ALLOWED_HOOKS_SURFACES = new Map([
   ['copilot-instructions', new Set(['copilot-inline'])],
   ['cline-rules',          new Set(['cline-rules'])],
   ['cursor-hooks-json',    new Set(['cursor-hooks-json'])],
-  ['profile-marker-only',  new Set(['none'])],
+  ['profile-marker-only',  new Set(['none', 'kimi-hooks-toml', 'windsurf-hooks-json'])],
+  // 'none' added #2103 — VS Code has no CLI install surface at all; its only
+  // valid hooksSurface pairing is the other 'none' (engine owns the hook bus).
+  ['none',                 new Set(['none'])],
 ]);
 
 // GATE B: extended hook event families → required hookEvents value
 // Gemini agent-events require hookEvents='gemini'; Claude-family events require hookEvents='claude'.
 const GEMINI_AGENT_EVENTS = new Set(['BeforeAgent', 'AfterAgent', 'BeforeModel']);
-const CLAUDE_FAMILY_EVENTS = new Set(['SubagentStop', 'Stop', 'PreCompact', 'FileChanged']);
+// SubagentStart added #2092 Phase B Upgrade 2 — Claude hook-event dialect
+// counterpart of SubagentStop (qwen-only today).
+const CLAUDE_FAMILY_EVENTS = new Set(['SubagentStop', 'Stop', 'PreCompact', 'FileChanged', 'SubagentStart']);
 
 /**
  * Validate a runtime.configHome object per ADR-1016 Decision 1.
@@ -756,9 +785,18 @@ function validateConfigHome(capId, ch) {
     );
   }
 
-  // name — required string
-  if (typeof ch.name !== 'string' || ch.name.length === 0) {
-    errors.push(ctx + '.name must be a non-empty string');
+  // name — required string, except when kind === 'none': the runtime has no
+  // file-projected config directory at all, so a descriptive name is
+  // optional (a carve-out mirroring the dot-home-nested⇒parent conditional
+  // below, not a new validation mechanism). If present it must still be a
+  // non-empty string (e.g. vscode's configHome.name stays a descriptive
+  // "vscode" string even though it is never used to build a path).
+  if (ch.kind !== 'none') {
+    if (typeof ch.name !== 'string' || ch.name.length === 0) {
+      errors.push(ctx + '.name must be a non-empty string');
+    }
+  } else if (ch.name !== undefined && (typeof ch.name !== 'string' || ch.name.length === 0)) {
+    errors.push(ctx + '.name must be a non-empty string if present when kind is "none"');
   }
 
   // parent — required when kind == dot-home-nested
@@ -958,7 +996,7 @@ function validateRuntimeBody(cap) {
     );
   }
 
-  // hooksSurface — closed 6-enum (ADR-1016 Decision 5); inline literal guard (CodeQL barrier)
+  // hooksSurface — closed 7-enum (ADR-1016 Decision 5); inline literal guard (CodeQL barrier)
   if (r.hooksSurface === '__proto__' || r.hooksSurface === 'constructor' || r.hooksSurface === 'prototype') {
     errors.push('runtime.hooksSurface "' + r.hooksSurface + '" is a reserved name');
   } else if (!VALID_HOOKS_SURFACES.has(r.hooksSurface)) {
@@ -968,7 +1006,9 @@ function validateRuntimeBody(cap) {
     );
   }
 
-  // hookEvents — optional; if present must be in closed 3-enum (ADR-1016 Decision 5)
+  // hookEvents — optional; if present must be in closed enum (ADR-1016 Decision 5).
+  // Managed-hook dialect only (claude/gemini). The OpenCode extension-system event
+  // subset is NOT a hookEvents value — it is `extensionEvents` (ADR-1239 / #1943).
   if (r.hookEvents !== undefined) {
     if (r.hookEvents === '__proto__' || r.hookEvents === 'constructor' || r.hookEvents === 'prototype') {
       errors.push('runtime.hookEvents "' + r.hookEvents + '" is a reserved name');
@@ -976,6 +1016,20 @@ function validateRuntimeBody(cap) {
       errors.push(
         'runtime.hookEvents must be one of: ' + [...VALID_HOOK_EVENTS].join(', ') +
         ' (got: ' + JSON.stringify(r.hookEvents) + ')',
+      );
+    }
+  }
+
+  // extensionEvents — optional; the extension-system event dialect (ADR-1239 amendment / #1943).
+  // Distinct from hookEvents. Only imperative-embedding hosts (with a plugin/extension
+  // API) set it; declarative hosts do not.
+  if (r.extensionEvents !== undefined) {
+    if (r.extensionEvents === '__proto__' || r.extensionEvents === 'constructor' || r.extensionEvents === 'prototype') {
+      errors.push('runtime.extensionEvents "' + r.extensionEvents + '" is a reserved name');
+    } else if (!VALID_EXTENSION_EVENTS.has(r.extensionEvents)) {
+      errors.push(
+        'runtime.extensionEvents must be one of: ' + [...VALID_EXTENSION_EVENTS].join(', ') +
+        ' (got: ' + JSON.stringify(r.extensionEvents) + ')',
       );
     }
   }
@@ -1020,6 +1074,32 @@ function validateRuntimeBody(cap) {
     );
   }
 
+  // localConfigDir — REQUIRED non-empty dot-dir string (ADR-1239 Phase B #1679)
+  // Must start with '.' (e.g. ".claude", ".cursor"). Validated here so the registry
+  // generator catches any descriptor missing the field before regenerating.
+  //
+  // #2103: conditional on configHome.kind !== 'none' — a Marketplace/VSIX
+  // host with no file-projected config directory (e.g. VS Code) has no
+  // local dir to name; localConfigDir may be null/absent for such runtimes.
+  const configHomeKind = (r.configHome && typeof r.configHome === 'object') ? r.configHome.kind : undefined;
+  if (configHomeKind !== 'none') {
+    if (typeof r.localConfigDir !== 'string' || r.localConfigDir.length === 0) {
+      errors.push(
+        'runtime.localConfigDir is required and must be a non-empty string (e.g. ".claude"); ' +
+        'got: ' + JSON.stringify(r.localConfigDir),
+      );
+    } else if (!r.localConfigDir.startsWith('.')) {
+      errors.push(
+        'runtime.localConfigDir must start with "." (a dot-dir); got: ' + JSON.stringify(r.localConfigDir),
+      );
+    }
+  } else if (r.localConfigDir !== null && r.localConfigDir !== undefined) {
+    errors.push(
+      'runtime.localConfigDir must be null or absent when configHome.kind is "none"; ' +
+      'got: ' + JSON.stringify(r.localConfigDir),
+    );
+  }
+
   // extendedHookEvents — required array; every element must be in closed enum
   if (!Array.isArray(r.extendedHookEvents)) {
     errors.push(
@@ -1032,6 +1112,162 @@ function validateRuntimeBody(cap) {
         errors.push(
           'runtime.extendedHookEvents[' + i + '] must be one of: ' + [...VALID_EXTENDED_HOOK_EVENTS].join(', ') +
           ' (got: ' + JSON.stringify(ev) + ')',
+        );
+      }
+    }
+  }
+
+  // hostIntegration — ADR-1239 Phase A: required object with closed-enum axes
+  if (typeof r.hostIntegration !== 'object' || r.hostIntegration === null || Array.isArray(r.hostIntegration)) {
+    errors.push('runtime.hostIntegration is required and must be an object');
+  } else {
+    const hi = r.hostIntegration;
+
+    // S2b: reserved-OWN-KEY guard on hostIntegration (CodeQL barrier — inline literal comparisons)
+    if (Object.prototype.hasOwnProperty.call(hi, '__proto__')) {
+      errors.push('runtime.hostIntegration must not contain reserved key "__proto__"');
+    }
+    if (Object.prototype.hasOwnProperty.call(hi, 'constructor')) {
+      errors.push('runtime.hostIntegration must not contain reserved key "constructor"');
+    }
+    if (Object.prototype.hasOwnProperty.call(hi, 'prototype')) {
+      errors.push('runtime.hostIntegration must not contain reserved key "prototype"');
+    }
+
+    // embeddingMode
+    if (hi.embeddingMode === '__proto__' || hi.embeddingMode === 'constructor' || hi.embeddingMode === 'prototype') {
+      errors.push('runtime.hostIntegration.embeddingMode "' + hi.embeddingMode + '" is a reserved name');
+    } else if (hi.embeddingMode !== 'undocumented' && !VALID_EMBEDDING_MODES.has(hi.embeddingMode)) {
+      errors.push(
+        'runtime.hostIntegration.embeddingMode must be one of: ' + [...VALID_EMBEDDING_MODES].join(', ') +
+        ' (or "undocumented") (got: ' + JSON.stringify(hi.embeddingMode) + ')',
+      );
+    }
+
+    // commandSurface
+    if (hi.commandSurface === '__proto__' || hi.commandSurface === 'constructor' || hi.commandSurface === 'prototype') {
+      errors.push('runtime.hostIntegration.commandSurface "' + hi.commandSurface + '" is a reserved name');
+    } else if (hi.commandSurface !== 'undocumented' && !VALID_COMMAND_SURFACES.has(hi.commandSurface)) {
+      errors.push(
+        'runtime.hostIntegration.commandSurface must be one of: ' + [...VALID_COMMAND_SURFACES].join(', ') +
+        ' (or "undocumented") (got: ' + JSON.stringify(hi.commandSurface) + ')',
+      );
+    }
+
+    // modelMode
+    if (hi.modelMode === '__proto__' || hi.modelMode === 'constructor' || hi.modelMode === 'prototype') {
+      errors.push('runtime.hostIntegration.modelMode "' + hi.modelMode + '" is a reserved name');
+    } else if (hi.modelMode !== 'undocumented' && !VALID_MODEL_MODES.has(hi.modelMode)) {
+      errors.push(
+        'runtime.hostIntegration.modelMode must be one of: ' + [...VALID_MODEL_MODES].join(', ') +
+        ' (or "undocumented") (got: ' + JSON.stringify(hi.modelMode) + ')',
+      );
+    }
+
+    // hookBus
+    if (hi.hookBus === '__proto__' || hi.hookBus === 'constructor' || hi.hookBus === 'prototype') {
+      errors.push('runtime.hostIntegration.hookBus "' + hi.hookBus + '" is a reserved name');
+    } else if (hi.hookBus !== 'undocumented' && !VALID_HOOK_BUSES.has(hi.hookBus)) {
+      errors.push(
+        'runtime.hostIntegration.hookBus must be one of: ' + [...VALID_HOOK_BUSES].join(', ') +
+        ' (or "undocumented") (got: ' + JSON.stringify(hi.hookBus) + ')',
+      );
+    }
+
+    // stateIO
+    if (hi.stateIO === '__proto__' || hi.stateIO === 'constructor' || hi.stateIO === 'prototype') {
+      errors.push('runtime.hostIntegration.stateIO "' + hi.stateIO + '" is a reserved name');
+    } else if (hi.stateIO !== 'undocumented' && !VALID_STATE_IO.has(hi.stateIO)) {
+      errors.push(
+        'runtime.hostIntegration.stateIO must be one of: ' + [...VALID_STATE_IO].join(', ') +
+        ' (or "undocumented") (got: ' + JSON.stringify(hi.stateIO) + ')',
+      );
+    }
+
+    // transport
+    if (hi.transport === '__proto__' || hi.transport === 'constructor' || hi.transport === 'prototype') {
+      errors.push('runtime.hostIntegration.transport "' + hi.transport + '" is a reserved name');
+    } else if (hi.transport !== 'undocumented' && !VALID_TRANSPORTS.has(hi.transport)) {
+      errors.push(
+        'runtime.hostIntegration.transport must be one of: ' + [...VALID_TRANSPORTS].join(', ') +
+        ' (or "undocumented") (got: ' + JSON.stringify(hi.transport) + ')',
+      );
+    }
+
+    // runtime (axis)
+    if (hi.runtime === '__proto__' || hi.runtime === 'constructor' || hi.runtime === 'prototype') {
+      errors.push('runtime.hostIntegration.runtime "' + hi.runtime + '" is a reserved name');
+    } else if (hi.runtime !== 'undocumented' && !VALID_HOST_RUNTIMES.has(hi.runtime)) {
+      errors.push(
+        'runtime.hostIntegration.runtime must be one of: ' + [...VALID_HOST_RUNTIMES].join(', ') +
+        ' (or "undocumented") (got: ' + JSON.stringify(hi.runtime) + ')',
+      );
+    }
+
+    // dispatch — required object
+    if (typeof hi.dispatch !== 'object' || hi.dispatch === null || Array.isArray(hi.dispatch)) {
+      errors.push('runtime.hostIntegration.dispatch must be an object');
+    } else {
+      const d = hi.dispatch;
+
+      // S2b: reserved-OWN-KEY guard on dispatch (CodeQL barrier — inline literal comparisons)
+      if (Object.prototype.hasOwnProperty.call(d, '__proto__')) {
+        errors.push('runtime.hostIntegration.dispatch must not contain reserved key "__proto__"');
+      }
+      if (Object.prototype.hasOwnProperty.call(d, 'constructor')) {
+        errors.push('runtime.hostIntegration.dispatch must not contain reserved key "constructor"');
+      }
+      if (Object.prototype.hasOwnProperty.call(d, 'prototype')) {
+        errors.push('runtime.hostIntegration.dispatch must not contain reserved key "prototype"');
+      }
+
+      // namedDispatch — boolean or 'undocumented'
+      if (typeof d.namedDispatch !== 'boolean' && d.namedDispatch !== 'undocumented') {
+        errors.push(
+          'runtime.hostIntegration.dispatch.namedDispatch must be a boolean or "undocumented" (got: ' + JSON.stringify(d.namedDispatch) + ')',
+        );
+      }
+
+      // nested — boolean or 'undocumented'
+      if (typeof d.nested !== 'boolean' && d.nested !== 'undocumented') {
+        errors.push(
+          'runtime.hostIntegration.dispatch.nested must be a boolean or "undocumented" (got: ' + JSON.stringify(d.nested) + ')',
+        );
+      }
+
+      // background — boolean or 'undocumented'
+      if (typeof d.background !== 'boolean' && d.background !== 'undocumented') {
+        errors.push(
+          'runtime.hostIntegration.dispatch.background must be a boolean or "undocumented" (got: ' + JSON.stringify(d.background) + ')',
+        );
+      }
+
+      // subagentToolkit — closed enum or 'undocumented'
+      if (d.subagentToolkit === '__proto__' || d.subagentToolkit === 'constructor' || d.subagentToolkit === 'prototype') {
+        errors.push('runtime.hostIntegration.dispatch.subagentToolkit "' + d.subagentToolkit + '" is a reserved name');
+      } else if (d.subagentToolkit !== 'undocumented' && !VALID_SUBAGENT_TOOLKITS.has(d.subagentToolkit)) {
+        errors.push(
+          'runtime.hostIntegration.dispatch.subagentToolkit must be one of: ' + [...VALID_SUBAGENT_TOOLKITS].join(', ') +
+          ' (or "undocumented") (got: ' + JSON.stringify(d.subagentToolkit) + ')',
+        );
+      }
+
+      // maxDepth — integer >= -1 or 'undocumented'
+      if (d.maxDepth !== 'undocumented' && (!Number.isInteger(d.maxDepth) || d.maxDepth < -1)) {
+        errors.push(
+          'runtime.hostIntegration.dispatch.maxDepth must be an integer >= -1 or "undocumented" (got: ' + JSON.stringify(d.maxDepth) + ')',
+        );
+      }
+
+      // backgroundDispatch — REQUIRED (all 16 runtime descriptors carry it, matching the sibling fields
+      // namedDispatch/nested/background/subagentToolkit/maxDepth which are all required).
+      if (!Object.prototype.hasOwnProperty.call(d, 'backgroundDispatch')) {
+        errors.push(
+          'runtime.hostIntegration.dispatch.backgroundDispatch is required (must be a boolean or "undocumented")',
+        );
+      } else if (typeof d.backgroundDispatch !== 'boolean' && d.backgroundDispatch !== 'undocumented') {
+        errors.push(
+          'runtime.hostIntegration.dispatch.backgroundDispatch must be a boolean or "undocumented" (got: ' + JSON.stringify(d.backgroundDispatch) + ')',
         );
       }
     }
@@ -1967,6 +2203,9 @@ const INSTALL_SURFACE_TO_CONFIG_FORMAT = new Map([
   ['cline-rules',          'markdown-dir'],
   ['cursor-hooks-json',    'none'],
   ['profile-marker-only',  'none'],
+  // 'none' added #2103 — a runtime with NO CLI install surface at all (e.g.
+  // VS Code) has no config-file format to write either.
+  ['none',                 'none'],
 ]);
 
 /**
@@ -2045,6 +2284,7 @@ module.exports = {
   VALID_COMMAND_STYLES,
   VALID_HOOKS_SURFACES,
   VALID_HOOK_EVENTS,
+  VALID_EXTENSION_EVENTS,
   VALID_SANDBOX_TIERS,
   VALID_ARTIFACT_KIND_NAMES,
   VALID_ARTIFACT_NESTINGS,
@@ -2052,6 +2292,24 @@ module.exports = {
   VALID_INSTALL_SURFACES,
   VALID_PERMISSION_WRITERS,
   VALID_EXTENDED_HOOK_EVENTS,
+  VALID_EMBEDDING_MODES,
+  VALID_COMMAND_SURFACES,
+  VALID_MODEL_MODES,
+  VALID_HOOK_BUSES,
+  VALID_STATE_IO,
+  VALID_TRANSPORTS,
+  VALID_HOST_RUNTIMES,
+  VALID_SUBAGENT_TOOLKITS,
+  _HOST_INTEGRATION_VOCAB: {
+    embeddingMode:   [...VALID_EMBEDDING_MODES],
+    commandSurface:  [...VALID_COMMAND_SURFACES],
+    modelMode:       [...VALID_MODEL_MODES],
+    hookBus:         [...VALID_HOOK_BUSES],
+    stateIO:         [...VALID_STATE_IO],
+    transport:       [...VALID_TRANSPORTS],
+    runtime:         [...VALID_HOST_RUNTIMES],
+    subagentToolkit: [...VALID_SUBAGENT_TOOLKITS],
+  },
   INSTALL_SURFACE_TO_ALLOWED_HOOKS_SURFACES,
   GEMINI_AGENT_EVENTS,
   CLAUDE_FAMILY_EVENTS,

@@ -88,7 +88,7 @@ function atomicWriteInstallState(configDir, content) {
     const tmpPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
     try {
         node_fs_1.default.writeFileSync(tmpPath, content, 'utf8');
-        node_fs_1.default.renameSync(tmpPath, filePath);
+        (0, shell_command_projection_cjs_1.retryRenameSync)(tmpPath, filePath);
     }
     catch (error) {
         try {
@@ -118,7 +118,7 @@ function normalizeRelPath(relPath) {
     if (typeof relPath !== 'string' || relPath.trim() === '') {
         throw new Error('migration action relPath must be a non-empty string');
     }
-    const normalized = relPath.replace(/\\/g, '/');
+    const normalized = (0, shell_command_projection_cjs_1.posixNormalize)(relPath);
     if (node_path_1.default.isAbsolute(normalized) || node_path_1.default.win32.isAbsolute(normalized)) {
         throw new Error(`migration action relPath must stay inside configDir: ${relPath}`);
     }

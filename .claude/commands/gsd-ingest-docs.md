@@ -27,10 +27,10 @@ Auto-synthesizes most conflicts using the precedence rule `ADR > SPEC > PRD > DO
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ingest-docs.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gate-prompts.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/doc-conflict-engine.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ingest-docs.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gate-prompts.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/doc-conflict-engine.md
 </execution_context>
 
 <context>

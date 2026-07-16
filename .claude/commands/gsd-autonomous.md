@@ -27,8 +27,8 @@ Uses ROADMAP.md phase discovery and Skill() flat invocations for each phase comm
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/autonomous.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/autonomous.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
 </execution_context>
 
 <context>

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// gsd-hook-version: 1.6.1
+// gsd-hook-version: 1.7.0
 // gsd-cursor-session-start.js — Cursor sessionStart hook (issue #777)
 //
 // Cursor invokes this script at the start of each agent session.

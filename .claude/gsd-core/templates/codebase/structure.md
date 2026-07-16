@@ -216,7 +216,7 @@ gsd-core/
 
 **New Workflow:**
 - Implementation: `gsd-core/workflows/{name}.md`
-- Usage: Reference from command with `@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/{name}.md`
+- Usage: Reference from command with `@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/{name}.md`
 
 **New Reference Document:**
 - Implementation: `gsd-core/references/{name}.md`
@@ -229,12 +229,12 @@ gsd-core/
 ## Special Directories
 
 **gsd-core/**
-- Purpose: Resources installed to D:/repos/vct/zach-hair-studio/.claude/
+- Purpose: Resources installed to C:/repos/vct/zach-hair-studio/.claude/
 - Source: Copied by bin/install.js during installation
 - Committed: Yes (source of truth)
 
 **commands/**
-- Purpose: Slash commands installed to D:/repos/vct/zach-hair-studio/.claude/commands/
+- Purpose: Slash commands installed to C:/repos/vct/zach-hair-studio/.claude/commands/
 - Source: Copied by bin/install.js during installation
 - Committed: Yes (source of truth)
 

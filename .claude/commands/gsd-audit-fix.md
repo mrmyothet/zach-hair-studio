@@ -26,7 +26,7 @@ Flags:
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/audit-fix.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/audit-fix.md
 </execution_context>
 
 <process>

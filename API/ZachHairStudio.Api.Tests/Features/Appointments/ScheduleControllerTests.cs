@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using ZachHairStudio.Shared.Features.Availability;
+using ZachHairStudio.Api.Tests.TestSupport;
 using ZachHairStudio.Shared.Features.Identity;
 
 namespace ZachHairStudio.Api.Tests.Features.Appointments;
@@ -25,12 +25,13 @@ public class ScheduleControllerTests : IClassFixture<SqlServerWebApplicationFact
 
     private readonly WebApplicationFactory<Program> _factory;
 
-    // 2026-07-15 is a Wednesday covered by the seeded Tue-Sat working hours; resolved
-    // through the configured salon zone rather than a hardcoded offset (Pitfall 5).
-    private static readonly SalonTimeZone SalonTz = SalonTimeZone.FromOptions(new SalonOptions());
+    // Base working day resolved relative to UtcNow (always future/in-horizon/seeded), via
+    // BookingDates. dayOffset places appointments on distinct seeded working days within
+    // the same week (0 = base day, 1 = base day + 1, both inside the seeded Tue-Sat window).
+    private static readonly DateOnly BaseDate = BookingDates.NextBookableDate();
 
-    private static DateTimeOffset Slot(int day, int hour, int minute = 0)
-        => SalonTz.ToSalonInstant(new DateTime(2026, 7, day, hour, minute, 0))!.Value;
+    private static DateTimeOffset Slot(int dayOffset, int hour, int minute = 0)
+        => BookingDates.SlotOn(BookingDates.NextBookableDate(dayOffset), hour, minute);
 
     public ScheduleControllerTests(SqlServerWebApplicationFactory factory)
     {
@@ -115,7 +116,7 @@ public class ScheduleControllerTests : IClassFixture<SqlServerWebApplicationFact
     {
         var client = _factory.CreateClient();
 
-        var response = await client.GetAsync("/api/schedule?from=2026-07-15&to=2026-07-15");
+        var response = await client.GetAsync($"/api/schedule?from={BaseDate:yyyy-MM-dd}&to={BaseDate:yyyy-MM-dd}");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -137,10 +138,10 @@ public class ScheduleControllerTests : IClassFixture<SqlServerWebApplicationFact
         var anonClient = _factory.CreateClient();
         var staffClient = CreateAuthenticatedClient(token);
 
-        var inWindow = await CreateAppointmentAsync(anonClient, Slot(15, 10), stylistId: 1);
-        var outsideWindow = await CreateAppointmentAsync(anonClient, Slot(16, 10), stylistId: 2);
+        var inWindow = await CreateAppointmentAsync(anonClient, Slot(0, 10), stylistId: 1);
+        var outsideWindow = await CreateAppointmentAsync(anonClient, Slot(1, 10), stylistId: 2);
 
-        var response = await staffClient.GetAsync("/api/schedule?from=2026-07-15&to=2026-07-15");
+        var response = await staffClient.GetAsync($"/api/schedule?from={BaseDate:yyyy-MM-dd}&to={BaseDate:yyyy-MM-dd}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -156,7 +157,7 @@ public class ScheduleControllerTests : IClassFixture<SqlServerWebApplicationFact
         var token = await SeedStaffAndLoginAsync();
         var anonClient = _factory.CreateClient();
         var staffClient = CreateAuthenticatedClient(token);
-        var appointment = await CreateAppointmentAsync(anonClient, Slot(15, 14), stylistId: 3);
+        var appointment = await CreateAppointmentAsync(anonClient, Slot(0, 14), stylistId: 3);
 
         var response = await staffClient.GetAsync($"/api/schedule/{appointment.GetProperty("id").GetInt32()}");
 

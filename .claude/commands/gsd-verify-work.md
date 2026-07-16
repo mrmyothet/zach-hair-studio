@@ -21,8 +21,8 @@ Output: {phase_num}-UAT.md tracking all test results. If issues found: diagnosed
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/verify-work.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/UAT.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/verify-work.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/UAT.md
 </execution_context>
 
 <context>

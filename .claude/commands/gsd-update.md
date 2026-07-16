@@ -25,7 +25,7 @@ Routes to the update workflow which handles:
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/update.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/update.md
 </execution_context>
 
 <flags>
@@ -44,6 +44,6 @@ Parse the first token of $ARGUMENTS:
 </process>
 
 <execution_context_extended>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/sync-skills.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/reapply-patches.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/sync-skills.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/reapply-patches.md
 </execution_context_extended>

@@ -23,7 +23,7 @@ you could describe in one sentence and execute in under 2 minutes.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/fast.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/fast.md
 </execution_context>
 
 <process>

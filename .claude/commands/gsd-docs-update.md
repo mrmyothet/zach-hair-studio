@@ -26,7 +26,7 @@ Flag handling rule:
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/docs-update.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/docs-update.md
 </execution_context>
 
 <context>

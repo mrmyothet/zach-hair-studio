@@ -26,10 +26,10 @@ Replaces gsd-plan-phase's internal gsd-plan-checker with external AI reviewers (
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/plan-review-convergence.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/revision-loop.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gates.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/agent-contracts.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/plan-review-convergence.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/revision-loop.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gates.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/agent-contracts.md
 </execution_context>
 
 <runtime_note>

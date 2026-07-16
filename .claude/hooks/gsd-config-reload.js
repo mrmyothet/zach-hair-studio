@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// gsd-hook-version: 1.6.1
+// gsd-hook-version: 1.7.0
 // gsd-config-reload.js — FileChanged hook: hot-reload GSD config context
 // Fires when .planning/config.json is modified, created, or deleted.
 //

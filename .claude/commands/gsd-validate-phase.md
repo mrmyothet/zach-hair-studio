@@ -23,7 +23,7 @@ Output: updated VALIDATION.md + generated test files.
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/validate-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/validate-phase.md
 </execution_context>
 
 <context>

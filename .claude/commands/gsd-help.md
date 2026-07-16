@@ -16,7 +16,7 @@ Output ONLY the reference content of the chosen tier. Do NOT add:
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/help.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/help.md
 </execution_context>
 
 <context>
@@ -24,5 +24,5 @@ Arguments: $ARGUMENTS
 </context>
 
 <process>
-Follow D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/help.md with $ARGUMENTS.
+Follow C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/help.md with $ARGUMENTS.
 </process>

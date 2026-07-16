@@ -12,7 +12,7 @@ Scan all phases for pending, skipped, blocked, and human_needed UAT items. Cross
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/audit-uat.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/audit-uat.md
 </execution_context>
 
 <context>

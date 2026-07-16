@@ -13,7 +13,7 @@ Detect the installed GSD version, scope, runtime, and config dir.
 
 First, derive `PREFERRED_CONFIG_DIR` and `PREFERRED_RUNTIME` from the invoking prompt's `execution_context` path — this is the one input only the workflow knows:
 - If the path contains `/gsd-core/workflows/update.md`, strip that suffix and store the remainder as `PREFERRED_CONFIG_DIR`.
-- Infer `PREFERRED_RUNTIME` from the path: `/.codex/` -> `codex`; `/.gemini/antigravity-ide/`, `/.gemini/antigravity-cli/`, `/.gemini/antigravity/`, `/.agents/` or `/.agent/` -> `antigravity` (`.agents` is the canonical local Antigravity install dir (#791); `.agent` is the legacy form (#503); see bin/install.js `getDirName('antigravity')`); `/.gemini/` -> `gemini`; `/.config/kilo/` or `/.kilo/` -> `kilo`; `/.config/opencode/` or `/.opencode/` -> `opencode`; otherwise `claude`.
+- Infer `PREFERRED_RUNTIME` from the path: `/.codex/` -> `codex`; `/.gemini/antigravity-ide/`, `/.gemini/antigravity-cli/`, `/.gemini/antigravity/`, `/.agents/` or `/.agent/` -> `antigravity` (`.agents` is the canonical local Antigravity install dir (#791); `.agent` is the legacy form (#503); see bin/install.js `getDirName('antigravity')`); `/.config/kilo/` or `/.kilo/` -> `kilo`; `/.config/opencode/` or `/.opencode/` -> `opencode`; otherwise `claude`.
 
 Then resolve the install context via the deterministic projection (#498). **Do NOT re-derive scope, runtime, or version by hand** — `update-context` owns that cascade in tested code (`gsd-core/bin/lib/update-context.cjs`), the same way `check-latest-version` owns the package name (#2992):
 
@@ -25,7 +25,7 @@ Then resolve the install context via the deterministic projection (#498). **Do N
 GSD_TOOLS=""
 for cand in \
   "$PREFERRED_CONFIG_DIR/gsd-core/bin/gsd-tools.cjs" \
-  "D:/repos/vct/zach-hair-studio/.claude/gsd-core/bin/gsd-tools.cjs"; do
+  "C:/repos/vct/zach-hair-studio/.claude/gsd-core/bin/gsd-tools.cjs"; do
   if [ -n "$cand" ] && [ -f "$cand" ]; then GSD_TOOLS="$cand"; break; fi
 done
 # Last resort: the gsd-tools shim on PATH — resolved to its absolute path and
@@ -64,7 +64,7 @@ echo "$GSD_DIR"
 Parse output:
 - Line 1 = installed version (`0.0.0` means unknown version)
 - Line 2 = install scope (`LOCAL`, `GLOBAL`, or `UNKNOWN`)
-- Line 3 = target runtime (`claude`, `opencode`, `gemini`, `kilo`, `codex`, `antigravity`)
+- Line 3 = target runtime (`claude`, `opencode`, `kilo`, `codex`, `antigravity`)
 - Line 4 = resolved GSD config dir (e.g. `/Users/me/.claude`, `/Users/me/.gemini`); empty if scope is `UNKNOWN`. Capture this as `GSD_DIR` and pass it to subsequent steps so they don't re-derive the runtime path.
 - If scope is `UNKNOWN`, proceed to install using the `--claude --global` fallback.
 
@@ -97,7 +97,7 @@ esac
 <step name="check_latest_version">
 Check npm for latest version via the deterministic script. **Do NOT run `npm view` or `npm search` directly** — the package name must come from the script, not from a free choice at execution time. (#2992: LLM-driven prescriptions of npm package names produced wrong-package queries; moving the package name into a script constant closes that gap.)
 
-The `GSD_DIR` value emitted by `get_installed_version` (line 4) resolves to the runtime-specific config dir (`D:/repos/vct/zach-hair-studio/.claude/`, `~/.gemini/`, `~/.codex/`, etc.), so the script invocation works for every runtime — not just Claude. If `GSD_DIR` is empty (scope `UNKNOWN`), skip this step and go directly to install.
+The `GSD_DIR` value emitted by `get_installed_version` (line 4) resolves to the runtime-specific config dir (`C:/repos/vct/zach-hair-studio/.claude/`, `~/.gemini/`, `~/.codex/`, etc.), so the script invocation works for every runtime — not just Claude. If `GSD_DIR` is empty (scope `UNKNOWN`), skip this step and go directly to install.
 
 `LATEST_RESULT` is a JSON document with the documented shape `{ ok: bool, version: string, reason: string, detail?: string }`. Parse via `jq` ONLY when the script actually ran. When `GSD_DIR` is empty (scope `UNKNOWN`), skip the check entirely and seed the parsed fields with their no-op values so downstream logic does not mistake an unset `LATEST_RESULT` for a failed network check (#2993 CR feedback):
 
@@ -244,7 +244,7 @@ rm -f "$CHANGELOG_TMP"
 - `agents/gsd-*` files will be replaced
 
 (Paths are relative to detected runtime install location:
-global: `D:/repos/vct/zach-hair-studio/.claude/`, `~/.config/opencode/`, `~/.opencode/`, `~/.gemini/`, `~/.config/kilo/`, or `~/.codex/`
+global: `C:/repos/vct/zach-hair-studio/.claude/`, `~/.config/opencode/`, `~/.opencode/`, `~/.gemini/`, `~/.config/kilo/`, or `~/.codex/`
 local: `./.claude/`, `./.config/opencode/`, `./.opencode/`, `./.gemini/`, `./.kilo/`, or `./.codex/`)
 
 Your custom files in other locations are preserved:
@@ -392,9 +392,6 @@ fi
 if [ -n "$CLAUDE_CONFIG_DIR" ]; then
   CACHE_DIRS+=( "$(expand_home "$CLAUDE_CONFIG_DIR")" )
 fi
-if [ -n "$GEMINI_CONFIG_DIR" ]; then
-  CACHE_DIRS+=( "$(expand_home "$GEMINI_CONFIG_DIR")" )
-fi
 if [ -n "$KILO_CONFIG_DIR" ]; then
   CACHE_DIRS+=( "$(expand_home "$KILO_CONFIG_DIR")" )
 elif [ -n "$KILO_CONFIG" ]; then
@@ -443,7 +440,7 @@ for dir in "${CACHE_DIRS[@]}"; do
   fi
 done
 
-for dir in .claude .config/opencode .opencode .gemini/antigravity-ide .gemini/antigravity-cli .gemini/antigravity .agents .agent .gemini .config/kilo .kilo .codex .cursor .codeium/windsurf .augment .trae .qwen .hermes .codebuddy .cline; do
+for dir in .claude .config/opencode .opencode .gemini/antigravity-ide .gemini/antigravity-cli .gemini/antigravity .agents .agent .config/kilo .kilo .codex .cursor .codeium/windsurf .augment .trae .qwen .hermes .codebuddy .cline; do
   rm -f "./$dir/cache/gsd-update-check"*.json
   rm -f "$HOME/$dir/cache/gsd-update-check"*.json
 done

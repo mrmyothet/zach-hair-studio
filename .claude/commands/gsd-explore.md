@@ -19,7 +19,7 @@ Accepts an optional topic argument: `/gsd-explore authentication strategy`
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/explore.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/explore.md
 </execution_context>
 
 <process>

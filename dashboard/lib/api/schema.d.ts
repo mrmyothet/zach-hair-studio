@@ -412,6 +412,17 @@ export interface paths {
                         "text/json": components["schemas"]["StaffUserResponseDto"];
                     };
                 };
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["StaffUserResponseDto"];
+                        "application/json": components["schemas"]["StaffUserResponseDto"];
+                        "text/json": components["schemas"]["StaffUserResponseDto"];
+                    };
+                };
             };
         };
         delete?: never;

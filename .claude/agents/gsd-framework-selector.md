@@ -12,7 +12,7 @@ Run a ≤6-question interview, score frameworks, return a ranked recommendation 
 </role>
 
 <required_reading>
-Read `D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-frameworks.md` before asking questions. This is your decision matrix.
+Read `C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-frameworks.md` before asking questions. This is your decision matrix.
 </required_reading>
 
 <project_context>

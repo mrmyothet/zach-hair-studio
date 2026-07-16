@@ -19,8 +19,8 @@ Output: {phase_num}-UI-REVIEW.md
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ui-review.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ui-review.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
 </execution_context>
 
 <context>

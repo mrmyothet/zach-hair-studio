@@ -21,17 +21,30 @@
  *     false for codex / copilot / kilo / cursor / windsurf / trae / cline / kimi (legacy exclusion list).
  *     true for all other runtimes.
  * - `finishPermissionWriter` names the finishInstall-phase dedicated config writer:
- *     'opencode' → writes BOTH shared settings AND its own permissions file.
- *     'kilo'     → writes only its own permissions file.
- *     null       → no dedicated permission writer.
+ *     'opencode'    → writes BOTH shared settings AND its own permissions file.
+ *     'kilo'        → writes only its own permissions file.
+ *     'antigravity' → writes BOTH shared settings.json permissions.allow AND a
+ *                      standalone mcp_config.json MCP companion profile (#2096
+ *                      Phase B Upgrades 1+2).
+ *     null          → no dedicated permission writer.
  */
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { runtimes } = require('./capability-registry.cjs');
 /** Valid sandboxTier enum values — mirrors the gen-capability-registry validator vocabulary. */
 const VALID_SANDBOX_TIERS = new Set(['none', 'codex-agent-sandbox']);
-/** The complete set of 16 supported runtimes for config-adapter dispatch. */
+/**
+ * The complete set of 16 supported runtimes for config-adapter dispatch.
+ *
+ * Excludes runtimes whose installSurface is 'none' (#2103 — e.g. VS Code): a
+ * 'none' installSurface means the runtime has NO CLI install surface at all
+ * (Marketplace/VSIX-distributed, never dispatched through
+ * install()/finishInstall()), so it is not a "config-adapter runtime" by
+ * definition. This keeps this set in lockstep with bin/install.js's
+ * `allRuntimes` (see tests/issue-57-runtime-install-no-drift.test.cjs) without
+ * needing a separate hand-kept exclusion list.
+ */
 const ALLOWED_CONFIG_RUNTIMES = new Set(Object.entries(runtimes)
-    .filter(([, cap]) => cap && cap.runtime && typeof cap.runtime['installSurface'] === 'string')
+    .filter(([, cap]) => cap && cap.runtime && typeof cap.runtime['installSurface'] === 'string' && cap.runtime['installSurface'] !== 'none')
     .map(([id]) => id));
 /** All valid installSurface values. */
 const INSTALL_SURFACES = Object.freeze([
@@ -41,6 +54,7 @@ const INSTALL_SURFACES = Object.freeze([
     'cline-rules',
     'cursor-hooks-json',
     'profile-marker-only',
+    'none',
 ]);
 /**
  * Resolve the config adapter intent for a given runtime.

@@ -32,10 +32,10 @@ Three modes:
 </flags>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/progress.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/next.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/do.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/progress.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/next.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/do.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
 </execution_context>
 
 <process>

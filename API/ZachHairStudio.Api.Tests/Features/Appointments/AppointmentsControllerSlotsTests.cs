@@ -20,8 +20,9 @@ public class AppointmentsControllerSlotsTests : IClassFixture<CustomWebApplicati
     private readonly CustomWebApplicationFactory _factory;
 
     // A Sunday with no seeded StylistWorkingHours (seed data covers Tue-Sat only),
-    // so only the rows this test explicitly adds are in play.
-    private static readonly DateOnly TestSunday = NextSunday(new DateOnly(2026, 7, 1));
+    // so only the rows this test explicitly adds are in play. Anchored to today so it
+    // always lands on a current-or-future Sunday rather than a fixed past date.
+    private static readonly DateOnly TestSunday = NextSunday(DateOnly.FromDateTime(DateTime.UtcNow));
 
     public AppointmentsControllerSlotsTests(CustomWebApplicationFactory factory)
     {

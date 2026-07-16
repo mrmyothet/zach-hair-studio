@@ -91,7 +91,7 @@ if [ -z "$PATCHES_DIR" ]; then
   elif [ -d "$HOME/.codex/gsd-local-patches" ]; then
     PATCHES_DIR="$HOME/.codex/gsd-local-patches"
   else
-    PATCHES_DIR="D:/repos/vct/zach-hair-studio/.claude/gsd-local-patches"
+    PATCHES_DIR="C:/repos/vct/zach-hair-studio/.claude/gsd-local-patches"
   fi
 fi
 # Local install fallback — check all runtime directories
@@ -217,7 +217,7 @@ When no pristine baseline is available, use these **strengthened heuristics**:
 For each file:
 a. Read both versions completely
 b. Identify ALL differences, then classify each as:
-   - **Mechanical drift** — path substitutions (e.g. `/Users/xxx/.claude/` → `D:/repos/vct/zach-hair-studio/.claude/`), variable additions (`${GSD_WS}`, `${AGENT_SKILLS_*}`), error handling additions (`|| true`)
+   - **Mechanical drift** — path substitutions (e.g. `/Users/xxx/.claude/` → `C:/repos/vct/zach-hair-studio/.claude/`), variable additions (`${GSD_WS}`, `${AGENT_SKILLS_*}`), error handling additions (`|| true`)
    - **User customization** — added steps/sections, removed sections, reordered content, changed behavior, added frontmatter fields, modified instructions
 
 c. **If ANY differences remain after filtering out mechanical drift → those are user customizations. Merge them.**
@@ -275,7 +275,7 @@ Two layered gates. Both must pass before proceeding to cleanup.
 
 Run the deterministic verifier script. Do NOT rely solely on the free-text `verified: yes/no` Hunk Verification Table from Step 4 — bug #2969 traced repeated false-positive `verified: yes` reports to that table being filled in without an actual content-presence check. The script performs the check structurally and exits non-zero on any miss.
 
-Run the verifier as a child process (the gsd-tools binary directory is not required — the script ships under `gsd-core/bin/` in the source repo and is installed to `${GSD_HOME}/gsd-core/bin/`; it is also exposed via the SDK at `sdk/dist/cli.js verify-reapply` when present):
+Run the verifier as a child process (the gsd-tools binary directory is not required — the script ships under `gsd-core/bin/` in the source repo and is installed to `${GSD_HOME}/gsd-core/bin/`):
 
 ```bash
 PRISTINE_DIR="${CONFIG_DIR}/gsd-pristine"

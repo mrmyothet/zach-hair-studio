@@ -24,3 +24,20 @@ regexes = [
     '''signing-key-at-least-32-bytes''',
     '''!2026''',
 ]
+
+# GSD-generated manifests store SHA-256 file-integrity checksums as
+# "path": "<64-hex>" JSON values, which trip generic-api-key. The files are
+# tool-regenerated (hashes and line numbers drift), so a rule-targeted regex
+# allowlist survives regeneration where .gitleaksignore fingerprints go stale.
+[[allowlists]]
+description = "SHA-256 file-integrity checksums in GSD manifest files"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = [
+    '''\.claude/gsd-file-manifest\.json''',
+    '''\.claude/gsd-local-patches/backup-meta\.json''',
+]
+regexTarget = "line"
+regexes = [
+    '''"[a-f0-9]{64}"''',
+]

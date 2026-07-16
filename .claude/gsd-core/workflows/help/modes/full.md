@@ -13,6 +13,20 @@ Display the complete GSD Core command reference. Output ONLY the reference conte
 2. `/gsd-plan-phase 1` - Create detailed plan for first phase
 3. `/gsd-execute-phase 1` - Execute the phase
 
+Not sure where to start? `/gsd-next` reads your project state and routes you to the right next action.
+
+### Smart Entry
+
+**`/gsd-next`**
+The state-aware front door. Detects your current situation and presents a short menu of the right next actions.
+
+- Reads `.planning/STATE.md`, git state, and verification signals via `gsd-tools smart-entry`
+- Classifies your situation (no-project, paused, blocked, planning, executing, needs-verify, idle, complete, …)
+- Shows a situation-appropriate menu with one recommended action, then dispatches
+- Launcher/router only — it never does the work itself; falls back to `/gsd-progress` if detection is unavailable
+
+Usage: `/gsd-next`
+
 ## Staying Updated
 
 GSD evolves fast. Update periodically:
@@ -48,6 +62,16 @@ Creates all `.planning/` artifacts:
 
 Usage: `/gsd-new-project`
 
+**`/gsd-onboard [--fast] [--text]`**
+Guide first-time onboarding for an existing codebase.
+
+- Detects brownfield code, existing planning docs, and partial `.planning/` state
+- Routes through `/gsd-map-codebase`, `/gsd-ingest-docs`, and `/gsd-new-project` in the safe order
+- Creates `.planning/onboarding/SUMMARY.md` after project setup
+- Idempotent: confirms existing artifacts and does not overwrite planning silently
+
+Usage: `/gsd-onboard`
+
 **`/gsd-map-codebase [--fast] [--focus <area>] [--query <term>]`**
 Map an existing codebase for brownfield projects.
 
@@ -58,7 +82,7 @@ Map an existing codebase for brownfield projects.
 - Analyzes codebase with parallel Explore agents
 - Creates `.planning/codebase/` with 7 focused documents
 - Covers stack, architecture, structure, conventions, testing, integrations, concerns
-- Use before `/gsd-new-project` on existing codebases
+- Usually reached through `/gsd-onboard` for first-time existing-codebase setup; run directly to refresh or focus a map
 
 Usage: `/gsd-map-codebase`
 
@@ -372,7 +396,7 @@ Usage: `/gsd-capture Add auth token refresh`
 **`/gsd-capture --note <text>`**
 Zero-friction note capture — one command, instant save, no questions.
 
-- Saves timestamped note to `.planning/notes/` (or `D:/repos/vct/zach-hair-studio/.claude/notes/` globally)
+- Saves timestamped note to `.planning/notes/` (or `C:/repos/vct/zach-hair-studio/.claude/notes/` globally)
 - Three subcommands: append (default), list, promote
 - Promote converts a note into a structured todo
 - Works without a project (falls back to global scope)
@@ -673,7 +697,7 @@ These six skills exist primarily for the model to perform two-stage hierarchical
 ├── milestones/
 │   ├── v1.0-ROADMAP.md       # Archived roadmap snapshot
 │   ├── v1.0-REQUIREMENTS.md  # Archived requirements
-│   └── v1.0-phases/          # Archived phase dirs (via /gsd-cleanup or --archive-phases)
+│   └── v1.0-phases/          # Archived phase dirs (via /gsd-cleanup or milestone complete, which archives by default)
 │       ├── 01-foundation/
 │       └── 02-core-features/
 ├── codebase/             # Codebase map (brownfield projects)

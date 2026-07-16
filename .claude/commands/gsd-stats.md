@@ -12,7 +12,7 @@ Display comprehensive project statistics including phase progress, plan executio
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/stats.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/stats.md
 </execution_context>
 
 <process>

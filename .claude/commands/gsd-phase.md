@@ -31,10 +31,10 @@ Mode routing:
 </routing>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-phase.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/insert-phase.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/remove-phase.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/edit-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/insert-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/remove-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/edit-phase.md
 </execution_context>
 
 <context>

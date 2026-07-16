@@ -38,13 +38,13 @@ Mode routing:
 </routing>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-todo.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/note.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-backlog.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/plant-seed.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/check-todos.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/list-seeds.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-todo.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/note.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/add-backlog.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/plant-seed.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/check-todos.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/list-seeds.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
 </execution_context>
 
 <context>

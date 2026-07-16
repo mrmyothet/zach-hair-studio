@@ -39,6 +39,10 @@ function routeInitCommand({ init, args, cwd, raw, error }) {
             },
             'new-project': () => init.cmdInitNewProject(cwd, raw),
             'new-milestone': () => init.cmdInitNewMilestone(cwd, raw),
+            onboard: () => {
+                const namedArgs = (0, command_arg_projection_cjs_1.parseNamedArgs)(args, [], ['fast', 'text']);
+                init.cmdInitOnboard(cwd, raw, { fast: namedArgs['fast'], text: namedArgs['text'] });
+            },
             quick: () => init.cmdInitQuick(cwd, args.slice(2).join(' '), raw),
             'ingest-docs': () => init.cmdInitIngestDocs(cwd, raw),
             resume: () => init.cmdInitResume(cwd, raw),

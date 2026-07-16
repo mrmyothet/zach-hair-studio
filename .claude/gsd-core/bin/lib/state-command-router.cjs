@@ -155,6 +155,10 @@ function routeStateCommand({ state, args, cwd, raw, error }) {
                 const a = (0, command_arg_projection_cjs_1.parseNamedArgs)(args, ['keep-recent'], ['dry-run']);
                 state.cmdStatePrune(cwd, { keepRecent: strArg(a, 'keep-recent') || '3', dryRun: a['dry-run'] === true }, raw);
             },
+            rebuild: () => {
+                const a = (0, command_arg_projection_cjs_1.parseNamedArgs)(args, [], ['dry-run', 'verbose']);
+                state.cmdStateRebuild(cwd, { dryRun: a['dry-run'] === true, verbose: a['verbose'] === true }, raw);
+            },
             // complete-phase: CJS-only — no SDK counterpart.
             'complete-phase': () => {
                 const a = (0, command_arg_projection_cjs_1.parseNamedArgs)(args, ['phase']);

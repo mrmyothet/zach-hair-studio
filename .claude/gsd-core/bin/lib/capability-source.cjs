@@ -153,16 +153,31 @@ function _setCapabilitySourceHttpGet(fn) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-/** Resolve the running GSD version; fail-closed to '0.0.0'. */
-function readHostVersion() {
+/**
+ * Resolve the running GSD version; fail-closed to '0.0.0'.
+ *
+ * Prefer the authoritative `gsd-core/VERSION` the installer writes for EVERY runtime
+ * (libDir = gsd-core/bin/lib/, so `../../VERSION` = gsd-core/VERSION), so installed
+ * layouts report the true version even when the walked-up `../../../package.json` is
+ * absent or belongs to the user's own project (#1920). Fall back to the runtime-root
+ * package.json (dev/source tree), then fail-closed. Mirrors resolveVersionFrom() (#1383).
+ */
+function readHostVersion(libDir = __dirname) {
+    const SEMVER_PREFIX = /^\d+\.\d+\.\d+/;
+    try {
+        const v = node_fs_1.default.readFileSync(node_path_1.default.join(libDir, '..', '..', 'VERSION'), 'utf8').trim();
+        if (SEMVER_PREFIX.test(v))
+            return v;
+    }
+    catch { /* not an installed tree (no gsd-core/VERSION) */ }
     try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pkg = require('../../../package.json');
-        return typeof pkg.version === 'string' && pkg.version ? pkg.version : '0.0.0';
+        const pkg = require(node_path_1.default.join(libDir, '..', '..', '..', 'package.json'));
+        if (pkg && typeof pkg.version === 'string' && SEMVER_PREFIX.test(pkg.version))
+            return pkg.version;
     }
-    catch {
-        return '0.0.0';
-    }
+    catch { /* runtime root has no package.json */ }
+    return '0.0.0';
 }
 /** Compute sha512-<base64> integrity over a buffer. */
 function computeIntegrity(buf) {
@@ -594,13 +609,13 @@ function stageValidated(opts) {
         // lives in capability-lifecycle.cjs and uses promote:false above.)
         if (node_fs_1.default.existsSync(finalDir)) {
             const backupDir = `${finalDir}.old-${process.pid}-${Date.now()}`;
-            node_fs_1.default.renameSync(finalDir, backupDir);
+            shellSeam.retryRenameSync(finalDir, backupDir);
             try {
-                node_fs_1.default.renameSync(stagingDir, finalDir);
+                shellSeam.retryRenameSync(stagingDir, finalDir);
             }
             catch (err) {
                 try {
-                    node_fs_1.default.renameSync(backupDir, finalDir);
+                    shellSeam.retryRenameSync(backupDir, finalDir);
                 }
                 catch { /* best-effort restore */ }
                 throw err;
@@ -611,7 +626,7 @@ function stageValidated(opts) {
             catch { /* best-effort */ }
         }
         else {
-            node_fs_1.default.renameSync(stagingDir, finalDir);
+            shellSeam.retryRenameSync(stagingDir, finalDir);
         }
         const version = typeof cap['version'] === 'string' ? cap['version'] : '';
         return { id, version, stagedDir: finalDir, integrity, source };

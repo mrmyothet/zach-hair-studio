@@ -3,8 +3,8 @@ Safe git revert workflow. Rolls back GSD phase or plan commits using the phase m
 </purpose>
 
 <required_reading>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gate-prompts.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ui-brand.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/gate-prompts.md
 </required_reading>
 
 <process>

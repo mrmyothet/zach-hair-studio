@@ -21,7 +21,7 @@ Routes to the settings workflow which handles:
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/settings.md
 </execution_context>
 
 <process>

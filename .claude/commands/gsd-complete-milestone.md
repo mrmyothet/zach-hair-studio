@@ -20,8 +20,8 @@ Output: Milestone archived (roadmap + requirements), PROJECT.md evolved, git tag
 <execution_context>
 **Load these files NOW (before proceeding):**
 
-- @D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/complete-milestone.md (main workflow)
-- @D:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/milestone-archive.md (archive template)
+- @C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/complete-milestone.md (main workflow)
+- @C:/repos/vct/zach-hair-studio/.claude/gsd-core/templates/milestone-archive.md (archive template)
   </execution_context>
 
 <context>

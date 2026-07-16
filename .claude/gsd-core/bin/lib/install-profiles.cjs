@@ -14,6 +14,9 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
 const node_os_1 = __importDefault(require("node:os"));
 const shell_command_projection_cjs_1 = require("./shell-command-projection.cjs");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const conversionModule = require("./runtime-artifact-conversion.cjs");
+const { applyAgentPathRewrites: _applyAgentPathRewrites, processAttribution: _processAttribution, normalizeAgentBodyForRuntime: _normalizeAgentBodyForRuntime, readGsdCommandNames: _readGsdCommandNames, } = conversionModule;
 // ---------------------------------------------------------------------------
 // Profile definitions
 // ---------------------------------------------------------------------------
@@ -39,6 +42,7 @@ const PROFILES = Object.freeze({
     standard: Object.freeze([
         // Core loop
         'new-project',
+        'onboard',
         'discuss-phase',
         'plan-phase',
         'execute-phase',
@@ -521,19 +525,33 @@ function stageSkillsForRuntimeAsSkills(srcCommandsDir, resolvedProfile, converte
  * For tiered profiles, only agents whose full stem is in `resolvedProfile.agents`
  * are staged (mirrors `stageAgentsForProfile` behaviour).
  *
+ * ADR-1235 §1: when `agentCtx` is provided, the per-file order matches the inline
+ * agent loop in bin/install.js exactly:
+ *   1. applyAgentPathRewrites   (4 base ~/.claude/ regexes; skipped for copilot/antigravity)
+ *   2. processAttribution       (Co-Authored-By policy)
+ *   3. converter                (runtime-specific frontmatter/body transform)
+ *   4. normalizeAgentBodyForRuntime (colon→hyphen refs; no-op for trivial group)
+ * When `agentCtx` is absent, only the converter is applied (backward-compat for
+ * the feat-1173 synthetic-descriptor tests and the copilot/antigravity paths
+ * that handle cross-cutting inside their converters).
+ *
  * @param srcAgentsDir    source agents directory (e.g. agents/)
  * @param resolvedProfile profile filter from resolveProfile()
  * @param converter       (content: string, isGlobal?: boolean) → string per-file
  *                        converter; scope-aware converters (copilot/antigravity)
  *                        read isGlobal, single-arg converters ignore it (#1173)
  * @param isGlobal        install scope passed through to the converter
+ * @param agentCtx        optional cross-cutting context (ADR-1235 §1); when absent,
+ *                        only the converter is applied (backward compat)
  */
-function stageAgentsForRuntimeWithConverter(srcAgentsDir, resolvedProfile, converter, isGlobal = false) {
+function stageAgentsForRuntimeWithConverter(srcAgentsDir, resolvedProfile, converter, isGlobal = false, agentCtx) {
     if (!node_fs_1.default.existsSync(srcAgentsDir))
         return srcAgentsDir;
     const stageDir = node_fs_1.default.mkdtempSync(node_path_1.default.join(node_os_1.default.tmpdir(), 'gsd-profile-runtime-agents-'));
     try {
         const entries = node_fs_1.default.readdirSync(srcAgentsDir, { withFileTypes: true });
+        // Resolve cmdNames once per staging call (not per file) for performance.
+        const cmdNames = agentCtx ? _readGsdCommandNames() : [];
         for (const entry of entries) {
             if (!entry.isFile())
                 continue;
@@ -546,9 +564,23 @@ function stageAgentsForRuntimeWithConverter(srcAgentsDir, resolvedProfile, conve
                     continue;
                 }
             }
-            const content = node_fs_1.default.readFileSync(node_path_1.default.join(srcAgentsDir, entry.name), 'utf8');
-            const converted = converter(content, isGlobal);
-            node_fs_1.default.writeFileSync(node_path_1.default.join(stageDir, entry.name), converted, 'utf8');
+            let content = node_fs_1.default.readFileSync(node_path_1.default.join(srcAgentsDir, entry.name), 'utf8');
+            if (agentCtx) {
+                // ADR-1235 §1: pre-converter cross-cutting (matches inline loop order exactly)
+                // Step 1: path rewrites (4 base ~/.claude/ regexes; skipped for copilot/antigravity)
+                content = _applyAgentPathRewrites(content, agentCtx.runtime, agentCtx.pathPrefix);
+                // Step 2: attribution
+                content = _processAttribution(content, agentCtx.attribution);
+                // Step 3: converter (runtime-specific frontmatter/body transform)
+                content = converter(content, isGlobal);
+                // Step 4: normalize colon→hyphen refs (no-op for trivial group)
+                content = _normalizeAgentBodyForRuntime(content, agentCtx.runtime, cmdNames);
+            }
+            else {
+                // Backward-compat: only apply the converter (no cross-cutting)
+                content = converter(content, isGlobal);
+            }
+            node_fs_1.default.writeFileSync(node_path_1.default.join(stageDir, entry.name), content, 'utf8');
         }
     }
     catch (err) {
@@ -788,6 +820,7 @@ module.exports = {
     writeActiveProfile,
     // Shared internals
     parseRequires,
+    parseCallsAgents,
     cleanupStagedSkills,
     // Back-compat / deprecated
     MINIMAL_SKILL_ALLOWLIST,

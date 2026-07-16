@@ -19,7 +19,7 @@ Output: MILESTONE_SUMMARY written to `.planning/reports/`, presented inline, opt
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/milestone-summary.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/milestone-summary.md
 </execution_context>
 
 <context>

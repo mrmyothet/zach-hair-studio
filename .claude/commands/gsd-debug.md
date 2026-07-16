@@ -28,7 +28,7 @@ Valid GSD subagent types (use exact names — do not fall back to 'general-purpo
 </available_agent_types>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/debug.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/debug.md
 </execution_context>
 
 <context>

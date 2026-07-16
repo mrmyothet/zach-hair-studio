@@ -22,7 +22,7 @@ Routes to the resume-project workflow which handles:
   </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/resume-project.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/resume-project.md
 </execution_context>
 
 <process>

@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ZachHairStudio.Api.Tests.TestSupport;
 using ZachHairStudio.Shared.Db;
-using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Identity;
 
 namespace ZachHairStudio.Api.Tests.Features.Appointments;
@@ -28,12 +28,12 @@ public class StatusUpdateTests : IClassFixture<SqlServerWebApplicationFactory>
     private readonly SqlServerWebApplicationFactory _rawFactory;
     private readonly WebApplicationFactory<Program> _factory;
 
-    // 2026-07-15 is a Wednesday covered by the seeded Tue-Sat working hours; resolved
-    // through the configured salon zone rather than a hardcoded offset (Pitfall 5).
-    private static readonly SalonTimeZone SalonTz = SalonTimeZone.FromOptions(new SalonOptions());
+    // Resolved through the shared BookingDates helper (relative-to-now, seeded working day),
+    // so this slot stays future/in-horizon regardless of the calendar date.
+    private static readonly DateOnly BaseDate = BookingDates.NextBookableDate();
 
     private static DateTimeOffset Slot(int hour, int minute = 0)
-        => SalonTz.ToSalonInstant(new DateTime(2026, 7, 15, hour, minute, 0))!.Value;
+        => BookingDates.NextBookableSlot(hour, minute);
 
     public StatusUpdateTests(SqlServerWebApplicationFactory factory)
     {
@@ -189,14 +189,14 @@ public class StatusUpdateTests : IClassFixture<SqlServerWebApplicationFactory>
         var cancelledPatch = await staffClient.PatchAsJsonAsync($"/api/schedule/{cancelledId}/status", new { NewStatus = "Cancelled" });
         Assert.Equal(HttpStatusCode.OK, cancelledPatch.StatusCode);
 
-        var noShowResponse = await staffClient.GetAsync("/api/schedule?from=2026-07-15&to=2026-07-15&status=NoShow");
+        var noShowResponse = await staffClient.GetAsync($"/api/schedule?from={BaseDate:yyyy-MM-dd}&to={BaseDate:yyyy-MM-dd}&status=NoShow");
         using var noShowJson = JsonDocument.Parse(await noShowResponse.Content.ReadAsStringAsync());
         var noShowIds = noShowJson.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetInt32()).ToList();
         Assert.Contains(noShowId, noShowIds);
         Assert.DoesNotContain(cancelledId, noShowIds);
         Assert.All(noShowJson.RootElement.EnumerateArray(), e => Assert.Equal("NoShow", e.GetProperty("status").GetString()));
 
-        var cancelledResponse = await staffClient.GetAsync("/api/schedule?from=2026-07-15&to=2026-07-15&status=Cancelled");
+        var cancelledResponse = await staffClient.GetAsync($"/api/schedule?from={BaseDate:yyyy-MM-dd}&to={BaseDate:yyyy-MM-dd}&status=Cancelled");
         using var cancelledJson = JsonDocument.Parse(await cancelledResponse.Content.ReadAsStringAsync());
         var cancelledIds = cancelledJson.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetInt32()).ToList();
         Assert.Contains(cancelledId, cancelledIds);

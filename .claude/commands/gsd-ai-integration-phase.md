@@ -22,9 +22,9 @@ Flow: Select Framework → Research Docs → Research Domain → Design Eval Str
 </objective>
 
 <execution_context>
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ai-integration-phase.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-frameworks.md
-@D:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-evals.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/workflows/ai-integration-phase.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-frameworks.md
+@C:/repos/vct/zach-hair-studio/.claude/gsd-core/references/ai-evals.md
 </execution_context>
 
 <context>
