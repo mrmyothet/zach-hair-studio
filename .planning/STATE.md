@@ -6,7 +6,7 @@ current_phase: 4
 current_phase_name: Services & Availability
 status: verifying
 stopped_at: Completed 03-05-PLAN.md
-last_updated: "2026-07-16T11:10:51.160Z"
+last_updated: "2026-07-16T12:08:18.386Z"
 last_activity: 2026-07-16
 last_activity_desc: Phase 03 complete, transitioned to Phase 4
 progress:
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 4 — Staff Management (Services & Availability)
 Plan: Not started
 Status: Phase 03 plans complete — awaiting verify-work
-Last activity: 2026-07-16 — Phase 03 complete, transitioned to Phase 4
+Last activity: 2026-07-16 — Completed quick task 260716-qfe: Fix gitleaks false positives on GSD manifest checksums
 
 Progress: [████░░░░░░] 38%
 
@@ -116,6 +116,7 @@ Recent decisions affecting current work:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260712-tds | Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs) | 2026-07-12 | 40e3207 | [260712-tds-fix-semgrep-ci-findings-semgrepignore-ve](./quick/260712-tds-fix-semgrep-ci-findings-semgrepignore-ve/) |
+| 260716-qfe | Fix gitleaks false positives on GSD manifest checksums (rule-targeted regex allowlist replaces stale .gitleaksignore fingerprints) | 2026-07-16 | 8e7a1d2 | [260716-qfe-fix-gitleaks-false-positives-on-gsd-mani](./quick/260716-qfe-fix-gitleaks-false-positives-on-gsd-mani/) |
 
 ## Deferred Items
 
