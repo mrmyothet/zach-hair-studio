@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 10
     continue-on-error: true          # ch-8: remove to enforce
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0             # full history so gitleaks scans past commits too
       - name: gitleaks (secrets scan)
@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 10
     continue-on-error: true          # ch-8: remove to enforce
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.12"
