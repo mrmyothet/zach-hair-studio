@@ -3,9 +3,9 @@
     "allow": [
       "Bash(npx gsd-core *)",
       "Read(.planning/*)",
-      "Write(.planning/*)",
+      "Edit(.planning/*)",
       "Read(STATE.md)",
-      "Write(STATE.md)",
+      "Edit(STATE.md)",
       "WebSearch",
       "Bash(python3 -c \"print\\(1\\)\")",
       "Bash(python -c \"print\\(1\\)\")",
