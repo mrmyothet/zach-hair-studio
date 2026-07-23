@@ -107,5 +107,10 @@ public class IdentitySeederTests : IClassFixture<SqlServerWebApplicationFactory>
         var repaired = await userManager.FindByEmailAsync(email);
         Assert.NotNull(repaired);
         Assert.True(await userManager.IsInRoleAsync(repaired!, StaffRoles.Owner));
+
+        // This class shares ONE InMemory database (IClassFixture), so the second Owner
+        // created above would otherwise leak into the sibling tests that assert exactly
+        // one Owner exists — an order-dependent failure. Remove it before finishing.
+        Assert.True((await userManager.DeleteAsync(repaired!)).Succeeded);
     }
 }
