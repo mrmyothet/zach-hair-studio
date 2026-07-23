@@ -10,8 +10,8 @@
 - Complete the [one-time setup](./README.md#one-time-setup-do-this-before-any-guide).
 - API at http://localhost:5236, landing page at http://localhost:3000.
 - `RESEND_API_KEY` set in user-secrets (Scenario 4 sends a real email).
-- **Pick a date that is a Tuesday–Saturday** — the salon is closed Sun/Mon and only
-  **Mr. Zachary** and **Aria Chen** have working hours (9:00–18:00 Asia/Yangon).
+- The salon is **open every day, 09:00–18:00 (Asia/Yangon)**, and **all four stylists**
+  work daily — any future date within the booking horizon should return slots.
 
 > ⚠️ **Known gap (already recorded, expect this):** the confirmation **email** is missing
 > the **zone label, duration, and price** (it shows service, stylist, and time only). The
@@ -25,14 +25,15 @@
 
 1. Open http://localhost:3000/book.
 2. Select a service (e.g. **Precision Cut**).
-3. When prompted, choose a date that is a **Tuesday–Saturday**.
+3. When prompted, choose any future date (try a **Sunday** and a **weekday**).
 4. Look at the slot grid.
 
 **Expected result**
 
 - Real open time slots appear for that date, within **09:00–18:00** salon-local time.
 - Slots reflect service duration and existing bookings (already-booked times are absent).
-- Choosing a **Sunday or Monday** shows **no slots** (salon closed) — not an error.
+- **Every day returns slots**, including Sunday and Monday — the salon opens seven
+  days a week.
 
 **Result**
 
@@ -44,17 +45,18 @@
 
 **Steps**
 
-1. Continue from Scenario 1 (service + valid weekday date selected).
+1. Continue from Scenario 1 (service + date selected).
 2. Select a specific stylist — pick **Aria Chen**.
 3. Observe the slot grid refresh.
-4. Now select **Marcus Lee** (no seeded hours).
+4. Now select **Marcus Lee**.
 
 **Expected result**
 
 - With **Aria Chen** selected, the grid narrows to her availability only.
-- Switching back to "any stylist" restores the union of available stylists.
-- With **Marcus Lee** (or **Sofia Reyes**) selected, **no slots** appear — expected,
-  because they have no seeded working hours.
+- Switching back to "any stylist" restores the union across stylists.
+- **Marcus Lee** (and **Sofia Reyes**) also show slots — all four stylists work daily.
+- Booking a slot for one stylist removes it from that stylist's grid, but the same
+  time may still be open for a different stylist.
 
 **Result**
 

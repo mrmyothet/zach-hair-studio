@@ -78,17 +78,18 @@ These guides assume the seeded data below (created automatically on first API ru
 
 ### Stylists & availability
 
-| Stylist | Has working hours? | Notes |
-|---------|--------------------|-------|
-| Mr. Zachary | ✅ Tue–Sat, 9:00–18:00 | Shows open slots |
-| Aria Chen | ✅ Tue–Sat, 9:00–18:00 | Shows open slots |
-| Marcus Lee | ❌ none seeded | Will show **no** slots (expected) |
-| Sofia Reyes | ❌ none seeded | Will show **no** slots (expected) |
+| Stylist | Working hours | Notes |
+|---------|---------------|-------|
+| Mr. Zachary | ✅ Every day, 9:00–18:00 | Shows open slots |
+| Aria Chen | ✅ Every day, 9:00–18:00 | Shows open slots |
+| Marcus Lee | ✅ Every day, 9:00–18:00 | Shows open slots |
+| Sofia Reyes | ✅ Every day, 9:00–18:00 | Shows open slots |
 
 - Salon timezone: **Asia/Yangon (UTC+06:30, no daylight saving)**. All displayed
   times are salon-local.
-- The salon is **closed Sunday & Monday** — pick a **Tuesday–Saturday** date when
-  testing slots.
+- The salon is **open seven days a week**, 09:00–18:00, for all four stylists —
+  any future date should return slots (owner-directed, migration
+  `OpenSalonEveryDay`).
 
 ---
 
