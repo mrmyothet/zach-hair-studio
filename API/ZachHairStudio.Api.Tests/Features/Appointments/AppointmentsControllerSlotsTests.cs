@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ZachHairStudio.Api.Controllers;
 using ZachHairStudio.Shared.Db;
@@ -10,18 +11,19 @@ namespace ZachHairStudio.Api.Tests.Features.Appointments;
 /// <summary>
 /// Proves GET /api/appointments/slots is wired end-to-end: SlotService resolved
 /// via DI, offset-carrying DateTimeOffset start times, and stylistId narrowing
-/// the result set (BOOK-01, BOOK-06). Uses a Sunday date and a hand-seeded
-/// working-hours row so the test does not depend on the placeholder Tue-Sat
-/// HasData seed shared with other tests (PATT-01: InMemory fixture is fine —
-/// no unique-constraint semantics are exercised here).
+/// the result set (BOOK-01, BOOK-06). Each test clears the target day's
+/// working-hours rows and seeds exactly the hours it asserts on, so it does not
+/// depend on the placeholder HasData schedule (which now covers every day of the
+/// week and is owner-editable) (PATT-01: InMemory fixture is fine — no
+/// unique-constraint semantics are exercised here).
 /// </summary>
 public class AppointmentsControllerSlotsTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly CustomWebApplicationFactory _factory;
 
-    // A Sunday with no seeded StylistWorkingHours (seed data covers Tue-Sat only),
-    // so only the rows this test explicitly adds are in play. Anchored to today so it
-    // always lands on a current-or-future Sunday rather than a fixed past date.
+    // Anchored to today so it always lands on a current-or-future Sunday rather than a
+    // fixed past date. Each test clears this day's seeded working hours first, so only
+    // the rows it explicitly adds are in play.
     private static readonly DateOnly TestSunday = NextSunday(DateOnly.FromDateTime(DateTime.UtcNow));
 
     public AppointmentsControllerSlotsTests(CustomWebApplicationFactory factory)
@@ -32,6 +34,7 @@ public class AppointmentsControllerSlotsTests : IClassFixture<CustomWebApplicati
     [Fact]
     public async Task GetSlots_ReturnsOkWithOffsetCarryingStartTimesWithinWorkingHours()
     {
+        await ClearWorkingHoursForDayAsync(TestSunday.DayOfWeek);
         await SeedWorkingHoursAsync(stylistId: 1, TestSunday.DayOfWeek, new TimeOnly(9, 0), new TimeOnly(10, 0));
 
         var client = _factory.CreateClient();
@@ -54,7 +57,10 @@ public class AppointmentsControllerSlotsTests : IClassFixture<CustomWebApplicati
     public async Task GetSlots_StylistIdFilter_NarrowsResultSet()
     {
         // Only stylist 1 works this Sunday; stylist 2 has no working-hours row for it.
-        await SeedWorkingHoursAsync(stylistId: 1, TestSunday.DayOfWeek, new TimeOnly(9, 0), new TimeOnly(9, 30));
+        // The window must be at least as long as serviceId=1 (Precision Cut, 45 min) or
+        // no candidate start fits and the "unfiltered is non-empty" premise collapses.
+        await ClearWorkingHoursForDayAsync(TestSunday.DayOfWeek);
+        await SeedWorkingHoursAsync(stylistId: 1, TestSunday.DayOfWeek, new TimeOnly(9, 0), new TimeOnly(10, 0));
 
         var client = _factory.CreateClient();
 
@@ -81,6 +87,25 @@ public class AppointmentsControllerSlotsTests : IClassFixture<CustomWebApplicati
         Assert.NotNull(filteredInSlots);
         Assert.NotEmpty(filteredInSlots);
         Assert.All(filteredInSlots, slot => Assert.Equal(1, slot.StylistId));
+    }
+
+    /// <summary>
+    /// Removes every seeded working-hours row for <paramref name="dayOfWeek"/> so a test
+    /// asserts only against the hours it seeds itself. The HasData schedule covers all
+    /// seven days for all stylists, so without this a test that expects a narrow window
+    /// (or an empty stylist) would see the placeholder 09:00-18:00 rows instead.
+    /// </summary>
+    private async Task ClearWorkingHoursForDayAsync(DayOfWeek dayOfWeek)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+
+        var seeded = await dbContext.StylistWorkingHours
+            .Where(workingHours => workingHours.DayOfWeek == dayOfWeek)
+            .ToListAsync();
+
+        dbContext.StylistWorkingHours.RemoveRange(seeded);
+        await dbContext.SaveChangesAsync();
     }
 
     private async Task SeedWorkingHoursAsync(int stylistId, DayOfWeek dayOfWeek, TimeOnly start, TimeOnly end)
