@@ -152,7 +152,8 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
 
         modelBuilder.Entity<StylistWorkingHours>(entity =>
         {
-            // Owner-reviewable placeholder default schedule (Tue-Sat 09:00-18:00 per active stylist).
+            // Owner-reviewable placeholder default schedule (every day 09:00-18:00 per active stylist).
+            // The salon opens seven days a week — owner-directed 2026-07-23, replacing the earlier Tue-Sat default.
             // Mirrors the seed-price precedent from Phase 1 (D-15) — flag for owner review, not a final schedule.
             entity.HasData(
                 new StylistWorkingHours { Id = 1, StylistId = 1, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
@@ -174,7 +175,15 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                 new StylistWorkingHours { Id = 17, StylistId = 4, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
                 new StylistWorkingHours { Id = 18, StylistId = 4, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
                 new StylistWorkingHours { Id = 19, StylistId = 4, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
-                new StylistWorkingHours { Id = 20, StylistId = 4, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) });
+                new StylistWorkingHours { Id = 20, StylistId = 4, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 21, StylistId = 1, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 22, StylistId = 1, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 23, StylistId = 2, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 24, StylistId = 2, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 25, StylistId = 3, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 26, StylistId = 3, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 27, StylistId = 4, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 28, StylistId = 4, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) });
         });
 
         modelBuilder.Entity<StylistTimeOff>(entity =>
