@@ -1,7 +1,7 @@
 ---
 phase: 4
 slug: staff-management-services-availability
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-24
@@ -190,31 +190,66 @@ richer table for multi-surface phases):
 > Empty-state and error-state COPY live in `## Copywriting Contract` above — this section covers
 > state coverage and REFERENCES those rows rather than restating the copy (de-dup).
 
-Applicable state considerations resolved: 17 covered, 1 backstop, 1 unresolved.
+Applicable state considerations resolved (probe engine proposed 49; reconciled with 3 E6 states the
+classifier under-detected → 52 total): **44 covered, 1 backstop, 1 unresolved, 6 dismissed**. Resolved
+under the `--auto` convention (Claude-authored truths, no user prompts — researcher ran auto with 0
+questions). Covered rows the researcher already wrote are retained; the probe-surfaced gaps
+(list loading, form submit-error, edit pre-fill, long-text on chips, etc.) are newly authored below.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
-| empty | Services list (list-collection) | ✅ covered | Zero services renders the Copywriting Contract's "No Services Yet" heading below the Add Service CTA — only reachable pre-seed, not a normal runtime path. |
-| error | Services list (list-collection) | ✅ covered | Load failure renders "Couldn't Load Services." + Refresh, same shape as Phase 3's schedule error state. |
-| populated | Services list (list-collection) | ✅ covered | Rows show Name, Category, Duration, Price, Status chip, Edit/Retire (or Reactivate) actions — Active rows first, Retired rows after (or behind a "Show retired" toggle, executor's choice). |
-| overflow | Services list (list-collection) | ✅ covered | Long name/description values truncate with ellipsis in the list row; full text is visible in the edit form, never clipped there. |
-| empty | Service form — create (form) | ✅ covered | New Service form starts fully blank; Save disabled until required fields (name, short/long description, category, duration, price) are filled, mirroring the Add Staff form's required-field pattern. |
-| partial | Service form (form) | ✅ covered | Invalid/incomplete submit shows field-level + banner validation errors (FluentValidation-backed via existing `ServiceCreateDtoValidator`/`ServiceUpdateDtoValidator`); Save stays enabled to allow retry, never a silent failure. |
-| empty | Service image upload (media) | ✅ covered | No image yet renders the dashed-border "No image yet" placeholder with an Upload Image button — never a broken-image icon. |
-| loading | Service image upload (media) | ✅ covered | Mid-upload shows a spinner/progress overlay on the placeholder; the form's Save button is disabled until the upload settles. |
-| error | Service image upload (media) | ✅ covered | Invalid type/size shows the Copywriting Contract's inline error; the rest of the form is unaffected and remains submittable without an image. |
-| populated | Service image upload (media) | ✅ covered | Existing/uploaded image renders as a thumbnail with Replace/Remove controls. |
-| zero-one-many | Availability stylist picker (interactive-control) | ✅ covered | Picker lists all active stylists; reads correctly at exactly 1 stylist (still shown as a picker, not hidden) and at many (scrollable select/list, no pagination). |
-| empty | Weekly hours week-strip (interactive-control) | ✅ covered | A weekday row with zero painted segments shows the muted "Closed" overlay — the explicit zero-hours state, never an ambiguous blank row. |
-| loading | Weekly hours week-strip (interactive-control) | ✅ covered | Existing `StylistWorkingHours` for the selected stylist load into a skeleton/muted placeholder strip before staff can drag; drag interaction is disabled until loaded. |
-| overflow | Weekly hours week-strip (interactive-control) | 🧪 backstop | Multiple non-contiguous segments per weekday (D-06's gap-as-break model) must render without visual overlap; verified by a rendering test once the executor finalizes the exact drag/paint mechanic — no explicit UI proof exists yet at spec time. |
-| empty | Time-off calendar overlay (interactive-control) | ✅ covered | No time off scheduled shows the "No time off scheduled." caption near the calendar; the calendar grid itself always renders fully, never blank. |
-| populated | Time-off calendar overlay (interactive-control) | ✅ covered | Each painted range renders as a dashed-muted band across its date cells (see Color section), with the optional reason visible on hover/tap, and a Remove control. |
-| overflow | Time-off calendar overlay (interactive-control) | ⚠ unresolved | Many overlapping/adjacent time-off ranges within one month may visually crowd the calendar; no merge/truncation rule is specified upstream. Flagged as a planner assumption (e.g., adjacent same-reason ranges could visually merge) if it becomes an issue during implementation. |
-| empty | Conflict list (list-collection) | ✅ covered | Zero conflicts means the Save Changes call succeeds immediately with the "Availability saved." flash — the conflict panel never renders when there is nothing to show. |
-| populated | Conflict list (list-collection) | ✅ covered | 1+ conflicts render the "Can't Save — Conflicting Appointments" panel with one row per conflicting appointment, per the Copywriting Contract's row shape. |
-| overflow | Conflict list (list-collection) | ✅ covered | The conflict list scrolls internally past ~6 rows (`max-h-* overflow-y-auto`) rather than pushing the rest of the page layout, matching the detail-panel's existing scroll-containment pattern from Phase 3. |
-| error | Dashboard nav (nav) | ✅ covered | Nav itself has no fetch/loading state — static links. The Services link is fully hidden (not merely disabled) for Staff-role sessions per D-16's "hide or 403"; server-side `[Authorize(Roles = "Owner")]` is the backstop if a Staff user navigates to `/services` directly. |
+| empty | E1 Services list (list-collection) | ✅ covered | Zero services renders the Copywriting Contract's "No Services Yet" heading below the Add Service CTA — only reachable pre-seed, not a normal runtime path. |
+| loading | E1 Services list (list-collection) | ✅ covered | Initial fetch shows muted skeleton rows (same treatment as Phase 3's schedule load), replaced in place once data arrives. |
+| error | E1 Services list (list-collection) | ✅ covered | Load failure renders "Couldn't Load Services." + Refresh, same shape as Phase 3's schedule error state. |
+| populated | E1 Services list (list-collection) | ✅ covered | Rows show Name, Category, Duration, Price, Status chip, Edit/Retire (or Reactivate) actions — Active rows first, Retired rows after (or behind a "Show retired" toggle, executor's choice). |
+| partial | E1 Services list (list-collection) | ✅ covered | A service missing an optional field (no image, empty long description) still renders a full row — the image cell falls back to a placeholder and the row layout never collapses. |
+| overflow | E1 Services list (list-collection) | ✅ covered | Long name/description values truncate with ellipsis in the list row; full text is visible in the edit form, never clipped there. |
+| zero-one-many | E1 Services list (list-collection) | ✅ covered | 0 → empty state; 1 → single row (no plural-copy mismatch); many → the list scrolls, no pagination this phase. |
+| long-text | E1 Services list (list-collection) | ✅ covered | Same mechanic as overflow — single-line ellipsis with the full string available on the edit form (and as a `title` tooltip on the row). |
+| empty | E2 Service form — create (form) | ✅ covered | New Service form starts fully blank; Save disabled until required fields (name, short/long description, category, duration, price) are filled, mirroring the Add Staff form's required-field pattern. |
+| loading | E2 Service form (form) | ✅ covered | In edit mode the card renders in a muted/disabled state until the selected service's values finish loading into the fields, then becomes interactive. |
+| error | E2 Service form (form) | ✅ covered | A failed save (network/500, distinct from field validation) shows a banner error at the top of the card with Save re-enabled to retry — never a silent drop. |
+| populated | E2 Service form (form) | ✅ covered | Edit mode pre-fills every field from the selected service via the single create/edit `ServiceForm` in edit mode. |
+| partial | E2 Service form (form) | ✅ covered | Invalid/incomplete submit shows field-level + banner validation errors (FluentValidation-backed via existing `ServiceCreateDtoValidator`/`ServiceUpdateDtoValidator`); Save stays enabled to allow retry. |
+| overflow | E2 Service form (form) | ✅ covered | The long-description textarea scrolls internally; the card grows and the page scrolls, individual fields never clip. |
+| long-text | E2 Service form (form) | ✅ covered | Textarea wraps; single-line inputs (name/category) scroll horizontally within the field rather than overflowing the card. |
+| empty | E3 Service image upload (media) | ✅ covered | No image yet renders the dashed-border "No image yet" placeholder with an Upload Image button — never a broken-image icon. |
+| loading | E3 Service image upload (media) | ✅ covered | Mid-upload shows a spinner/progress overlay on the placeholder; the form's Save button is disabled until the upload settles. |
+| error | E3 Service image upload (media) | ✅ covered | Invalid type/size shows the Copywriting Contract's inline error; the rest of the form is unaffected and remains submittable without an image. |
+| populated | E3 Service image upload (media) | ✅ covered | Existing/uploaded image renders as a thumbnail with Replace/Remove controls. |
+| partial | E3 Service image upload (media) | ✅ covered | A stored image URL that 404s (missing file) falls back to the "No image yet" placeholder via an `onError` handler rather than a broken-image icon. |
+| long-text | E3 Service image upload (media) | ⊘ dismissed | Media surface carries no user-authored long text; alt text is the service name, already handled by E1/E2 truncation. |
+| empty | E4 Availability stylist picker (interactive-control) | ✅ covered | Zero active stylists (pre-seed edge) shows a "No stylists yet" message and hides the editors — staff are added via the existing Owner-only flow first. |
+| loading | E4 Availability stylist picker (interactive-control) | ✅ covered | The stylist list loads into a muted placeholder before any chip is selectable. |
+| error | E4 Availability stylist picker (interactive-control) | ✅ covered | A stylist-fetch failure surfaces the page-level "Couldn't Load Availability." + Refresh (shared with the availability page load error). |
+| populated | E4 Availability stylist picker (interactive-control) | ✅ covered | Active stylists render as chips (or a select on narrow viewports); the selected stylist gets the gold-dark treatment (accent item 11). |
+| partial | E4 Availability stylist picker (interactive-control) | ⊘ dismissed | Picker items are atomic (a stylist name chip) — there is no partial-field shape to render. |
+| overflow | E4 Availability stylist picker (interactive-control) | ✅ covered | Many stylists wrap the chips onto multiple rows (or collapse to a select under 768px); no horizontal page scroll. |
+| zero-one-many | E4 Availability stylist picker (interactive-control) | ✅ covered | Reads correctly at exactly 1 stylist (still shown as a picker, pre-selected, not hidden) and at many (wrap/scroll, no pagination). |
+| long-text | E4 Availability stylist picker (interactive-control) | ✅ covered | An unusually long stylist display name truncates with ellipsis inside its chip. |
+| empty | E5 Weekly hours week-strip (interactive-control) | ✅ covered | A weekday row with zero painted segments shows the muted "Closed" overlay — the explicit zero-hours state, never an ambiguous blank row. |
+| loading | E5 Weekly hours week-strip (interactive-control) | ✅ covered | Existing `StylistWorkingHours` for the selected stylist load into a skeleton/muted placeholder strip before staff can drag; drag interaction is disabled until loaded. |
+| error | E5 Weekly hours week-strip (interactive-control) | ✅ covered | A hours-fetch failure shares the page-level "Couldn't Load Availability." + Refresh state. |
+| populated | E5 Weekly hours week-strip (interactive-control) | ✅ covered | Painted gold segments per weekday, each mapping 1:1 to a `StylistWorkingHours` row. |
+| partial | E5 Weekly hours week-strip (interactive-control) | ✅ covered | A day with some hours painted and others closed is the normal per-day state; each weekday row is independent, no cross-day partial ambiguity. |
+| overflow | E5 Weekly hours week-strip (interactive-control) | 🧪 backstop | Multiple non-contiguous segments per weekday (D-06's gap-as-break model) must render without visual overlap; verified by a rendering test once the executor finalizes the exact drag/paint mechanic — no explicit UI proof exists yet at spec time. |
+| zero-one-many | E5 Weekly hours week-strip (interactive-control) | ✅ covered | 0 segments = Closed overlay; 1 = single painted band; many = multiple non-contiguous bands with the gaps read as breaks. |
+| long-text | E5 Weekly hours week-strip (interactive-control) | ⊘ dismissed | The strip carries only fixed weekday abbreviations and time labels — no user-authored text that can run long. |
+| empty | E6 Time-off calendar overlay (interactive-control) | ✅ covered | No time off scheduled shows the "No time off scheduled." caption near the calendar; the calendar grid itself always renders fully, never blank. |
+| populated | E6 Time-off calendar overlay (interactive-control) | ✅ covered | Each painted range renders as a dashed-muted band across its date cells (see Color section), with the optional reason visible on hover/tap, and a Remove control. |
+| overflow | E6 Time-off calendar overlay (interactive-control) | ⚠ unresolved | Many overlapping/adjacent time-off ranges within one month may visually crowd the calendar; no merge/truncation rule is specified upstream. **Planner must treat as assumption** (e.g., adjacent same-reason ranges could visually merge) and resolve if it becomes an issue during implementation. |
+| long-text | E6 Time-off calendar overlay (interactive-control) | ✅ covered | A long optional reason label truncates within its band and shows in full on hover/tap. |
+| empty | E7 Conflict list (list-collection) | ✅ covered | Zero conflicts means the Save Changes call succeeds immediately with the "Availability saved." flash — the conflict panel never renders when there is nothing to show. |
+| loading | E7 Conflict list (list-collection) | ✅ covered | While the server-side conflict check runs, Save Changes shows an in-flight/disabled state; there is no separate list skeleton (the panel only materializes on a blocked response). |
+| error | E7 Conflict list (list-collection) | ✅ covered | A save request that fails for a non-conflict reason (network/500) shows a generic "Couldn't save availability. Try again." banner, kept visually distinct from the conflict panel. |
+| populated | E7 Conflict list (list-collection) | ✅ covered | 1+ conflicts render the "Can't Save — Conflicting Appointments" panel with one row per conflicting appointment, per the Copywriting Contract's row shape. |
+| partial | E7 Conflict list (list-collection) | ⊘ dismissed | Every conflict row always carries its full D-11 field set (client/service/stylist/time); there is no partial-row state. |
+| overflow | E7 Conflict list (list-collection) | ✅ covered | The conflict list scrolls internally past ~6 rows (`max-h-* overflow-y-auto`) rather than pushing the rest of the page layout, matching the detail-panel's existing scroll-containment pattern from Phase 3. |
+| zero-one-many | E7 Conflict list (list-collection) | ✅ covered | 0 → no panel; 1 → single conflict row; many → internally scrolling list. |
+| loading | E8 Dashboard nav (nav) | ⊘ dismissed | Nav is static links with no async fetch — there is no loading state to render. |
+| error | E8 Dashboard nav (nav) | ✅ covered | No fetch to fail; the only conditional is role-based visibility — the Services link is fully hidden (not disabled) for Staff-role sessions per D-16, with server-side `[Authorize(Roles = "Owner")]` as the backstop if a Staff user navigates to `/services` directly. |
+| overflow | E8 Dashboard nav (nav) | ✅ covered | On narrow viewports the nav-link row wraps (or collapses to a compact menu); all links stay reachable and the bar never overflows horizontally. |
+| long-text | E8 Dashboard nav (nav) | ⊘ dismissed | Nav labels are fixed short strings (Schedule/Services/Availability/Add staff) — no user-authored text that can run long. |
 
 ---
 
@@ -329,11 +364,11 @@ Carried forward for the planner/executor to resolve or flag to the owner — not
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** VERIFIED (gsd-ui-checker, 2026-07-24) — 6/6 dimensions PASS, no FLAGs
