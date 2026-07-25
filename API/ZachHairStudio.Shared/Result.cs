@@ -1,4 +1,6 @@
-﻿namespace ZachHairStudio.Shared;
+﻿using ZachHairStudio.Shared.Features.Availability;
+
+namespace ZachHairStudio.Shared;
 
 public class Result<T>
 {
@@ -9,6 +11,14 @@ public class Result<T>
     public T Data { get; private set; } = default!;
     public string Message { get; private set; } = string.Empty;
 
+    // Side-channel for the availability conflict-check outcome (MGMT-03, D-09).
+    // Deliberately independent of T: a ConflictError on, say,
+    // Result<StylistTimeOff> still needs to carry an
+    // IReadOnlyList<AvailabilityConflictDto> even though T is StylistTimeOff,
+    // not the conflict list — the generic Data field can't hold both shapes.
+    // Only ever populated by ConflictError; every other factory leaves it null.
+    public IReadOnlyList<AvailabilityConflictDto>? Conflicts { get; private set; }
+
     public bool IsValidationError() => Type == EnumRespType.ValidationError;
     public bool IsSystemError() => Type == EnumRespType.SystemError;
     public bool IsDataError() => Type == EnumRespType.Error;
@@ -16,6 +26,7 @@ public class Result<T>
     public bool IsDuplicateRecord() => Type == EnumRespType.DuplicateRecord;
     public bool IsInvalidData() => Type == EnumRespType.InvalidData;
     public bool IsBadRequest() => Type == EnumRespType.BadRequest;
+    public bool IsConflict() => Type == EnumRespType.Conflict;
 
     public static Result<T> Success(T data, string message = "Success") =>
         new Result<T> { IsSuccess = true, Type = EnumRespType.Success, Data = data, Message = message };
@@ -41,6 +52,24 @@ public class Result<T>
     public static Result<T> BadRequestError(string message = "Bad Request", T? data = default) =>
         new Result<T> { IsSuccess = false, Type = EnumRespType.BadRequest, Data = data, Message = message };
 
+    /// <summary>
+    /// One or more Confirmed appointments would fall outside the newly proposed
+    /// availability (MGMT-03, D-09). The write did NOT persist — see
+    /// <see cref="Conflicts"/> for the actionable, D-11-scoped conflict list.
+    /// </summary>
+    public static Result<T> ConflictError(
+        string message,
+        IReadOnlyList<AvailabilityConflictDto> conflicts,
+        T? data = default) =>
+        new Result<T>
+        {
+            IsSuccess = false,
+            Type = EnumRespType.Conflict,
+            Data = data,
+            Message = message,
+            Conflicts = conflicts,
+        };
+
     public enum EnumRespType
     {
         None,
@@ -51,6 +80,7 @@ public class Result<T>
         NotFound,
         DuplicateRecord,
         InvalidData,
-        BadRequest
+        BadRequest,
+        Conflict
     }
 }

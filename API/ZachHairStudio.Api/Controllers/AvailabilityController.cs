@@ -53,6 +53,7 @@ public class AvailabilityController : ControllerBase
     }
 
     [HttpPut("{stylistId}/working-hours")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ReplaceWorkingHours(int stylistId, [FromBody] WorkingHoursReplaceDto request)
     {
         var validation = await _workingHoursValidator.ValidateAsync(request);
@@ -80,6 +81,11 @@ public class AvailabilityController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
+        if (result.IsConflict())
+        {
+            return ConflictProblem(result.Message, result.Conflicts);
+        }
+
         if (result.IsSystemError())
         {
             return InconsistentDataProblem(result.Message);
@@ -89,6 +95,7 @@ public class AvailabilityController : ControllerBase
     }
 
     [HttpPost("{stylistId}/time-off")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AddTimeOff(int stylistId, [FromBody] TimeOffCreateDto request)
     {
         var validation = await _timeOffValidator.ValidateAsync(request);
@@ -114,6 +121,11 @@ public class AvailabilityController : ControllerBase
         {
             ModelState.AddModelError(string.Empty, result.Message);
             return ValidationProblem(ModelState);
+        }
+
+        if (result.IsConflict())
+        {
+            return ConflictProblem(result.Message, result.Conflicts);
         }
 
         if (result.IsSystemError())
@@ -162,4 +174,21 @@ public class AvailabilityController : ControllerBase
             title: "Availability data is inconsistent.",
             detail: detail,
             statusCode: StatusCodes.Status500InternalServerError);
+
+    /// <summary>
+    /// The hard-block conflict response (MGMT-03, D-09): ProblemDetails plus a
+    /// "conflicts" extension carrying the D-11-scoped conflict list, extending
+    /// AppointmentsController's Conflict(...) 409 pattern.
+    /// </summary>
+    private ObjectResult ConflictProblem(string detail, IReadOnlyList<AvailabilityConflictDto>? conflicts)
+    {
+        var problem = new ProblemDetails
+        {
+            Title = "Can't Save — Conflicting Appointments",
+            Detail = detail,
+            Status = StatusCodes.Status409Conflict,
+        };
+        problem.Extensions["conflicts"] = conflicts ?? Array.Empty<AvailabilityConflictDto>();
+        return Conflict(problem);
+    }
 }
