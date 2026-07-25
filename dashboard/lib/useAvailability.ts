@@ -128,7 +128,12 @@ async function fetchAvailability(stylistId: number): Promise<AvailabilityData> {
   }));
 
   const timeOff = (data?.timeOff ?? []).map((range) => ({
-    id: typeof range.id === "number" ? range.id : Number(range.id),
+    id:
+      range.id == null
+        ? undefined
+        : Number.isFinite(Number(range.id))
+          ? Number(range.id)
+          : undefined,
     startsAt: String(range.startsAt),
     endsAt: String(range.endsAt),
     reason: range.reason ?? null,
