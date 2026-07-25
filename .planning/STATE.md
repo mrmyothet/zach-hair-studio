@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: Services & Availability
-status: planned
-stopped_at: Phase 4 planned (5 plans, verified)
-last_updated: "2026-07-24T09:52:28.510Z"
-last_activity: 2026-07-24
-last_activity_desc: Phase 4 planned — 5 plans across 4 waves
+current_phase: 04
+current_phase_name: staff-management-services-availability
+status: executing
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-07-25T06:25:11.866Z"
+last_activity: 2026-07-25
+last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 22
+  completed_plans: 18
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 04 — Staff Management (Services & Availability)
+**Current focus:** Phase 04 — staff-management-services-availability
 
 ## Current Position
 
-Phase: 4 — Staff Management (Services & Availability)
-Plan: 5 plans created (4 waves), plan-checker PASSED
-Status: Planned — ready to execute
-Last activity: 2026-07-24 — Phase 4 planned (5 plans across 4 waves)
+Phase: 04 (staff-management-services-availability) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-07-25 — Phase 04 execution resumed (wave continue)
 
-Progress: [████░░░░░░] 38%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -62,6 +62,11 @@ Progress: [████░░░░░░] 38%
 | Phase 03 P03 | 25min | 3 tasks | 10 files |
 | Phase 02 P07 | 25min | 3 tasks | 8 files |
 | Phase 03 P05 | close-out | 4 tasks | 12 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 04 P01 | 25min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -97,6 +102,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 3 Plan 05: Hand-rolled CSS Grid day view with Asia/Yangon scheduleTime helpers — no calendar library.
 - [Phase ?]: Phase 3 Plan 05: Schedule fetches all statuses; Cancelled/NoShow reveal is client-side includeCancelled toggle (D-08).
 - [Phase ?]: Phase 3 Plan 05: POST /api/staff-users 201 Created treated as success on Owner add-staff form.
+- [Phase ?]: Phase 4 Plan 01: Action-level (not class-level) [Authorize(Roles=Owner)] on ServicesController writes only — GET stays anonymous (Pitfall 5).
+- [Phase ?]: Phase 4 Plan 01: Backfill IWebHostEnvironment.WebRootPath explicitly in Program.cs in addition to an explicit PhysicalFileProvider — ASP.NET Core leaves WebRootPath empty (not just the file provider) when wwwroot is absent at host-build time.
+- [Phase ?]: Phase 4 Plan 01: Uploaded image filenames are Path.GetRandomFileName() + a content-type-derived extension, never the client FileName (path-traversal safe).
 
 ### Pending Todos
 
@@ -129,8 +137,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T09:52:28.510Z
-Stopped at: Phase 4 planned (5 plans, verified)
-Resume file: .planning/phases/04-staff-management-services-availability/04-01-PLAN.md
+Last session: 2026-07-25T06:25:11.842Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
 
 Next action: Phase 4 planned — 5 plans across 4 waves, plan-checker PASSED. Run `/gsd-execute-phase 4` (Wave 1: 04-01).
