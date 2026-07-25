@@ -20,13 +20,16 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "playwright",
+    "playwright"
+  ],
+  "disabledMcpjsonServers": [
+    "sqlite",
     "context7",
     "github"
   ],
-  "disabledMcpjsonServers": [
-    "sqlite"
-  ],
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": false
+  },
   "hooks": {
     "SessionStart": [
       {
