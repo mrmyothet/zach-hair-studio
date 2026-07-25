@@ -151,7 +151,7 @@ Plans:
   2. Staff can manage a stylist's working hours, breaks, and time off from the dashboard, and Phase 2's open-slot query immediately reflects the change (same availability model, not a second one)
   3. Attempting to save an availability edit that conflicts with an existing confirmed booking surfaces the conflict instead of silently applying it
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 Plans:
 **Wave 1**
 
@@ -168,7 +168,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 04-05-PLAN.md — Conflict hard-block: SalonTimeZone.ToSalonLocal + full-final-state conflict scan + 409 + inline ConflictList (MGMT-03)
+- [x] 04-05-PLAN.md — Conflict hard-block: SalonTimeZone.ToSalonLocal + full-final-state conflict scan + 409 + inline ConflictList (MGMT-03)
 
 **UI hint**: yes
 
@@ -250,7 +250,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
 | 2. Booking Core | 7/8 | In Progress|  |
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
-| 4. Staff Management (Services & Availability) | 4/5 | In Progress|  |
+| 4. Staff Management (Services & Availability) | 5/5 | In Progress|  |
 | 5. Product Catalog | 0/TBD | Not started | - |
 | 6. Cart & Checkout | 0/TBD | Not started | - |
 | 7. Accounts & Retention | 0/TBD | Not started | - |

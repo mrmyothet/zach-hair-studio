@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: staff-management-services-availability
-status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-07-25T07:32:59.416Z"
+status: verifying
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-07-25T07:59:56.244Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 22
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 
 Phase: 04 (staff-management-services-availability) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-25 — Phase 04 execution resumed (wave continue)
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [██████████] 95%
 | Phase 04 P02 | 45min | 3 tasks | 9 files |
 | Phase 04 P03 | 30min | 3 tasks | 9 files |
 | Phase 04 P04 | 45min | 3 tasks | 9 files |
+| Phase 04 P05 | 55min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,10 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 04: Added GET /api/availability/{stylistId} — Plan 03 shipped write-only endpoints; the dashboard editor needs a read path, added reading only StylistWorkingHours/StylistTimeOff (D-08 preserved).
 - [Phase ?]: Phase 4 Plan 04: DayOfWeek (and other server enums) are typed number by Swashbuckle but serialize as string names via the global JsonStringEnumConverter — confirmed via live GET; cast explicitly on write, matching the AppointmentStatus precedent in scheduleStatus.ts.
 - [Phase ?]: Phase 4 Plan 04: Kept the UI-SPEC's wider 06:00-22:00 week-strip default window over the narrower seeded 09:00-18:00 per-stylist default, giving staff painting room beyond the placeholder.
+- [Phase ?]: Phase 4 Plan 05: Result<T>.Conflicts is a T-independent side-channel (not a repurposing of Data) since AddTimeOffAsync's success Data must stay the created StylistTimeOff entity.
+- [Phase ?]: Phase 4 Plan 05: The conflict scan + persist for both working-hours and time-off writes run inside Database.CreateExecutionStrategy().ExecuteAsync wrapping a manual BeginTransactionAsync -- the one write path in this codebase needing a real transaction under EnableRetryOnFailure.
+- [Phase ?]: Phase 4 Plan 05: Removing time off is never conflict-scanned -- it can only widen availability, never orphan a Confirmed appointment.
+- [Phase ?]: Phase 4 Plan 05: AvailabilityConflictDto.SalonLocalTime carries the raw UTC instant; the dashboard formats it via the existing formatSalonDateTime helper rather than server-side pre-formatting.
 
 ### Pending Todos
 
@@ -149,8 +154,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T07:32:59.390Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-07-25T07:59:56.217Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
 
 Next action: Phase 4 planned — 5 plans across 4 waves, plan-checker PASSED. Run `/gsd-execute-phase 4` (Wave 1: 04-01).
