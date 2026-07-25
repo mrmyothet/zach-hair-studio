@@ -131,6 +131,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Availability/{stylistId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AvailabilityResponseDto"];
+                        "application/json": components["schemas"]["AvailabilityResponseDto"];
+                        "text/json": components["schemas"]["AvailabilityResponseDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Availability/{stylistId}/working-hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkingHoursReplaceDto"];
+                    "text/json": components["schemas"]["WorkingHoursReplaceDto"];
+                    "application/*+json": components["schemas"]["WorkingHoursReplaceDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Availability/{stylistId}/time-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TimeOffCreateDto"];
+                    "text/json": components["schemas"]["TimeOffCreateDto"];
+                    "application/*+json": components["schemas"]["TimeOffCreateDto"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Availability/{stylistId}/time-off/{timeOffId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                    timeOffId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/Schedule": {
         parameters: {
             query?: never;
@@ -579,6 +736,11 @@ export interface components {
         AppointmentStatusUpdateDto: {
             newStatus?: components["schemas"]["AppointmentStatus"];
         };
+        AvailabilityResponseDto: {
+            workingHours?: components["schemas"]["WorkingHoursSegmentDto"][];
+            timeOff?: components["schemas"]["TimeOffResponseDto"][];
+        };
+        DayOfWeek: number;
         /** Format: binary */
         IFormFile: string;
         LoginRequestDto: {
@@ -671,6 +833,32 @@ export interface components {
             name?: string;
             /** Format: int32 */
             displayOrder?: number | string;
+        };
+        TimeOffCreateDto: {
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            reason?: null | string;
+        };
+        TimeOffResponseDto: {
+            /** Format: int32 */
+            id?: number | string;
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            reason?: null | string;
+        };
+        WorkingHoursReplaceDto: {
+            segments?: components["schemas"]["WorkingHoursSegmentDto"][];
+        };
+        WorkingHoursSegmentDto: {
+            dayOfWeek?: components["schemas"]["DayOfWeek"];
+            /** Format: time */
+            startTime?: string;
+            /** Format: time */
+            endTime?: string;
         };
     };
     responses: never;

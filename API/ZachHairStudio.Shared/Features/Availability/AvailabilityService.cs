@@ -29,6 +29,50 @@ public class AvailabilityService
     }
 
     /// <summary>
+    /// Read-side for the dashboard editor: a stylist's current working-hours
+    /// segments plus their time-off blocks, straight from the same tables the
+    /// write path targets (D-08) — no derived/cached second store.
+    /// </summary>
+    public async Task<Result<AvailabilityResponseDto>> GetAvailabilityAsync(int stylistId)
+    {
+        var stylist = await _dbContext.Stylists.FindAsync(stylistId);
+        if (stylist is null)
+        {
+            return Result<AvailabilityResponseDto>.NotFoundError($"Stylist '{stylistId}' not found.");
+        }
+
+        var workingHours = await _dbContext.StylistWorkingHours
+            .Where(hours => hours.StylistId == stylistId)
+            .OrderBy(hours => hours.DayOfWeek)
+            .ThenBy(hours => hours.StartTime)
+            .Select(hours => new WorkingHoursSegmentDto
+            {
+                DayOfWeek = hours.DayOfWeek,
+                StartTime = hours.StartTime,
+                EndTime = hours.EndTime,
+            })
+            .ToListAsync();
+
+        var timeOff = await _dbContext.StylistTimeOff
+            .Where(off => off.StylistId == stylistId)
+            .OrderBy(off => off.StartsAt)
+            .Select(off => new TimeOffResponseDto
+            {
+                Id = off.Id,
+                StartsAt = off.StartsAt,
+                EndsAt = off.EndsAt,
+                Reason = off.Reason,
+            })
+            .ToListAsync();
+
+        return Result<AvailabilityResponseDto>.Success(new AvailabilityResponseDto
+        {
+            WorkingHours = workingHours,
+            TimeOff = timeOff,
+        });
+    }
+
+    /// <summary>
     /// Whole-week replace: delete every existing StylistWorkingHours row for this
     /// stylist, then insert the submitted segments. A single SaveChangesAsync
     /// commits both halves atomically — no manual BeginTransaction, mirroring

@@ -33,6 +33,25 @@ public class AvailabilityController : ControllerBase
         _timeOffValidator = timeOffValidator;
     }
 
+    [HttpGet("{stylistId}")]
+    [ProducesResponseType(typeof(AvailabilityResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailability(int stylistId)
+    {
+        var result = await _availabilityService.GetAvailabilityAsync(stylistId);
+
+        if (result.IsNotFound())
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = "Stylist not found",
+                Detail = result.Message,
+                Status = StatusCodes.Status404NotFound,
+            });
+        }
+
+        return Ok(result.Data);
+    }
+
     [HttpPut("{stylistId}/working-hours")]
     public async Task<IActionResult> ReplaceWorkingHours(int stylistId, [FromBody] WorkingHoursReplaceDto request)
     {
