@@ -8,7 +8,7 @@ status: verifying
 stopped_at: Completed 04-05-PLAN.md
 last_updated: "2026-07-25T07:59:56.244Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 04 execution resumed (wave continue)
+last_activity_desc: "Completed quick task 260725-mx3: Owner-gated includeInactive filter on GET /api/Services"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 04 (staff-management-services-availability) — EXECUTING
 Plan: 5 of 5
 Status: Phase complete — ready for verification
-Last activity: 2026-07-25 — Phase 04 execution resumed (wave continue)
+Last activity: 2026-07-25 — Completed quick task 260725-mx3: Owner-gated includeInactive filter on GET /api/Services
 
 Progress: [██████████] 100%
 
@@ -109,7 +109,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 01: Action-level (not class-level) [Authorize(Roles=Owner)] on ServicesController writes only — GET stays anonymous (Pitfall 5).
 - [Phase ?]: Phase 4 Plan 01: Backfill IWebHostEnvironment.WebRootPath explicitly in Program.cs in addition to an explicit PhysicalFileProvider — ASP.NET Core leaves WebRootPath empty (not just the file provider) when wwwroot is absent at host-build time.
 - [Phase ?]: Phase 4 Plan 01: Uploaded image filenames are Path.GetRandomFileName() + a content-type-derived extension, never the client FileName (path-traversal safe).
-- [Phase ?]: Phase 4 Plan 02: GET /api/Services has no way to fetch retired services (frontend-only plan, no new API filter param) — retired/reactivated services tracked in local session state (retiredOverrides) instead.
+- [Phase ?]: Phase 4 Plan 02: GET /api/Services had no way to fetch retired services (frontend-only plan, no new API filter param) — retired/reactivated services were tracked in local session state (retiredOverrides). **Resolved by quick task 260725-mx3:** `includeInactive` query param added, honored only for an authenticated Owner (silently ignored otherwise, DD-1); `IsActive` is `bool?` omitted when null so the anonymous catalog response stays byte-identical (DD-2). The retiredOverrides workaround is gone.
 - [Phase ?]: Phase 4 Plan 02: Service slug (required by DTOs, not a UI-SPEC field) is derived from Name via slugify() at first create and held fixed afterward so edits never change an already-public service URL.
 - [Phase ?]: Phase 4 Plan 02: ServiceForm branches POST vs PUT on local serviceId state (persisted or not), not the static create/edit mode prop, so the form stays open after create to unlock image upload immediately.
 - [Phase ?]: Phase 4 Plan 02: Multipart image upload uses a direct fetch() to POST /api/Services/{id}/image instead of the typed openapi-fetch client — the .NET OpenAPI doc documents the [FromForm] IFormFile body as application/x-www-form-urlencoded (a Swashbuckle quirk, not the real wire format).
@@ -143,6 +143,7 @@ Recent decisions affecting current work:
 | 260716-qfe | Fix gitleaks false positives on GSD manifest checksums (rule-targeted regex allowlist replaces stale .gitleaksignore fingerprints) | 2026-07-16 | 8e7a1d2 | [260716-qfe-fix-gitleaks-false-positives-on-gsd-mani](./quick/260716-qfe-fix-gitleaks-false-positives-on-gsd-mani/) |
 | 3 | Bump CI gitleaks v8.18.4 -> v8.30.1 so [[allowlists]] config applies in security.yml scan | 2026-07-16 | 1221ba5 | — |
 | 4 | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies | 2026-07-16 | b130c2d | — |
+| 260725-mx3 | Add Owner-gated includeInactive filter to GET /api/Services so retired services survive reload | 2026-07-25 | 2facace | [260725-mx3-add-owner-gated-includeinactive-filter-t](./quick/260725-mx3-add-owner-gated-includeinactive-filter-t/) |
 
 ## Deferred Items
 
