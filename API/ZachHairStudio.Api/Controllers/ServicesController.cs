@@ -146,6 +146,14 @@ public class ServicesController : ControllerBase
         var result = await _servicesService.SetImageAsync(id, $"/uploads/services/{storedFileName}");
         if (result.IsNotFound())
         {
+            try
+            {
+                System.IO.File.Delete(filePath);
+            }
+            catch
+            {
+                // best-effort cleanup
+            }
             return NotFound();
         }
 
