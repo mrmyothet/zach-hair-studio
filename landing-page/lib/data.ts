@@ -77,7 +77,7 @@ export type TeamMember = {
 
 export const team: TeamMember[] = [
   {
-    name: "Mr. Zachary",
+    name: "Zin Min",
     role: "Founder & Master Stylist",
     bio: "Leading Zach Hair Studio with 18 years of expertise in the hair industry.",
     avatar:
@@ -86,7 +86,7 @@ export const team: TeamMember[] = [
     status: "green",
   },
   {
-    name: "Aria Chen",
+    name: "May Yoon",
     role: "Color Specialist",
     bio: "Expert in balayage, ombre, and vivid color transformations.",
     avatar:
@@ -95,7 +95,7 @@ export const team: TeamMember[] = [
     status: "green",
   },
   {
-    name: "Marcus Lee",
+    name: "Thiri Cho",
     role: "Texture & Curl Expert",
     bio: "Specializing in natural hair, curls, and protective styling.",
     avatar:
@@ -104,7 +104,7 @@ export const team: TeamMember[] = [
     status: "yellow",
   },
   {
-    name: "Sofia Reyes",
+    name: "Sai Min Htet",
     role: "Bridal & Event Stylist",
     bio: "Creating unforgettable looks for weddings and special occasions.",
     avatar:

@@ -277,7 +277,7 @@ modelBuilder.Entity<Service>(entity =>
     entity.HasData(new Service { Id = 1, ... }, ...);
 });
 ```
-Add equivalent `modelBuilder.Entity<Stylist>(...)` with `HasData` seeded from `landing-page/lib/data.ts`'s `team` array (`name: "Mr. Zachary"`, `"Aria Chen"`, `"Marcus Lee"`, `"Sofia Reyes"` — 4 members, lines 76-113 of `data.ts`) — generate slugs, `IsActive = true`, `DisplayOrder` by array index, per D-05. Add `modelBuilder.Entity<AppointmentSlot>(...)` per the unique-index excerpt above. Remove the `Booking` entity block (lines 20-32) and `DbSet<Booking> Bookings` (line 14) entirely per D-14; add `DbSet<Appointment>`, `DbSet<AppointmentSlot>`, `DbSet<Stylist>`, `DbSet<StylistWorkingHours>`, `DbSet<StylistTimeOff>`.
+Add equivalent `modelBuilder.Entity<Stylist>(...)` with `HasData` seeded from `landing-page/lib/data.ts`'s `team` array (`name: "Zin Min"`, `"May Yoon"`, `"Thiri Cho"`, `"Sai Min Htet"` — 4 members, lines 76-113 of `data.ts`) — generate slugs, `IsActive = true`, `DisplayOrder` by array index, per D-05. Add `modelBuilder.Entity<AppointmentSlot>(...)` per the unique-index excerpt above. Remove the `Booking` entity block (lines 20-32) and `DbSet<Booking> Bookings` (line 14) entirely per D-14; add `DbSet<Appointment>`, `DbSet<AppointmentSlot>`, `DbSet<Stylist>`, `DbSet<StylistWorkingHours>`, `DbSet<StylistTimeOff>`.
 
 ---
 
