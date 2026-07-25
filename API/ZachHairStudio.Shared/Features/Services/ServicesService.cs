@@ -73,4 +73,18 @@ public class ServicesService
 
         return Result<ServiceResponseDto>.Success(service.ToDto());
     }
+
+    public async Task<Result<ServiceResponseDto>> SetImageAsync(int id, string imageUrl)
+    {
+        var service = await _dbContext.Services.FindAsync(id);
+        if (service is null)
+        {
+            return Result<ServiceResponseDto>.NotFoundError($"Service '{id}' not found.");
+        }
+
+        service.ImageUrl = imageUrl;
+        await _dbContext.SaveChangesAsync();
+
+        return Result<ServiceResponseDto>.Success(service.ToDto());
+    }
 }
