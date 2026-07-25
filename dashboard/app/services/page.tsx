@@ -67,10 +67,9 @@ function buildRetirePayload(row: ServiceResponseDto, isActive: boolean) {
 export default function ServicesPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const { services, isLoading, error, mutate } = useServices();
-  const [retiredOverrides, setRetiredOverrides] = useState<
-    Record<number, ServiceResponseDto>
-  >({});
+  const { services, isLoading, error, mutate } = useServices({
+    includeInactive: true,
+  });
   const [formState, setFormState] = useState<FormState>({ mode: "closed" });
   const [pendingRetire, setPendingRetire] = useState<ServiceResponseDto | null>(
     null
@@ -96,13 +95,6 @@ export default function ServicesPage() {
     );
   }
 
-  // GET /api/Services only ever returns Active rows (no API filter param to
-  // request retired ones — out of scope for this plan, see 04-02-SUMMARY.md).
-  // Retiring/reactivating this session is tracked locally so both actions
-  // stay reachable without inventing a new backend surface.
-  const retiredList = Object.values(retiredOverrides);
-  const rows = [...services, ...retiredList];
-
   async function handleRetireConfirm() {
     if (!pendingRetire) return;
     const id = Number(pendingRetire.id);
@@ -125,7 +117,6 @@ export default function ServicesPage() {
         throw new ApiError(message, response.status || null);
       }
 
-      setRetiredOverrides((prev) => ({ ...prev, [id]: pendingRetire }));
       setPendingRetire(null);
       void mutate();
     } catch (err) {
@@ -158,11 +149,6 @@ export default function ServicesPage() {
         throw new ApiError(message, response.status || null);
       }
 
-      setRetiredOverrides((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
       void mutate();
     } catch (err) {
       setActionError(
@@ -173,17 +159,7 @@ export default function ServicesPage() {
     }
   }
 
-  function handleSaved(service: ServiceResponseDto, isActive: boolean) {
-    const id = Number(service.id);
-    setRetiredOverrides((prev) => {
-      if (isActive) {
-        if (!(id in prev)) return prev;
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      }
-      return { ...prev, [id]: service };
-    });
+  function handleSaved() {
     void mutate();
   }
 
@@ -235,7 +211,7 @@ export default function ServicesPage() {
         </p>
       ) : null}
 
-      {isLoading && rows.length === 0 ? (
+      {isLoading && services.length === 0 ? (
         <div className="px-4 md:px-6 space-y-2">
           {[0, 1, 2].map((i) => (
             <div
@@ -246,7 +222,7 @@ export default function ServicesPage() {
         </div>
       ) : null}
 
-      {error && rows.length === 0 ? (
+      {error && services.length === 0 ? (
         <div className="px-4 md:px-6 max-w-lg">
           <h2 className="text-lg font-semibold text-ink">
             Couldn&apos;t Load Services.
@@ -267,7 +243,7 @@ export default function ServicesPage() {
         </div>
       ) : null}
 
-      {!isLoading && !error && rows.length === 0 ? (
+      {!isLoading && !error && services.length === 0 ? (
         <div className="px-4 md:px-6 max-w-lg">
           <h2 className="text-lg font-semibold text-ink">No Services Yet</h2>
           <p className="text-sm text-muted mt-2">
@@ -276,7 +252,7 @@ export default function ServicesPage() {
         </div>
       ) : null}
 
-      {rows.length > 0 ? (
+      {services.length > 0 ? (
         <div className="px-4 md:px-6 pb-10 overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -290,9 +266,9 @@ export default function ServicesPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => {
+              {services.map((row) => {
                 const id = Number(row.id);
-                const retired = id in retiredOverrides;
+                const retired = row.isActive === false;
                 return (
                   <tr
                     key={id}

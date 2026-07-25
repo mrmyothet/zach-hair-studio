@@ -448,7 +448,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    includeInactive?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -822,6 +824,7 @@ export interface components {
             /** Format: double */
             price?: number | string;
             imageUrl?: null | string;
+            isActive?: null | boolean;
             /** Format: int32 */
             displayOrder?: number | string;
         };

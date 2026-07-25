@@ -42,12 +42,11 @@ type Props = {
   mode: "create" | "edit";
   service?: ServiceResponseDto;
   /**
-   * Whether the service being edited is currently Active. ServiceResponseDto
-   * carries no isActive field (GET only ever returns Active rows), so the
-   * caller (the services list, which knows whether this row came from the
-   * Active fetch or the local retired-override) must supply it — ServiceForm
-   * always echoes it back unchanged; only Retire/Reactivate on the list
-   * change it. Ignored in create mode (the API always creates Active).
+   * Whether the service being edited is currently Active. The services list
+   * supplies this from the server-returned `isActive` status (an Owner-only
+   * field on the includeInactive listing); ServiceForm always echoes it back
+   * unchanged — only Retire/Reactivate on the list change it. Ignored in
+   * create mode (the API always creates Active).
    */
   initialIsActive?: boolean;
   onSaved: (service: ServiceResponseDto, isActive: boolean) => void;

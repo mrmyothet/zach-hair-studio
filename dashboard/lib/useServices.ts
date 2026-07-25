@@ -11,8 +11,10 @@ import type { components } from "@/lib/api/schema";
 
 export type ServiceResponseDto = components["schemas"]["ServiceResponseDto"];
 
-async function fetchServices(): Promise<ServiceResponseDto[]> {
-  const { data, response, error } = await api.GET("/api/Services");
+async function fetchServices(includeInactive: boolean): Promise<ServiceResponseDto[]> {
+  const { data, response, error } = await api.GET("/api/Services", {
+    params: { query: { includeInactive } },
+  });
 
   if (response.status === 401) {
     handleUnauthorized("Your session has ended. Log in again to continue.");
@@ -34,15 +36,16 @@ async function fetchServices(): Promise<ServiceResponseDto[]> {
 
 /**
  * Owner-facing services catalog. No polling — services rarely change
- * mid-session, unlike the schedule. GET /api/Services only returns
- * Active rows (server-side filter); the /services page layers a
- * session-local "retired this session" override on top so Retire/
- * Reactivate stay reachable without a new API filter param.
+ * mid-session, unlike the schedule. `includeInactive` is honored server-side
+ * only for an authenticated Owner (silently ignored otherwise); the two
+ * states get distinct SWR cache keys so an Owner listing never shares a
+ * cache entry with an active-only fetch.
  */
-export function useServices() {
+export function useServices(options?: { includeInactive?: boolean }) {
+  const includeInactive = options?.includeInactive ?? false;
   const { data, error, isLoading, mutate } = useSWR(
-    "services",
-    fetchServices,
+    includeInactive ? "services:all" : "services:active",
+    () => fetchServices(includeInactive),
     { shouldRetryOnError: false }
   );
 
