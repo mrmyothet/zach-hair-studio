@@ -139,6 +139,7 @@ public class AvailabilityController : ControllerBase
     }
 
     [HttpDelete("{stylistId}/time-off/{timeOffId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> RemoveTimeOff(int stylistId, int timeOffId)
     {
         var result = await _availabilityService.RemoveTimeOffAsync(stylistId, timeOffId);
