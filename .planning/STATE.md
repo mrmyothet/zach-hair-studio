@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: Services & Availability
-status: planned
-stopped_at: Phase 4 planned (5 plans, verified)
-last_updated: "2026-07-24T09:52:28.510Z"
-last_activity: 2026-07-24
-last_activity_desc: Phase 4 planned — 5 plans across 4 waves
+current_phase: 04
+current_phase_name: staff-management-services-availability
+status: verifying
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-07-25T07:59:56.244Z"
+last_activity: 2026-07-25
+last_activity_desc: "Completed quick task 260725-mx3: Owner-gated includeInactive filter on GET /api/Services"
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 17
-  completed_plans: 17
+  completed_phases: 4
+  total_plans: 22
+  completed_plans: 22
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-07)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 04 — Staff Management (Services & Availability)
+**Current focus:** Phase 04 — staff-management-services-availability
 
 ## Current Position
 
-Phase: 4 — Staff Management (Services & Availability)
-Plan: 5 plans created (4 waves), plan-checker PASSED
-Status: Planned — ready to execute
-Last activity: 2026-07-24 — Phase 4 planned (5 plans across 4 waves)
+Phase: 04 (staff-management-services-availability) — EXECUTING
+Plan: 5 of 5
+Status: Phase complete — ready for verification
+Last activity: 2026-07-25 — Completed quick task 260725-mx3: Owner-gated includeInactive filter on GET /api/Services
 
-Progress: [████░░░░░░] 38%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -62,6 +62,15 @@ Progress: [████░░░░░░] 38%
 | Phase 03 P03 | 25min | 3 tasks | 10 files |
 | Phase 02 P07 | 25min | 3 tasks | 8 files |
 | Phase 03 P05 | close-out | 4 tasks | 12 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 04 P01 | 25min | 3 tasks | 10 files |
+| Phase 04 P02 | 45min | 3 tasks | 9 files |
+| Phase 04 P03 | 30min | 3 tasks | 9 files |
+| Phase 04 P04 | 45min | 3 tasks | 9 files |
+| Phase 04 P05 | 55min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -97,6 +106,22 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 3 Plan 05: Hand-rolled CSS Grid day view with Asia/Yangon scheduleTime helpers — no calendar library.
 - [Phase ?]: Phase 3 Plan 05: Schedule fetches all statuses; Cancelled/NoShow reveal is client-side includeCancelled toggle (D-08).
 - [Phase ?]: Phase 3 Plan 05: POST /api/staff-users 201 Created treated as success on Owner add-staff form.
+- [Phase ?]: Phase 4 Plan 01: Action-level (not class-level) [Authorize(Roles=Owner)] on ServicesController writes only — GET stays anonymous (Pitfall 5).
+- [Phase ?]: Phase 4 Plan 01: Backfill IWebHostEnvironment.WebRootPath explicitly in Program.cs in addition to an explicit PhysicalFileProvider — ASP.NET Core leaves WebRootPath empty (not just the file provider) when wwwroot is absent at host-build time.
+- [Phase ?]: Phase 4 Plan 01: Uploaded image filenames are Path.GetRandomFileName() + a content-type-derived extension, never the client FileName (path-traversal safe).
+- [Phase ?]: Phase 4 Plan 02: GET /api/Services had no way to fetch retired services (frontend-only plan, no new API filter param) — retired/reactivated services were tracked in local session state (retiredOverrides). **Resolved by quick task 260725-mx3:** `includeInactive` query param added, honored only for an authenticated Owner (silently ignored otherwise, DD-1); `IsActive` is `bool?` omitted when null so the anonymous catalog response stays byte-identical (DD-2). The retiredOverrides workaround is gone.
+- [Phase ?]: Phase 4 Plan 02: Service slug (required by DTOs, not a UI-SPEC field) is derived from Name via slugify() at first create and held fixed afterward so edits never change an already-public service URL.
+- [Phase ?]: Phase 4 Plan 02: ServiceForm branches POST vs PUT on local serviceId state (persisted or not), not the static create/edit mode prop, so the form stays open after create to unlock image upload immediately.
+- [Phase ?]: Phase 4 Plan 02: Multipart image upload uses a direct fetch() to POST /api/Services/{id}/image instead of the typed openapi-fetch client — the .NET OpenAPI doc documents the [FromForm] IFormFile body as application/x-www-form-urlencoded (a Swashbuckle quirk, not the real wire format).
+- [Phase ?]: Phase 4 Plan 03: PUT working-hours replace returns 204 NoContent; POST time-off returns 201 Created via a string-URI Created(...) (no CreatedAtAction, no matching GET action exists); DELETE time-off returns 204 NoContent.
+- [Phase ?]: Phase 4 Plan 03: AvailabilityService writes exclusively to StylistWorkingHours/StylistTimeOff (D-08) via a single implicit-transaction SaveChangesAsync (delete-then-insert), no manual BeginTransaction — mirrors AppointmentsService's EnableRetryOnFailure-safe pattern.
+- [Phase ?]: Phase 4 Plan 04: Added GET /api/availability/{stylistId} — Plan 03 shipped write-only endpoints; the dashboard editor needs a read path, added reading only StylistWorkingHours/StylistTimeOff (D-08 preserved).
+- [Phase ?]: Phase 4 Plan 04: DayOfWeek (and other server enums) are typed number by Swashbuckle but serialize as string names via the global JsonStringEnumConverter — confirmed via live GET; cast explicitly on write, matching the AppointmentStatus precedent in scheduleStatus.ts.
+- [Phase ?]: Phase 4 Plan 04: Kept the UI-SPEC's wider 06:00-22:00 week-strip default window over the narrower seeded 09:00-18:00 per-stylist default, giving staff painting room beyond the placeholder.
+- [Phase ?]: Phase 4 Plan 05: Result<T>.Conflicts is a T-independent side-channel (not a repurposing of Data) since AddTimeOffAsync's success Data must stay the created StylistTimeOff entity.
+- [Phase ?]: Phase 4 Plan 05: The conflict scan + persist for both working-hours and time-off writes run inside Database.CreateExecutionStrategy().ExecuteAsync wrapping a manual BeginTransactionAsync -- the one write path in this codebase needing a real transaction under EnableRetryOnFailure.
+- [Phase ?]: Phase 4 Plan 05: Removing time off is never conflict-scanned -- it can only widen availability, never orphan a Confirmed appointment.
+- [Phase ?]: Phase 4 Plan 05: AvailabilityConflictDto.SalonLocalTime carries the raw UTC instant; the dashboard formats it via the existing formatSalonDateTime helper rather than server-side pre-formatting.
 
 ### Pending Todos
 
@@ -118,6 +143,7 @@ Recent decisions affecting current work:
 | 260716-qfe | Fix gitleaks false positives on GSD manifest checksums (rule-targeted regex allowlist replaces stale .gitleaksignore fingerprints) | 2026-07-16 | 8e7a1d2 | [260716-qfe-fix-gitleaks-false-positives-on-gsd-mani](./quick/260716-qfe-fix-gitleaks-false-positives-on-gsd-mani/) |
 | 3 | Bump CI gitleaks v8.18.4 -> v8.30.1 so [[allowlists]] config applies in security.yml scan | 2026-07-16 | 1221ba5 | — |
 | 4 | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies | 2026-07-16 | b130c2d | — |
+| 260725-mx3 | Add Owner-gated includeInactive filter to GET /api/Services so retired services survive reload | 2026-07-25 | 2facace | [260725-mx3-add-owner-gated-includeinactive-filter-t](./quick/260725-mx3-add-owner-gated-includeinactive-filter-t/) |
 
 ## Deferred Items
 
@@ -129,8 +155,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T09:52:28.510Z
-Stopped at: Phase 4 planned (5 plans, verified)
-Resume file: .planning/phases/04-staff-management-services-availability/04-01-PLAN.md
+Last session: 2026-07-25T07:59:56.217Z
+Stopped at: Completed 04-05-PLAN.md
+Resume file: None
 
-Next action: Phase 4 planned — 5 plans across 4 waves, plan-checker PASSED. Run `/gsd-execute-phase 4` (Wave 1: 04-01).
+Next action: Phase 04 complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.

@@ -43,4 +43,18 @@ public class SalonTimeZone
         var offset = _timeZoneInfo.GetUtcOffset(unspecified);
         return new DateTimeOffset(unspecified, offset);
     }
+
+    /// <summary>
+    /// Resolves a UTC/offset instant to its salon-local wall-clock time — the
+    /// inverse of <see cref="ToSalonInstant"/>. Every AppointmentSlot.SlotStart
+    /// comparison against a DayOfWeek/TimeOnly working-hours or time-off
+    /// boundary MUST go through this helper — never a raw .DayOfWeek/.TimeOfDay
+    /// on the DateTimeOffset itself, which reflects the offset baked into the
+    /// instant, not the salon's configured zone (Pitfall 2).
+    /// </summary>
+    public DateTime ToSalonLocal(DateTimeOffset instant)
+    {
+        var converted = TimeZoneInfo.ConvertTime(instant, _timeZoneInfo);
+        return DateTime.SpecifyKind(converted.DateTime, DateTimeKind.Unspecified);
+    }
 }

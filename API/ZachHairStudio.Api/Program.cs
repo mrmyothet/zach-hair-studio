@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ZachHairStudio.Shared.Db;
@@ -52,6 +53,7 @@ builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon
 // (SlotService) can depend on it directly without referencing Microsoft.Extensions.Options.
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SalonOptions>>().Value);
 builder.Services.AddScoped<SlotService>();
+builder.Services.AddScoped<AvailabilityService>();
 
 // Resend confirmation email (D-09/D-10/D-11). FromEmail is a non-secret appsettings
 // value; the API key is read from RESEND_API_KEY (user-secrets/env, D-13) — never a
@@ -146,6 +148,28 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseHttpsRedirection();
+
+// Uploaded service images (D-03) are public catalog assets, so static-file serving
+// stays anonymous — only the POST {id}/image write action is Owner-gated (in
+// ServicesController). No wwwroot/ ships in source control, so ensure it (and the
+// uploads/services subfolder) exists here, and build the PhysicalFileProvider against
+// that resolved path explicitly rather than relying on env.WebRootFileProvider, which
+// is captured once at host-build time and would otherwise permanently bind to a
+// NullFileProvider if wwwroot didn't exist yet at that moment (RESEARCH Pitfall 4).
+// Also write the resolved path back onto IWebHostEnvironment.WebRootPath itself —
+// ASP.NET Core's own HostingEnvironment.Initialize leaves that property empty (not
+// just the file provider) when wwwroot is absent at Initialize time, and
+// ServicesController's UploadImage action reads WebRootPath directly via DI.
+var webRootPath = string.IsNullOrEmpty(app.Environment.WebRootPath)
+    ? Path.Combine(app.Environment.ContentRootPath, "wwwroot")
+    : app.Environment.WebRootPath;
+Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "services"));
+app.Environment.WebRootPath = webRootPath;
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(webRootPath),
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
