@@ -144,10 +144,10 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
 
             // Seeded from landing-page/lib/data.ts `team` array (owner-editable content).
             entity.HasData(
-                new Stylist { Id = 1, Slug = "mr-zachary", Name = "Mr. Zachary", IsActive = true, DisplayOrder = 1 },
-                new Stylist { Id = 2, Slug = "aria-chen", Name = "Aria Chen", IsActive = true, DisplayOrder = 2 },
-                new Stylist { Id = 3, Slug = "marcus-lee", Name = "Marcus Lee", IsActive = true, DisplayOrder = 3 },
-                new Stylist { Id = 4, Slug = "sofia-reyes", Name = "Sofia Reyes", IsActive = true, DisplayOrder = 4 });
+                new Stylist { Id = 1, Slug = "zin-min", Name = "Zin Min", IsActive = true, DisplayOrder = 1 },
+                new Stylist { Id = 2, Slug = "may-yoon", Name = "May Yoon", IsActive = true, DisplayOrder = 2 },
+                new Stylist { Id = 3, Slug = "thiri-cho", Name = "Thiri Cho", IsActive = true, DisplayOrder = 3 },
+                new Stylist { Id = 4, Slug = "sai-min-htet", Name = "Sai Min Htet", IsActive = true, DisplayOrder = 4 });
         });
 
         modelBuilder.Entity<StylistWorkingHours>(entity =>

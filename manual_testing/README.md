@@ -80,10 +80,10 @@ These guides assume the seeded data below (created automatically on first API ru
 
 | Stylist | Working hours | Notes |
 |---------|---------------|-------|
-| Mr. Zachary | ✅ Every day, 9:00–18:00 | Shows open slots |
-| Aria Chen | ✅ Every day, 9:00–18:00 | Shows open slots |
-| Marcus Lee | ✅ Every day, 9:00–18:00 | Shows open slots |
-| Sofia Reyes | ✅ Every day, 9:00–18:00 | Shows open slots |
+| Zin Min | ✅ Every day, 9:00–18:00 | Shows open slots |
+| May Yoon | ✅ Every day, 9:00–18:00 | Shows open slots |
+| Thiri Cho | ✅ Every day, 9:00–18:00 | Shows open slots |
+| Sai Min Htet | ✅ Every day, 9:00–18:00 | Shows open slots |
 
 - Salon timezone: **Asia/Yangon (UTC+06:30, no daylight saving)**. All displayed
   times are salon-local.

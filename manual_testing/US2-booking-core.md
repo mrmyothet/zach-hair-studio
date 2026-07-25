@@ -46,15 +46,15 @@
 **Steps**
 
 1. Continue from Scenario 1 (service + date selected).
-2. Select a specific stylist — pick **Aria Chen**.
+2. Select a specific stylist — pick **May Yoon**.
 3. Observe the slot grid refresh.
-4. Now select **Marcus Lee**.
+4. Now select **Thiri Cho**.
 
 **Expected result**
 
-- With **Aria Chen** selected, the grid narrows to her availability only.
+- With **May Yoon** selected, the grid narrows to her availability only.
 - Switching back to "any stylist" restores the union across stylists.
-- **Marcus Lee** (and **Sofia Reyes**) also show slots — all four stylists work daily.
+- **Thiri Cho** (and **Sai Min Htet**) also show slots — all four stylists work daily.
 - Booking a slot for one stylist removes it from that stylist's grid, but the same
   time may still be open for a different stylist.
 
@@ -68,7 +68,7 @@
 
 **Steps**
 
-1. Select service **Precision Cut**, a valid weekday date, and **Mr. Zachary**.
+1. Select service **Precision Cut**, a valid weekday date, and **Zin Min**.
 2. Click an open slot.
 3. Fill in contact details (first name, last name, email, phone).
 4. Submit / confirm the booking.
@@ -78,7 +78,7 @@
 - The booking succeeds and an **on-screen confirmation panel** appears immediately
   (no page refresh needed).
 - The confirmation shows **all five fields**: service name, the concrete stylist
-  (Mr. Zachary), salon-local **date**, salon-local **time with zone label**,
+  (Zin Min), salon-local **date**, salon-local **time with zone label**,
   **duration**, and **price**.
 
 **Result**
