@@ -42,10 +42,18 @@ public class ServicesController : ControllerBase
         _webHostEnvironment = webHostEnvironment;
     }
 
+    // GetServices stays anonymous (D-01) — the public landing-page catalog depends on it.
+    // includeInactive is honored ONLY for an authenticated Owner; for anyone else it is
+    // silently ignored rather than rejected with 403, because bolting a new authz error
+    // surface onto a deliberately anonymous endpoint would advertise a privileged mode to
+    // unauthenticated clients. This is fail-closed by construction: the relaxed filter is
+    // reachable only from inside the IsInRole check below, so no misconfigured attribute,
+    // missing [Authorize], or expired token can reach the inactive rows (DD-1).
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ServiceResponseDto>>> GetServices()
+    public async Task<ActionResult<IEnumerable<ServiceResponseDto>>> GetServices([FromQuery] bool includeInactive = false)
     {
-        var services = await _servicesService.GetServicesAsync();
+        var effectiveIncludeInactive = includeInactive && User.IsInRole(StaffRoles.Owner);
+        var services = await _servicesService.GetServicesAsync(effectiveIncludeInactive);
         return Ok(services);
     }
 
