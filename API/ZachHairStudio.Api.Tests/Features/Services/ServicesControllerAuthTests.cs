@@ -105,7 +105,7 @@ public class ServicesControllerAuthTests : IClassFixture<SqlServerWebApplication
             DisplayOrder = 99,
         };
 
-    private static ServiceUpdateDto UpdateDtoFor(ServiceResponseDto service)
+    private static ServiceUpdateDto UpdateDtoFor(ServiceResponseDto service, bool isActive = true)
         => new ServiceUpdateDto
         {
             Slug = service.Slug,
@@ -116,9 +116,28 @@ public class ServicesControllerAuthTests : IClassFixture<SqlServerWebApplication
             DurationMinutes = service.DurationMinutes,
             Price = service.Price,
             ImageUrl = service.ImageUrl,
-            IsActive = true,
+            IsActive = isActive,
             DisplayOrder = service.DisplayOrder,
         };
+
+    /// <summary>
+    /// Creates a service via an Owner client, then retires it (PUT IsActive=false),
+    /// returning its slug so each includeInactive test asserts on its own uniquely-slugged
+    /// row without cross-test interference on the shared SqlServerWebApplicationFactory fixture.
+    /// </summary>
+    private static async Task<string> CreateRetiredServiceAsync(HttpClient ownerClient)
+    {
+        var createResponse = await ownerClient.PostAsJsonAsync("/api/services", NewServiceDto());
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<ServiceResponseDto>();
+
+        var updateResponse = await ownerClient.PutAsJsonAsync(
+            $"/api/services/{created!.Id}",
+            UpdateDtoFor(created, isActive: false));
+        Assert.Equal(HttpStatusCode.NoContent, updateResponse.StatusCode);
+
+        return created.Slug;
+    }
 
     [Fact]
     public async Task GetServices_Anonymous_Returns200()
@@ -194,5 +213,63 @@ public class ServicesControllerAuthTests : IClassFixture<SqlServerWebApplication
         var response = await client.PutAsJsonAsync($"/api/services/{SeededServiceId}", UpdateDtoFor(current!));
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    // DD-1: the flag is honored only for an authenticated Owner and is otherwise
+    // silently ignored (not 403'd) elsewhere — GetServices stays anonymous.
+    [Fact]
+    public async Task GetServices_OwnerWithIncludeInactive_ReturnsRetiredService()
+    {
+        var owner = await CreateAuthenticatedClientAsync(StaffRoles.Owner);
+        var retiredSlug = await CreateRetiredServiceAsync(owner);
+
+        var response = await owner.GetAsync("/api/services?includeInactive=true");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var services = await response.Content.ReadFromJsonAsync<List<ServiceResponseDto>>();
+        Assert.Contains(services!, service => service.Slug == retiredSlug);
+        var retiredService = services!.Single(service => service.Slug == retiredSlug);
+        Assert.False(retiredService.IsActive);
+    }
+
+    [Fact]
+    public async Task GetServices_AnonymousWithIncludeInactive_OmitsRetiredService()
+    {
+        var owner = await CreateAuthenticatedClientAsync(StaffRoles.Owner);
+        var retiredSlug = await CreateRetiredServiceAsync(owner);
+
+        var anonymous = _factory.CreateClient();
+        var response = await anonymous.GetAsync("/api/services?includeInactive=true");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var services = await response.Content.ReadFromJsonAsync<List<ServiceResponseDto>>();
+        Assert.DoesNotContain(services!, service => service.Slug == retiredSlug);
+    }
+
+    [Fact]
+    public async Task GetServices_StaffRoleWithIncludeInactive_OmitsRetiredService()
+    {
+        var owner = await CreateAuthenticatedClientAsync(StaffRoles.Owner);
+        var retiredSlug = await CreateRetiredServiceAsync(owner);
+
+        var staff = await CreateAuthenticatedClientAsync(StaffRoles.Staff);
+        var response = await staff.GetAsync("/api/services?includeInactive=true");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var services = await response.Content.ReadFromJsonAsync<List<ServiceResponseDto>>();
+        Assert.DoesNotContain(services!, service => service.Slug == retiredSlug);
+    }
+
+    [Fact]
+    public async Task GetServices_OwnerWithoutIncludeInactive_OmitsRetiredService()
+    {
+        var owner = await CreateAuthenticatedClientAsync(StaffRoles.Owner);
+        var retiredSlug = await CreateRetiredServiceAsync(owner);
+
+        var response = await owner.GetAsync("/api/services");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var services = await response.Content.ReadFromJsonAsync<List<ServiceResponseDto>>();
+        Assert.DoesNotContain(services!, service => service.Slug == retiredSlug);
     }
 }
