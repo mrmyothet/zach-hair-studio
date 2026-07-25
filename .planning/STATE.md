@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: staff-management-services-availability
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-07-25T06:25:11.866Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-07-25T06:53:14.907Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 04 (staff-management-services-availability) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-07-25 — Phase 04 execution resumed (wave continue)
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [████████░░] 82%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 04 P01 | 25min | 3 tasks | 10 files |
+| Phase 04 P02 | 45min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,10 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 01: Action-level (not class-level) [Authorize(Roles=Owner)] on ServicesController writes only — GET stays anonymous (Pitfall 5).
 - [Phase ?]: Phase 4 Plan 01: Backfill IWebHostEnvironment.WebRootPath explicitly in Program.cs in addition to an explicit PhysicalFileProvider — ASP.NET Core leaves WebRootPath empty (not just the file provider) when wwwroot is absent at host-build time.
 - [Phase ?]: Phase 4 Plan 01: Uploaded image filenames are Path.GetRandomFileName() + a content-type-derived extension, never the client FileName (path-traversal safe).
+- [Phase ?]: Phase 4 Plan 02: GET /api/Services has no way to fetch retired services (frontend-only plan, no new API filter param) — retired/reactivated services tracked in local session state (retiredOverrides) instead.
+- [Phase ?]: Phase 4 Plan 02: Service slug (required by DTOs, not a UI-SPEC field) is derived from Name via slugify() at first create and held fixed afterward so edits never change an already-public service URL.
+- [Phase ?]: Phase 4 Plan 02: ServiceForm branches POST vs PUT on local serviceId state (persisted or not), not the static create/edit mode prop, so the form stays open after create to unlock image upload immediately.
+- [Phase ?]: Phase 4 Plan 02: Multipart image upload uses a direct fetch() to POST /api/Services/{id}/image instead of the typed openapi-fetch client — the .NET OpenAPI doc documents the [FromForm] IFormFile body as application/x-www-form-urlencoded (a Swashbuckle quirk, not the real wire format).
 
 ### Pending Todos
 
@@ -137,8 +142,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T06:25:11.842Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-07-25T06:53:14.871Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
 
 Next action: Phase 4 planned — 5 plans across 4 waves, plan-checker PASSED. Run `/gsd-execute-phase 4` (Wave 1: 04-01).
