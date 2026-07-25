@@ -38,7 +38,7 @@ Requirements for the current milestone (full services-led platform, specs roadma
 ### Staff Management — Services & Availability (P4)
 
 - [x] **MGMT-01**: Staff can create, edit, and retire services (name, description, duration, price)
-- [ ] **MGMT-02**: Staff can manage stylist availability (working hours, breaks, time off) feeding the P2 slot logic
+- [x] **MGMT-02**: Staff can manage stylist availability (working hours, breaks, time off) feeding the P2 slot logic
 - [ ] **MGMT-03**: Availability edits are checked against existing confirmed bookings and surface conflicts
 
 ### Product Catalog (P5)
@@ -130,7 +130,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | DASH-04 | Phase 3 | Complete |
 | DASH-05 | Phase 3 | Complete |
 | MGMT-01 | Phase 4 | Complete |
-| MGMT-02 | Phase 4 | Pending |
+| MGMT-02 | Phase 4 | Complete |
 | MGMT-03 | Phase 4 | Pending |
 | PROD-01 | Phase 5 | Pending |
 | PROD-02 | Phase 5 | Pending |
