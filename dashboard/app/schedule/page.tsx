@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { api } from "@/lib/api/client";
-import {
-  clearSession,
-  getSession,
-  requireAuth,
-  type AuthSession,
-} from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import {
   addDays,
   dayWindow,
@@ -29,7 +23,7 @@ import {
   ScheduleToolbar,
   type ScheduleMode,
 } from "@/components/ScheduleToolbar";
-import { LogOutIcon } from "@/components/icons";
+import { DashboardNav } from "@/components/DashboardNav";
 
 type PendingConfirm = {
   appointment: AppointmentResponseDto;
@@ -37,7 +31,6 @@ type PendingConfirm = {
 };
 
 export default function SchedulePage() {
-  const [session, setSession] = useState<AuthSession | null>(null);
   const [ready, setReady] = useState(false);
   const [date, setDate] = useState(todayDateOnly);
   const [mode, setMode] = useState<ScheduleMode>("day");
@@ -50,7 +43,6 @@ export default function SchedulePage() {
 
   useEffect(() => {
     if (!requireAuth()) return;
-    setSession(getSession());
     setReady(true);
   }, []);
 
@@ -134,11 +126,6 @@ export default function SchedulePage() {
     }
   }, [pending, mutate]);
 
-  function handleLogout() {
-    clearSession();
-    window.location.assign("/login");
-  }
-
   if (!ready) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-surface text-muted text-sm">
@@ -148,37 +135,10 @@ export default function SchedulePage() {
   }
 
   const confirmCopy = pending ? CONFIRM_COPY[pending.action] : null;
-  const isOwner = session?.role === "Owner";
 
   return (
     <main className="min-h-screen bg-surface text-ink">
-      <header className="border-b border-border bg-surface-alt px-4 md:px-6 py-3 flex flex-wrap items-center gap-3 justify-between">
-        <h1 className="font-serif text-2xl font-semibold tracking-tight">
-          Zach Hair Studio
-        </h1>
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-muted">
-            {session?.displayName}
-            {session?.role ? ` · ${session.role}` : ""}
-          </p>
-          {isOwner ? (
-            <Link
-              href="/staff/new"
-              className="min-h-11 inline-flex items-center px-3 rounded-xl border border-border text-sm text-ink hover:border-gold-dark/40"
-            >
-              Add staff
-            </Link>
-          ) : null}
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Log out"
-            className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl border border-border text-ink"
-          >
-            <LogOutIcon className="h-5 w-5" />
-          </button>
-        </div>
-      </header>
+      <DashboardNav />
 
       <ScheduleToolbar
         date={date}

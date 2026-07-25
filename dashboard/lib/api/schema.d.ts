@@ -377,6 +377,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Services/{id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/x-www-form-urlencoded": {
+                        Image?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ServiceResponseDto"];
+                        "application/json": components["schemas"]["ServiceResponseDto"];
+                        "text/json": components["schemas"]["ServiceResponseDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff-users": {
         parameters: {
             query?: never;
@@ -401,17 +446,6 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["StaffUserResponseDto"];
-                        "application/json": components["schemas"]["StaffUserResponseDto"];
-                        "text/json": components["schemas"]["StaffUserResponseDto"];
-                    };
-                };
                 /** @description Created */
                 201: {
                     headers: {
@@ -421,6 +455,39 @@ export interface paths {
                         "text/plain": components["schemas"]["StaffUserResponseDto"];
                         "application/json": components["schemas"]["StaffUserResponseDto"];
                         "text/json": components["schemas"]["StaffUserResponseDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -512,6 +579,8 @@ export interface components {
         AppointmentStatusUpdateDto: {
             newStatus?: components["schemas"]["AppointmentStatus"];
         };
+        /** Format: binary */
+        IFormFile: string;
         LoginRequestDto: {
             email?: string;
             password?: string;
@@ -529,6 +598,14 @@ export interface components {
             /** Format: int32 */
             stylistId?: null | number | string;
             stylistName?: null | string;
+        };
+        ProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
         };
         ServiceCreateDto: {
             slug: string;
