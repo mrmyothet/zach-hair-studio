@@ -6,9 +6,12 @@ import { DashboardNav } from "@/components/DashboardNav";
 import { StylistPicker } from "@/components/StylistPicker";
 import { WeekStripEditor } from "@/components/WeekStripEditor";
 import { TimeOffCalendar } from "@/components/TimeOffCalendar";
+import { ConflictList } from "@/components/ConflictList";
 import {
+  AvailabilityConflictError,
   saveAvailability,
   useAvailability,
+  type AvailabilityConflict,
   type TimeOffRange,
   type WorkingHoursSegment,
 } from "@/lib/useAvailability";
@@ -33,6 +36,7 @@ export default function AvailabilityPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [conflicts, setConflicts] = useState<AvailabilityConflict[]>([]);
 
   useEffect(() => {
     if (!requireAuth()) return;
@@ -57,16 +61,19 @@ export default function AvailabilityPage() {
     setStylistId(id);
     setSaveError(null);
     setSaveSuccess(false);
+    setConflicts([]);
   }, []);
 
   const handleHoursChange = useCallback((segments: WorkingHoursSegment[]) => {
     setLocalHours(segments);
     setSaveSuccess(false);
+    setConflicts([]);
   }, []);
 
   const handleTimeOffChange = useCallback((ranges: TimeOffRange[]) => {
     setLocalTimeOff(ranges);
     setSaveSuccess(false);
+    setConflicts([]);
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -74,6 +81,7 @@ export default function AvailabilityPage() {
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
+    setConflicts([]);
     try {
       await saveAvailability(stylistId, localHours, localTimeOff, originalTimeOffIds);
       const fresh = await mutate();
@@ -84,9 +92,16 @@ export default function AvailabilityPage() {
       }
       setSaveSuccess(true);
     } catch (err) {
-      setSaveError(
-        err instanceof Error ? err.message : "Couldn't save availability. Try again."
-      );
+      if (err instanceof AvailabilityConflictError) {
+        // Distinct from the generic network/500 banner (E7) — the rose
+        // ConflictList panel below renders instead. Save Changes stays
+        // enabled so staff can retry once conflicts are resolved elsewhere.
+        setConflicts(err.conflicts);
+      } else {
+        setSaveError(
+          err instanceof Error ? err.message : "Couldn't save availability. Try again."
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -170,13 +185,8 @@ export default function AvailabilityPage() {
                     </p>
                   ) : null}
 
-                  {/*
-                    Seam for Plan 05 (MGMT-03): a hard-blocked save (409,
-                    conflicting Confirmed appointments) will render the
-                    "Can't Save — Conflicting Appointments" panel here
-                    instead of/alongside this generic banner. This plan only
-                    covers the non-conflict network/500 failure path.
-                  */}
+                  <ConflictList conflicts={conflicts} />
+
                   {saveError ? (
                     <p
                       role="alert"

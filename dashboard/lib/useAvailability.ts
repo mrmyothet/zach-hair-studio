@@ -59,6 +59,48 @@ type AvailabilityData = {
   timeOff: TimeOffRange[];
 };
 
+/**
+ * One Confirmed appointment the server refused to orphan (MGMT-03, D-09/D-11).
+ * The 409 body's "conflicts" extension isn't representable in the generated
+ * OpenAPI schema (ProblemDetails.Extensions has no static shape), so this type
+ * is hand-defined to match AvailabilityConflictDto's fields exactly, per the
+ * plan's documented escape hatch.
+ */
+export type AvailabilityConflict = {
+  appointmentId: number;
+  clientName: string;
+  serviceName: string;
+  stylistName: string;
+  salonLocalTime: string;
+};
+
+/**
+ * Thrown instead of the generic ApiError when a save is hard-blocked by the
+ * conflict check, so the page can render the ConflictList panel instead of
+ * the generic network/500 banner (E7).
+ */
+export class AvailabilityConflictError extends ApiError {
+  readonly conflicts: AvailabilityConflict[];
+
+  constructor(message: string, conflicts: AvailabilityConflict[]) {
+    super(message, 409);
+    this.name = "AvailabilityConflictError";
+    this.conflicts = conflicts;
+  }
+}
+
+async function extractConflicts(res: Response): Promise<AvailabilityConflict[]> {
+  try {
+    const body = await res.json();
+    if (Array.isArray(body?.conflicts)) {
+      return body.conflicts as AvailabilityConflict[];
+    }
+  } catch {
+    // Not JSON, or no conflicts array — treat as no parseable conflicts.
+  }
+  return [];
+}
+
 async function fetchAvailability(stylistId: number): Promise<AvailabilityData> {
   const { data, response, error } = await api.GET("/api/Availability/{stylistId}", {
     params: { path: { stylistId } },
@@ -146,6 +188,12 @@ export async function saveAvailability(
   );
 
   if (!hoursResponse.ok || hoursError) {
+    if (hoursResponse.status === 409) {
+      throw new AvailabilityConflictError(
+        "Can't save — some confirmed appointments fall outside the new hours or inside time off.",
+        await extractConflicts(hoursResponse.clone())
+      );
+    }
     let message = "Couldn't save availability. Try again.";
     try {
       message = await extractErrorMessage(hoursResponse.clone());
@@ -191,6 +239,12 @@ export async function saveAvailability(
       }
     );
     if (!response.ok || error) {
+      if (response.status === 409) {
+        throw new AvailabilityConflictError(
+          "Can't save — some confirmed appointments fall outside the new hours or inside time off.",
+          await extractConflicts(response.clone())
+        );
+      }
       let message = "Couldn't save availability. Try again.";
       try {
         message = await extractErrorMessage(response.clone());

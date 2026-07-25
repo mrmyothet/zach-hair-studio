@@ -53,6 +53,7 @@ public class AvailabilityController : ControllerBase
     }
 
     [HttpPut("{stylistId}/working-hours")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ReplaceWorkingHours(int stylistId, [FromBody] WorkingHoursReplaceDto request)
     {
@@ -95,6 +96,7 @@ public class AvailabilityController : ControllerBase
     }
 
     [HttpPost("{stylistId}/time-off")]
+    [ProducesResponseType(typeof(StylistTimeOff), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AddTimeOff(int stylistId, [FromBody] TimeOffCreateDto request)
     {
