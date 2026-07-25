@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: staff-management-services-availability
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-07-25T07:06:45.826Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-07-25T07:32:59.416Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 04 (staff-management-services-availability) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-07-25 — Phase 04 execution resumed (wave continue)
 
-Progress: [█████████░] 91%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [█████████░] 91%
 | Phase 04 P01 | 25min | 3 tasks | 10 files |
 | Phase 04 P02 | 45min | 3 tasks | 9 files |
 | Phase 04 P03 | 30min | 3 tasks | 9 files |
+| Phase 04 P04 | 45min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 02: Multipart image upload uses a direct fetch() to POST /api/Services/{id}/image instead of the typed openapi-fetch client — the .NET OpenAPI doc documents the [FromForm] IFormFile body as application/x-www-form-urlencoded (a Swashbuckle quirk, not the real wire format).
 - [Phase ?]: Phase 4 Plan 03: PUT working-hours replace returns 204 NoContent; POST time-off returns 201 Created via a string-URI Created(...) (no CreatedAtAction, no matching GET action exists); DELETE time-off returns 204 NoContent.
 - [Phase ?]: Phase 4 Plan 03: AvailabilityService writes exclusively to StylistWorkingHours/StylistTimeOff (D-08) via a single implicit-transaction SaveChangesAsync (delete-then-insert), no manual BeginTransaction — mirrors AppointmentsService's EnableRetryOnFailure-safe pattern.
+- [Phase ?]: Phase 4 Plan 04: Added GET /api/availability/{stylistId} — Plan 03 shipped write-only endpoints; the dashboard editor needs a read path, added reading only StylistWorkingHours/StylistTimeOff (D-08 preserved).
+- [Phase ?]: Phase 4 Plan 04: DayOfWeek (and other server enums) are typed number by Swashbuckle but serialize as string names via the global JsonStringEnumConverter — confirmed via live GET; cast explicitly on write, matching the AppointmentStatus precedent in scheduleStatus.ts.
+- [Phase ?]: Phase 4 Plan 04: Kept the UI-SPEC's wider 06:00-22:00 week-strip default window over the narrower seeded 09:00-18:00 per-stylist default, giving staff painting room beyond the placeholder.
 
 ### Pending Todos
 
@@ -145,8 +149,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T07:06:45.800Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-07-25T07:32:59.390Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
 
 Next action: Phase 4 planned — 5 plans across 4 waves, plan-checker PASSED. Run `/gsd-execute-phase 4` (Wave 1: 04-01).
