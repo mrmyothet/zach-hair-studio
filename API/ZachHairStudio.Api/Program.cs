@@ -53,6 +53,7 @@ builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon
 // (SlotService) can depend on it directly without referencing Microsoft.Extensions.Options.
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SalonOptions>>().Value);
 builder.Services.AddScoped<SlotService>();
+builder.Services.AddScoped<AvailabilityService>();
 
 // Resend confirmation email (D-09/D-10/D-11). FromEmail is a non-secret appsettings
 // value; the API key is read from RESEND_API_KEY (user-secrets/env, D-13) — never a
