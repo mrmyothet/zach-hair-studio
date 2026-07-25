@@ -20,12 +20,19 @@ public class ServicesService
         _updateValidator = updateValidator;
     }
 
-    public async Task<IEnumerable<ServiceResponseDto>> GetActiveServicesAsync()
-        => await _dbContext.Services
-            .Where(service => service.IsActive)
+    public async Task<IEnumerable<ServiceResponseDto>> GetServicesAsync(bool includeInactive = false)
+    {
+        IQueryable<Service> query = _dbContext.Services;
+        if (!includeInactive)
+        {
+            query = query.Where(service => service.IsActive);
+        }
+
+        return await query
             .OrderBy(service => service.DisplayOrder)
-            .Select(service => service.ToDto())
+            .Select(service => service.ToDto(includeInactive))
             .ToListAsync();
+    }
 
     public async Task<Result<ServiceResponseDto>> GetBySlugAsync(string slug)
     {

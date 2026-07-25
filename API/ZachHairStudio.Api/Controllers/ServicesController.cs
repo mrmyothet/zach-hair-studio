@@ -45,7 +45,7 @@ public class ServicesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ServiceResponseDto>>> GetServices()
     {
-        var services = await _servicesService.GetActiveServicesAsync();
+        var services = await _servicesService.GetServicesAsync();
         return Ok(services);
     }
 
