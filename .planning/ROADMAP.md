@@ -142,7 +142,7 @@ Plans:
 
 ### Phase 4: Staff Management (Services & Availability)
 
-**Goal**: Staff can keep the service catalog and stylist availability accurate themselves, without a code deploy, and the system prevents availability edits from silently orphaning existing confirmed bookings.
+**Goal**: As a salon staff member, I want to keep the service catalog and stylist availability accurate from the dashboard without a code deploy, so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking.
 **Mode:** mvp
 **Depends on**: Phase 1 (service schema), Phase 2 (availability model to make staff-editable), Phase 3 (dashboard app + staff auth boundary)
 **Requirements**: MGMT-01, MGMT-02, MGMT-03
