@@ -125,3 +125,12 @@ None - no external service configuration required.
 ---
 *Phase: 04-staff-management-services-availability*
 *Completed: 2026-07-26*
+
+## Self-Check: PASSED
+
+- FOUND: dashboard/.eslintrc.json
+- FOUND: dashboard/components/WeekStripEditor.tsx
+- FOUND: .planning/phases/04-staff-management-services-availability/04-06-SUMMARY.md
+- FOUND: db389e5 (Task 1 commit)
+- FOUND: d635e9f (Task 2 commit)
+- FOUND: c69ceae (SUMMARY.md commit)
