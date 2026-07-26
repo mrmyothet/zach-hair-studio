@@ -163,8 +163,48 @@ app.UseHttpsRedirection();
 var webRootPath = string.IsNullOrEmpty(app.Environment.WebRootPath)
     ? Path.Combine(app.Environment.ContentRootPath, "wwwroot")
     : app.Environment.WebRootPath;
-Directory.CreateDirectory(Path.Combine(webRootPath, "uploads", "services"));
+var servicesUploadPath = Path.Combine(webRootPath, "uploads", "services");
+Directory.CreateDirectory(servicesUploadPath);
 app.Environment.WebRootPath = webRootPath;
+
+// Seeded catalog images ship in SeedAssets/services/ and are copied into the (gitignored,
+// recreated-at-startup) upload root so a cold start on a fresh clone serves the same
+// catalog the seed data points at. Existing files are never overwritten — an Owner who
+// replaces a seeded image through the dashboard keeps their upload across restarts.
+foreach (var seedRoot in new[]
+         {
+             Path.Combine(app.Environment.ContentRootPath, "SeedAssets", "services"),
+             Path.Combine(AppContext.BaseDirectory, "SeedAssets", "services"),
+         })
+{
+    if (!Directory.Exists(seedRoot))
+    {
+        continue;
+    }
+
+    foreach (var source in Directory.EnumerateFiles(seedRoot))
+    {
+        var destination = Path.Combine(servicesUploadPath, Path.GetFileName(source));
+        if (File.Exists(destination))
+        {
+            continue;
+        }
+
+        try
+        {
+            File.Copy(source, destination);
+        }
+        catch (IOException)
+        {
+            // Another host started concurrently and copied this file between the check
+            // above and the copy (the test suite boots many WebApplicationFactory hosts
+            // in parallel against one upload root). The file exists either way, which is
+            // the outcome we wanted.
+        }
+    }
+
+    break;
+}
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(webRootPath),
