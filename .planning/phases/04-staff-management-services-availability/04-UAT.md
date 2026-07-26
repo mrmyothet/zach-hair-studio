@@ -281,11 +281,14 @@ resolved_issues: 1
 
 - gap_id: G-04-5
   truth: "Adding time off in the month calendar does not trigger a React setState-during-render error involving the week-strip editor"
-  status: failed
+  status: resolved
+  resolved_by: "04-06-PLAN.md — RED commit db389e5 (ESLint state-updater purity guard), GREEN commit d635e9f (previewRangeRef-based commit path)"
+  resolved_at: 2026-07-26
+  verification: "Plan 04-06 structural check (handleUp commits via emitChange, no call to the previewRange setter) + npm run lint (clean, guard rule green) + npm run build (passes) — all automated proof recorded in 04-06-SUMMARY.md. Manual browser retest of UAT tests 10/11/18 in one console-open session is still outstanding (flagged as coverage item D3, human_judgment: true)."
   reason: "User reported: Cannot update a component (`AvailabilityPage`) while rendering a different component (`WeekStripEditor`). To locate the bad setState() call inside `WeekStripEditor`, follow the stack trace as described in https://react.dev/link/setstate-in-render"
   severity: major
   test: 11
-  debug_session: .planning/debug/G-04-5-weekstrip-render-setstate.md
+  debug_session: .planning/debug/resolved/G-04-5-weekstrip-render-setstate.md
   root_cause: "dashboard/components/WeekStripEditor.tsx handleUp() calls emitChange() -> onChange() (AvailabilityPage's setLocalHours) from inside the setPreviewRange functional updater callback. React invokes that updater while WeekStripEditor is still the currentlyRenderingFiber, so the reach-into-parent setState call fires mid-render of a different component, tripping React's render-phase-update guard."
   artifacts:
     - path: "dashboard/components/WeekStripEditor.tsx"
