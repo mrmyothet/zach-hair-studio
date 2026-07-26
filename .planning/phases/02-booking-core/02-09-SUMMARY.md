@@ -111,3 +111,7 @@ The Phase-2 planning record is now internally consistent with shipped, owner-app
 ---
 *Phase: 02-booking-core*
 *Completed: 2026-07-26*
+
+## Self-Check: PASSED
+
+All claimed files exist on disk (`02-05-PLAN.md`, `02-06-PLAN.md`, `02-VERIFICATION.md`, `02-09-SUMMARY.md`) and all claimed commit hashes (`7a3ed64`, `0de9e2b`, `8c5d81d`) are present in git history.
