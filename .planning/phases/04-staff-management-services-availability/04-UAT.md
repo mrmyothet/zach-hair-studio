@@ -2,10 +2,10 @@
 status: diagnosed
 phase: 04-staff-management-services-availability
 mode: mvp
-source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md]
+source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
 user_story: "As a salon staff member, I want to keep the service catalog and stylist availability accurate from the dashboard without a code deploy, so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking."
 started: 2026-07-26T08:07:00Z
-updated: 2026-07-26T08:07:00Z
+updated: 2026-07-26T23:16:00Z
 ---
 
 ## Current Test
@@ -13,7 +13,7 @@ updated: 2026-07-26T08:07:00Z
 number: 11
 name: Add Time Off and Save
 expected: Click Add Time Off, then click a start day and an end day in the month calendar to paint a range. The range renders as a dashed muted band and appears in the list below the grid. Click Save Changes and see the success confirmation.
-awaiting: diagnosis (MVP mode: user-flow step failed — halted before remaining user-flow/technical/coverage tests)
+awaiting: user retest (G-04-5 fixed structurally by 04-06 — code/lint/build proof green, no dashboard test runner to drive a live pointer-drag session; resume the MVP-mode user-flow sequence from test 10/11 through test 22 in one browser session, per 04-VERIFICATION.md's human_verification list)
 
 ## Tests
 
