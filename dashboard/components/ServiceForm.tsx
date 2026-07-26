@@ -49,7 +49,16 @@ type Props = {
    * create mode (the API always creates Active).
    */
   initialIsActive?: boolean;
-  onSaved: (service: ServiceResponseDto, isActive: boolean) => void;
+  /**
+   * `operation` lets the caller keep the form open after a create (the new id
+   * is what unlocks image upload) while closing it after an update, which is
+   * the point at which the Owner is done and expects to be back on the list.
+   */
+  onSaved: (
+    service: ServiceResponseDto,
+    isActive: boolean,
+    operation: "created" | "updated"
+  ) => void;
   onCancel: () => void;
 };
 
@@ -149,8 +158,8 @@ export function ServiceForm({
 
         setServiceId(Number(data.id));
         setSlug(data.slug);
-        setSuccess("Service saved.");
-        onSaved(data, true);
+        setSuccess("Service created. Add an image below, or press Save Service to finish.");
+        onSaved(data, true, "created");
       } else {
         const id = serviceId;
         const payload = buildPayload();
@@ -185,7 +194,7 @@ export function ServiceForm({
           displayOrder: payload.displayOrder,
         };
         setSuccess("Service saved.");
-        onSaved(updated, initialIsActive);
+        onSaved(updated, initialIsActive, "updated");
       }
     } catch (err) {
       if (err instanceof ApiError) {
@@ -272,7 +281,14 @@ export function ServiceForm({
         </p>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {/*
+        noValidate: this form contains a visually-hidden file input (ImageUploadField).
+        Native constraint validation refuses to submit when any control is invalid and
+        cannot show its bubble on a non-focusable one, which blocks submit with no
+        message at all. Completeness is gated by `canSave` and every rule is enforced
+        server-side by ServiceUpdateDtoValidator, whose errors surface in the banner above.
+      */}
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <Field label="Name">
           <input
             type="text"
@@ -356,14 +372,23 @@ export function ServiceForm({
         <button
           type="submit"
           disabled={submitting || !canSave}
-          className="w-full bg-gold-dark hover:bg-gold text-white font-medium text-sm rounded-xl px-4 py-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-11"
+          className="w-full bg-gold-dark hover:bg-gold text-white font-medium text-sm rounded-xl px-4 py-3 transition-colors disabled:bg-border disabled:text-muted disabled:hover:bg-border disabled:cursor-not-allowed min-h-11"
         >
           {submitting
             ? "Saving…"
-            : serviceId == null
-              ? "Add Service"
-              : "Save Service"}
+            : !canSave
+              ? "Fill every field to save"
+              : serviceId == null
+                ? "Add Service"
+                : "Save Service"}
         </button>
+
+        {!canSave && !submitting ? (
+          <p className="text-xs text-muted text-center">
+            Name, both descriptions, category, duration and price are all
+            required.
+          </p>
+        ) : null}
       </form>
     </div>
   );
