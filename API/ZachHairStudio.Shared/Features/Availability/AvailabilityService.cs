@@ -188,6 +188,18 @@ public class AvailabilityService
                 .Select(off => new TimeOffRange(off.StartsAt, off.EndsAt))
                 .ToListAsync();
 
+            // Reject a new range that overlaps (or duplicates) any range already
+            // persisted for this stylist — mirrors SlotConflicts' half-open
+            // interval overlap test (start < otherEnd && end > otherStart).
+            var overlapsExisting = currentTimeOff.Any(existing =>
+                request.StartsAt < existing.EndsAt && request.EndsAt > existing.StartsAt);
+            if (overlapsExisting)
+            {
+                await transaction.RollbackAsync();
+                return Result<StylistTimeOff>.ValidationError(
+                    "This time off overlaps an existing time-off range for this stylist.");
+            }
+
             // Proposed final time-off set = everything already persisted PLUS the
             // new range being added right now (full-proposed-final-state).
             var proposedTimeOff = currentTimeOff

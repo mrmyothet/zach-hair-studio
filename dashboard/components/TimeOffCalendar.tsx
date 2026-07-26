@@ -234,7 +234,7 @@ export function TimeOffCalendar({ value, onChange, isLoading = false }: Props) {
                 <button
                   key={dateOnly}
                   type="button"
-                  disabled={!armed && !range}
+                  disabled={(!armed && !range) || (armed && Boolean(range))}
                   onClick={() => handleDayClick(dateOnly)}
                   className={cellClass}
                   title={range?.reason ?? undefined}
