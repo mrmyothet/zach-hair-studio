@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: staff-management-services-availability
-status: executing
-stopped_at: Completed 02-09-PLAN.md (Phase 2 gap closure)
-last_updated: "2026-07-26T06:52:41.592Z"
+status: verifying
+stopped_at: Completed 04-06-PLAN.md (Phase 4 gap closure G-04-5 - WeekStripEditor render-phase setState fix)
+last_updated: "2026-07-26T16:18:19.874Z"
 last_activity: 2026-07-26
-last_activity_desc: "Completed 02-09 doc reconciliation — Phase 2 now 9/9 plans; code review 02-REVIEW.md raised 3 Critical findings (deferred)"
+last_activity_desc: Completed 04-06-PLAN.md — G-04-5 gap closure (WeekStripEditor render-phase setState fixed via ref-mirrored drag commit + standing ESLint guard); Phase 04 now 6/6 plans executed
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 24
+  completed_plans: 24
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 ## Current Position
 
 Phase: 04 (staff-management-services-availability) — EXECUTING
-Plan: 5 of 5
-Status: Ready to execute
-Last activity: 2026-07-26 — Completed 02-09 doc reconciliation (Phase 2 now 9/9 plans)
+Plan: 6 of 6
+Status: Phase complete — ready for verification
+Last activity: 2026-07-26 — Completed 04-06-PLAN.md (G-04-5 gap closure)
 
 Progress: [██████████] 100%
 
@@ -72,6 +72,7 @@ Progress: [██████████] 100%
 | Phase 04 P04 | 45min | 3 tasks | 9 files |
 | Phase 04 P05 | 55min | 3 tasks | 11 files |
 | Phase 02 P09 | 20min | 2 tasks | 4 files |
+| Phase 04 P06 | 20min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 05: Removing time off is never conflict-scanned -- it can only widen availability, never orphan a Confirmed appointment.
 - [Phase ?]: Phase 4 Plan 05: AvailabilityConflictDto.SalonLocalTime carries the raw UTC instant; the dashboard formats it via the existing formatSalonDateTime helper rather than server-side pre-formatting.
 - [Phase ?]: Phase 2 Plan 09: Reconcile-don't-delete pattern for stale planning docs — annotate with provenance markers instead of rewriting history
+- [Phase ?]: Phase 4 Plan 06: ESLint no-restricted-syntax core rule (no plugin/package) guards against onChange/emit* calls nested inside set*() state updaters -- the exact G-04-5 defect shape.
+- [Phase ?]: Phase 4 Plan 06: WeekStripEditor commits the painted drag range via a previewRangeRef mirror (written on pointerdown/pointermove), letting handleUp call emitChange from its own event-handler body instead of inside the previewRange state updater -- closing G-04-5's render-phase parent setState.
 
 ### Pending Todos
 
@@ -157,8 +160,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-26T06:23:39.993Z
-Stopped at: Completed 02-09-PLAN.md
+Last session: 2026-07-26T16:18:19.818Z
+Stopped at: Completed 04-06-PLAN.md (Phase 4 gap closure G-04-5 - WeekStripEditor render-phase setState fix)
 Resume file: None
 
 Next action: Phase 04 complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
