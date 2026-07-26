@@ -135,6 +135,10 @@ public class ServicesController : ControllerBase
         var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "services");
         Directory.CreateDirectory(uploadsFolder);
 
+        // Read before the write so we can clean up the now-orphaned file once the new
+        // one is committed (WR-03) — re-uploads would otherwise leak a file per upload.
+        var previousImageUrl = await _servicesService.GetImageUrlAsync(id);
+
         var storedFileName = Path.GetRandomFileName() + extension;
         var filePath = Path.Combine(uploadsFolder, storedFileName);
 
@@ -155,6 +159,25 @@ public class ServicesController : ControllerBase
                 // best-effort cleanup
             }
             return NotFound();
+        }
+
+        // Best-effort: the new ImageUrl is committed, so the previous file (if any)
+        // is now orphaned — delete it. Only ever a server-generated
+        // "/uploads/services/<name>" value, but re-derive the filename via
+        // Path.GetFileName rather than trusting the stored string directly, matching
+        // the path-traversal-safe pattern used for storedFileName above.
+        if (!string.IsNullOrEmpty(previousImageUrl)
+            && previousImageUrl.StartsWith("/uploads/services/", StringComparison.Ordinal))
+        {
+            var previousFilePath = Path.Combine(uploadsFolder, Path.GetFileName(previousImageUrl));
+            try
+            {
+                System.IO.File.Delete(previousFilePath);
+            }
+            catch
+            {
+                // best-effort cleanup
+            }
         }
 
         return Ok(result.Data);

@@ -81,6 +81,17 @@ public class ServicesService
         return Result<ServiceResponseDto>.Success(service.ToDto());
     }
 
+    /// <summary>
+    /// The service's currently-persisted ImageUrl (or null if the service doesn't
+    /// exist / has none) — read before an image upload overwrites it, so the
+    /// caller can best-effort delete the now-orphaned physical file (WR-03).
+    /// </summary>
+    public async Task<string?> GetImageUrlAsync(int id)
+    {
+        var service = await _dbContext.Services.FindAsync(id);
+        return service?.ImageUrl;
+    }
+
     public async Task<Result<ServiceResponseDto>> SetImageAsync(int id, string imageUrl)
     {
         var service = await _dbContext.Services.FindAsync(id);
