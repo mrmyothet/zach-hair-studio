@@ -159,8 +159,17 @@ export default function ServicesPage() {
     }
   }
 
-  function handleSaved() {
+  function handleSaved(
+    _service: ServiceResponseDto,
+    _isActive: boolean,
+    operation: "created" | "updated"
+  ) {
     void mutate();
+    // A create keeps the form open — the new id is what unlocks image upload.
+    // An update is the Owner saying they're done, so return them to the list.
+    if (operation === "updated") {
+      setFormState({ mode: "closed" });
+    }
   }
 
   if (formState.mode !== "closed") {

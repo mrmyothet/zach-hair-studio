@@ -73,7 +73,7 @@ Plans:
   4. Two near-simultaneous booking attempts for the same stylist/slot result in exactly one success and one clear "slot taken" rejection, enforced by a database-level uniqueness/overlap guarantee, not just an app-level check
   5. Appointment and availability times are stored as `DateTimeOffset` against a configured salon IANA timezone, verified correct across a DST-transition date
 
-**Plans**: 7/9 plans executed
+**Plans**: 9/9 plans executed
 Plans:
 **Wave 1**
 
@@ -99,8 +99,8 @@ Plans:
 **Gap-closure (Wave 6)** *(from 02-VERIFICATION.md — added by `/gsd-plan-phase 2 --gaps`)*
 
 - [x] 02-07-PLAN.md — De-date-bomb the booking test suite (relative-to-now helper), prove shipped create-path salon-offset on real SQL, record SC5 DST descope for Asia/Yangon (BOOK-03, BOOK-05)
-- [ ] 02-08-PLAN.md — [BLOCKING HUMAN] Fresh full-suite run + real booking email inspection for all five BOOK-03 fields (BOOK-03, BOOK-05)
-- [ ] 02-09-PLAN.md — Doc reconciliation only: reframe the owner-removed confirmation caption in 02-05/02-06 acceptance bars and refresh 02-VERIFICATION.md's stale `gaps_found` verdict with an evidence-cited reconciliation (commit ea8eb85 + UAT Tests 6/8/9); no source code touched (BOOK-03, BOOK-05)
+- [x] 02-08-PLAN.md — [BLOCKING HUMAN] Fresh full-suite run + real booking email inspection for all five BOOK-03 fields (BOOK-03, BOOK-05)
+- [x] 02-09-PLAN.md — Doc reconciliation only: reframe the owner-removed confirmation caption in 02-05/02-06 acceptance bars and refresh 02-VERIFICATION.md's stale `gaps_found` verdict with an evidence-cited reconciliation (commit ea8eb85 + UAT Tests 6/8/9); no source code touched (BOOK-03, BOOK-05)
 
 **Research flag**: yes — highest-correctness-risk phase in the roadmap; run a focused research pass on DB-level uniqueness/overlap constraint design, DateTimeOffset/timezone strategy, and seeded-availability-model shape before planning (research complete — see 02-RESEARCH.md)
 **UI hint**: yes
@@ -142,7 +142,7 @@ Plans:
 
 ### Phase 4: Staff Management (Services & Availability)
 
-**Goal**: Staff can keep the service catalog and stylist availability accurate themselves, without a code deploy, and the system prevents availability edits from silently orphaning existing confirmed bookings.
+**Goal**: As a salon staff member, I want to keep the service catalog and stylist availability accurate from the dashboard without a code deploy, so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking.
 **Mode:** mvp
 **Depends on**: Phase 1 (service schema), Phase 2 (availability model to make staff-editable), Phase 3 (dashboard app + staff auth boundary)
 **Requirements**: MGMT-01, MGMT-02, MGMT-03
@@ -249,7 +249,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 7/8 | In Progress|  |
+| 2. Booking Core | 9/9 | In Progress|  |
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 5/5 | In Progress|  |
 | 5. Product Catalog | 0/TBD | Not started | - |
