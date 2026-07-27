@@ -1,5 +1,5 @@
 ---
-status: partial
+status: diagnosed
 phase: 04-staff-management-services-availability
 mode: mvp
 source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
@@ -250,8 +250,15 @@ resolved_issues: 2
   reason: "User reported: I am not able to shrik the existing ones, only can add by dragging"
   severity: major
   test: 13
-  artifacts: []
-  missing: []
+  root_cause: "WeekStripEditor.tsx has no edge-resize/shrink interaction at all — a genuine gap in the original 04-04 interaction design, not a 04-06 regression. onPointerDown (189-199) always starts a brand-new paint gesture (only excludes clicks on the x remove button). handleUp() unconditionally routes the drag through mergeSegments(), which unions the new range into the day's existing segments via `last.end = Math.max(last.end, seg.end)` — mathematically incapable of shrinking. The only way to reduce a segment today is to delete it entirely via the x button and repaint smaller from scratch."
+  artifacts:
+    - path: "dashboard/components/WeekStripEditor.tsx"
+      issue: "onPointerDown (189-199), handleMove/handleUp (140-157), mergeSegments (56-68), and the segment render block (213-234) have no edge-detection/resize drag mode — only additive union or all-or-nothing delete via removeSegment()"
+  missing:
+    - "Edge-detection zone near a segment's start/end boundary that enters a distinct resize drag mode targeting that segment instead of unioning a new range through mergeSegments"
+    - "On pointerup of a resize drag, replace that one segment's boundary (clamped against its own other edge and adjacent segments) rather than routing through mergeSegments"
+    - "Resize-handle affordance (e.g. small edge elements with stopPropagation like the existing x button, plus ew-resize cursor styling) so the interaction is discoverable"
+  debug_session: .planning/debug/week-strip-shrink-not-possible.md
 
 - gap_id: G-04-3
   truth: "Every service row shows a real image thumbnail; the seeded catalog is not a wall of placeholders"
