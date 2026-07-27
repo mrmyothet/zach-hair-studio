@@ -113,3 +113,10 @@ None - this plan's threat model (T-04-17/18/19) already anticipated the new surf
 ---
 *Phase: 04-staff-management-services-availability*
 *Completed: 2026-07-27*
+
+## Self-Check: PASSED
+
+- FOUND: dashboard/components/WeekStripEditor.tsx
+- FOUND: .planning/phases/04-staff-management-services-availability/04-07-SUMMARY.md
+- FOUND commit: 8c24a84 (Task 1)
+- FOUND commit: fd57d19 (SUMMARY commit)
