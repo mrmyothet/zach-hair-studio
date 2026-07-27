@@ -152,7 +152,7 @@ Plans:
   2. Staff can manage a stylist's working hours, breaks, and time off from the dashboard, and Phase 2's open-slot query immediately reflects the change (same availability model, not a second one)
   3. Attempting to save an availability edit that conflicts with an existing confirmed booking surfaces the conflict instead of silently applying it
 
-**Plans**: 6/6 plans executed
+**Plans**: 6/7 plans executed
 Plans:
 **Wave 1**
 
@@ -174,6 +174,10 @@ Plans:
 **Wave 5** *(gap closure from UAT — blocked on Wave 4 completion)*
 
 - [x] 04-06-PLAN.md — Gap G-04-5: WeekStripEditor commits the drag range from pointerup via a ref (no setState during a sibling's render) + ESLint state-updater purity guard (MGMT-02)
+
+**Wave 6** *(gap closure from UAT — blocked on Wave 5 completion)*
+
+- [ ] 04-07-PLAN.md — Gap G-04-6: WeekStripEditor edge-resize handle to shrink an existing working-hours segment, direct-replace commit bypassing mergeSegments (MGMT-02)
 
 **UI hint**: yes
 
@@ -255,7 +259,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
 | 2. Booking Core | 9/9 | In Progress|  |
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
-| 4. Staff Management (Services & Availability) | 6/6 | In Progress|  |
+| 4. Staff Management (Services & Availability) | 6/7 | In Progress|  |
 | 5. Product Catalog | 0/TBD | Not started | - |
 | 6. Cart & Checkout | 0/TBD | Not started | - |
 | 7. Accounts & Retention | 0/TBD | Not started | - |
