@@ -1,3 +1,12 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression[callee.name=/^set[A-Z]/] > ArrowFunctionExpression CallExpression[callee.name=/^(on[A-Z]|emit)/]",
+        "message": "State updater must be pure: call onChange/emit* from the event handler body, not inside a set*() updater"
+      }
+    ]
+  }
 }

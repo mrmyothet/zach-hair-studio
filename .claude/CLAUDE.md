@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 <!-- GSD:project-start source:PROJECT.md -->
 
 ## Project
@@ -23,6 +27,61 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 - **Security/Compliance**: gitleaks secret-scanning is wired via pre-commit hook and CI — keep secrets out of the repo.
 
 <!-- GSD:project-end -->
+
+## Commands
+
+### Backend (`API/`)
+
+- Build the solution: `dotnet build API/ZachHairStudio.slnx`
+- Run the API: `cd API/ZachHairStudio.Api && dotnet run` — http://localhost:5236 (https :7199); OpenAPI JSON at `/openapi/v1.json` and Swagger UI at `/swagger` in Development.
+- Run all tests: `dotnet test API/ZachHairStudio.slnx` (or target the test project directly: `dotnet test API/ZachHairStudio.Api.Tests`)
+- Run a single test class or method: `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~ConcurrencyTests"` (append `.MethodName` for one test)
+- Required secrets before `dotnet run` **or** `dotnet test` will start (D-12/D-13 — read in Development *and* Testing, never a tracked file):
+  ```
+  cd API/ZachHairStudio.Api
+  dotnet user-secrets set "RESEND_API_KEY" "<resend api key>"
+  dotnet user-secrets set "Jwt:SigningKey" "<32+ char random string>"
+  ```
+  Program.cs fails fast on startup (`ValidateOnStart`) if `Jwt:SigningKey` is missing or under 256 bits.
+- EF Core migrations (`dotnet-ef` must be v10.x — `dotnet tool update --global dotnet-ef --version "10.*"`):
+  - Add: `dotnet ef migrations add <Name> --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api`
+  - Apply: `dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api` (or just `dotnet run`, which calls `Migrate()` on boot)
+  - See the `ef-migrations` skill for details.
+
+### Frontends (`landing-page/`, `dashboard/`)
+
+Each is an independent Next.js app with its own `node_modules`/`package.json` — run these from inside the respective directory:
+
+- Install: `npm install`
+- Dev server: `npm run dev` (landing-page → :3000; dashboard → `npm run dev -- -p 3001`, offset to avoid clashing with the landing page)
+- Build: `npm run build`
+- Lint: `npm run lint`
+- Neither `package.json` defines a `test` script yet — check before assuming one exists.
+- Regenerate the dashboard's typed API client from the live OpenAPI doc (API must be running): `npx -y openapi-typescript http://localhost:5236/openapi/v1.json -o lib/api/schema.d.ts`, run from `dashboard/`. See the `openapi-client` skill.
+
+### Everything at once
+
+Use the `dev` skill (`.claude/skills/dev/SKILL.md`) to launch the API and both frontends together, or run the commands above in three terminals.
+
+## Architecture
+
+### Backend (`API/ZachHairStudio.slnx`, 4 projects)
+
+- **`ZachHairStudio.Api`** — composition root. `Program.cs` wires DI, CORS (open in dev), JWT bearer auth + ASP.NET Core Identity, FluentValidation, static file serving for uploaded service images, and calls `db.Database.Migrate()` + `IdentitySeeder.SeedAsync` on boot (both skipped when `IWebHostEnvironment.EnvironmentName == "Testing"`, since the test suite seeds its own data per-host). `Controllers/` stay thin and delegate to the `*Service` classes in Shared.
+- **`ZachHairStudio.Shared`** — the domain layer. `Db/BookingDbContext.cs` is the single EF Core context (`IdentityDbContext<ApplicationUser, IdentityRole<int>, int>` — Identity tables share the same schema/migration history as booking data). `Features/<Name>/` folders (`Appointments`, `Availability`, `Identity`, `Services`, `Stylists`) each hold: the EF entity, `*CreateDto`/`*ResponseDto`/`*UpdateDto`, a FluentValidation validator, `*Extensions` for entity⇄DTO mapping, and a `*Service` with the business logic. New features should mirror this shape (see the `feature-scaffold` skill, which uses this pattern as its template).
+- **`ZachHairStudio.Api.Tests`** — xunit + `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory`-driven integration tests), mirrored under `Features/<Name>/` to match Shared. `TestSupport/` holds shared helpers.
+- **`ZachHairStudio.Admin`** — an unmodified `dotnet new mvc` scaffold (Home/Privacy views only); not wired into any active flow.
+
+Key invariants worth knowing before touching booking logic:
+- `AppointmentSlot` has an **unfiltered** unique index on `(StylistId, SlotStart)` — this is the double-booking guarantee (`ConcurrencyTests` relies on it). Never add a `HasFilter()` to it.
+- Secrets (`RESEND_API_KEY`, `Jwt:SigningKey`) are read via `dotnet user-secrets`/env vars only — `Program.cs` calls `AddUserSecrets<Program>()` unconditionally (not just in Development) because Testing needs `RESEND_API_KEY` too (real Resend sends in tests, no fake sender).
+
+### Frontends (`landing-page/`, `dashboard/`)
+
+Two independent Next.js 15 / App Router apps, each with its own `lib/` fetch layer pointed at `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:5236`):
+
+- **`landing-page`** — public site; Server Components by default. Hand-written fetch calls live in `lib/services.ts` and `lib/appointments.ts` (no generated client yet).
+- **`dashboard`** — staff tool; has a generated typed client (`lib/api/client.ts` + `lib/api/schema.d.ts`, via `openapi-fetch`/`openapi-typescript` — regenerate, don't hand-edit `schema.d.ts`). Auth is a bearer JWT stored in `localStorage` (`lib/auth.ts`), attached to requests via an `openapi-fetch` middleware; a 401 clears the session and redirects to `/login`.
 
 <!-- GSD:skills-start source:skills/ -->
 

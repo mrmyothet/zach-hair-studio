@@ -1,19 +1,19 @@
 ---
-status: testing
+status: diagnosed
 phase: 04-staff-management-services-availability
 mode: mvp
-source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md]
+source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
 user_story: "As a salon staff member, I want to keep the service catalog and stylist availability accurate from the dashboard without a code deploy, so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking."
 started: 2026-07-26T08:07:00Z
-updated: 2026-07-26T08:07:00Z
+updated: 2026-07-26T23:16:00Z
 ---
 
 ## Current Test
 
-number: 4
-name: Create a Service
-expected: Click the add/new-service control, fill in name, description, duration and price, and Save. Save stays disabled until the required fields are filled. After saving, the form stays open (so an image can be added) and the new service appears in the list.
-awaiting: user response
+number: 11
+name: Add Time Off and Save
+expected: Click Add Time Off, then click a start day and an end day in the month calendar to paint a range. The range renders as a dashed muted band and appears in the list below the grid. Click Save Changes and see the success confirmation.
+awaiting: user retest (G-04-5 fixed structurally by 04-06 — code/lint/build proof green, no dashboard test runner to drive a live pointer-drag session; resume the MVP-mode user-flow sequence from test 10/11 through test 22 in one browser session, per 04-VERIFICATION.md's human_verification list)
 
 ## Tests
 
@@ -52,43 +52,45 @@ investigation: "Create + image upload both confirmed persisted in the API SQL lo
 
 ### 5. Upload an Image for That Service
 expected: In the still-open form, use the dashed 160x160 upload box to pick a JPG, PNG or WebP under 5MB. It shows an uploading state, then the image renders in the box, and the service's row thumbnail in the list shows that image.
-result: [pending]
+result: pass
 section: user-flow
 covers: [04-02 D5]
 
 ### 6. Edit the Service
 expected: Reopen the service for editing. Every field pre-fills with its current value. Change the name or price, Save, and the list reflects the change. The service's public URL slug does not change when you edit the name.
-result: [pending]
+result: pass
 section: user-flow
 covers: [04-02 D4]
 
 ### 7. Retire and Reactivate the Service
 expected: Click Retire. A confirmation dialog appears with retire-specific copy. Confirm, and the row moves below the active ones with a muted Retired chip. Click Reactivate on that row — no dialog this time — and it rejoins the active group.
-result: [pending]
+result: pass
 section: user-flow
 covers: [04-02 D3]
 
 ### 8. Client Sees the New Service on the Public Site
 expected: Open the landing page at :3000 and browse to services/booking. The service you created in step 4 appears with its image, correct duration and price, and can be selected to start a booking. (This is the first half of the user story's outcome — clients see real services.)
-result: [pending]
+result: pass
 section: user-flow
 covers: [outcome clause — clients see real services]
 
 ### 9. Open Availability and Pick a Stylist
 expected: Back in the dashboard, click Availability. A stylist picker appears (pre-selected if there is only one stylist). Selecting a stylist loads that stylist's current weekly hours into the week strip and any existing time off into the month calendar.
-result: [pending]
+result: pass
 section: user-flow
 covers: [04-04 D1]
 
 ### 10. Paint Weekly Hours and Save
 expected: Click and drag across a weekday row in the week strip to paint a working-hours block; it snaps to 15-minute boundaries and renders as a gold-dark segment. Click Save Changes. You see an "Availability saved." confirmation and the strip re-loads showing the saved hours.
-result: [pending]
+result: pass
 section: user-flow
 covers: [04-04 D2, 04-04 D4]
 
 ### 11. Add Time Off and Save
 expected: Click Add Time Off, then click a start day and an end day in the month calendar to paint a range. The range renders as a dashed muted band and appears in the list below the grid. Click Save Changes and see the success confirmation.
-result: [pending]
+result: issue
+reported: "Cannot update a component (`AvailabilityPage`) while rendering a different component (`WeekStripEditor`). To locate the bad setState() call inside `WeekStripEditor`, follow the stack trace as described in https://react.dev/link/setstate-in-render"
+severity: major
 section: user-flow
 covers: [04-04 D3]
 
@@ -232,9 +234,9 @@ coverage_id: 04-05 D6
 ## Summary
 
 total: 33
-passed: 14
-issues: 0
-pending: 19
+passed: 20
+issues: 2
+pending: 11
 skipped: 0
 blocked: 0
 resolved_issues: 1
@@ -276,6 +278,26 @@ resolved_issues: 1
       - "GET /api/Services returns all 6 imageUrl values"
       - "All 6 images serve HTTP 200 as image/jpeg from /uploads/services/"
     follow_up_found: "A TOCTOU race in the first version of the startup copy (File.Exists then File.Copy) broke 3 tests when parallel WebApplicationFactory hosts raced on the same upload root; fixed by catching IOException. Caught by the full suite, which is exactly the class of cold-start bug test 1 exists to surface."
+
+- gap_id: G-04-5
+  truth: "Adding time off in the month calendar does not trigger a React setState-during-render error involving the week-strip editor"
+  status: resolved
+  resolved_by: "04-06-PLAN.md — RED commit db389e5 (ESLint state-updater purity guard), GREEN commit d635e9f (previewRangeRef-based commit path)"
+  resolved_at: 2026-07-26
+  verification: "Plan 04-06 structural check (handleUp commits via emitChange, no call to the previewRange setter) + npm run lint (clean, guard rule green) + npm run build (passes) — all automated proof recorded in 04-06-SUMMARY.md. Manual browser retest of UAT tests 10/11/18 in one console-open session is still outstanding (flagged as coverage item D3, human_judgment: true)."
+  reason: "User reported: Cannot update a component (`AvailabilityPage`) while rendering a different component (`WeekStripEditor`). To locate the bad setState() call inside `WeekStripEditor`, follow the stack trace as described in https://react.dev/link/setstate-in-render"
+  severity: major
+  test: 11
+  debug_session: .planning/debug/resolved/G-04-5-weekstrip-render-setstate.md
+  root_cause: "dashboard/components/WeekStripEditor.tsx handleUp() calls emitChange() -> onChange() (AvailabilityPage's setLocalHours) from inside the setPreviewRange functional updater callback. React invokes that updater while WeekStripEditor is still the currentlyRenderingFiber, so the reach-into-parent setState call fires mid-render of a different component, tripping React's render-phase-update guard."
+  artifacts:
+    - path: "dashboard/components/WeekStripEditor.tsx"
+      issue: "handleUp() (~lines 144-156) calls emitChange()/onChange() inside the setPreviewRange(prev => ...) updater body instead of after it, as a side effect of resolving prev via the updater form (used to avoid a stale-closure read of previewRange)."
+    - path: "dashboard/app/availability/page.tsx"
+      issue: "handleHoursChange (~lines 67-71) is the setLocalHours-owning callback invoked out-of-turn; not itself at fault, just the setter caught mid-render of a different component."
+  missing:
+    - "Track the live drag range in a ref (updated on every pointermove) instead of relying on the setPreviewRange updater's prev to compute the committed range."
+    - "Have handleUp read that ref directly and call emitChange/onChange in its own function body (a legitimate event-handler context), not inside setPreviewRange's updater callback."
 
 - gap_id: G-04-4
   truth: "After creating a service and attaching an image, clicking Save Service persists the edit and gives the Owner clear feedback"

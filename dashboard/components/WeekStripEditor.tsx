@@ -101,6 +101,7 @@ export function WeekStripEditor({ value, onChange, isLoading = false }: Props) {
     a: 0,
     b: 0,
   });
+  const previewRangeRef = useRef<{ a: number; b: number }>({ a: 0, b: 0 });
 
   const byDay = groupByDay(value);
 
@@ -138,20 +139,20 @@ export function WeekStripEditor({ value, onChange, isLoading = false }: Props) {
 
     function handleMove(e: PointerEvent) {
       if (!dragDay) return;
-      setPreviewRange((prev) => ({ ...prev, b: posToMinutes(dragDay, e.clientX) }));
+      const b = posToMinutes(dragDay, e.clientX);
+      const next = { ...previewRangeRef.current, b };
+      previewRangeRef.current = next;
+      setPreviewRange(next);
     }
 
     function handleUp() {
-      setPreviewRange((prev) => {
-        if (dragDay) {
-          const start = Math.min(prev.a, prev.b);
-          const end = Math.max(prev.a, prev.b);
-          if (end - start >= SNAP_MINUTES) {
-            emitChange(dragDay, mergeSegments([...byDay[dragDay], { start, end }]));
-          }
-        }
-        return prev;
-      });
+      if (!dragDay) return;
+      const { a, b } = previewRangeRef.current;
+      const start = Math.min(a, b);
+      const end = Math.max(a, b);
+      if (end - start >= SNAP_MINUTES) {
+        emitChange(dragDay, mergeSegments([...byDay[dragDay], { start, end }]));
+      }
       setDragDay(null);
     }
 
@@ -191,7 +192,9 @@ export function WeekStripEditor({ value, onChange, isLoading = false }: Props) {
                     if (target.closest("[data-segment-remove]")) return;
                     const m = posToMinutes(day, e.clientX);
                     setDragDay(day);
-                    setPreviewRange({ a: m, b: m });
+                    const next = { a: m, b: m };
+                    previewRangeRef.current = next;
+                    setPreviewRange(next);
                     e.preventDefault();
                   }}
                   className={

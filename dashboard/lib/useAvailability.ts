@@ -214,12 +214,12 @@ export async function saveAvailability(
   const removedIds = originalTimeOffIds.filter((id) => !keptIds.has(id));
 
   for (const timeOffId of removedIds) {
-    const { response, error } = await api.DELETE(
+    const { response } = await api.DELETE(
       "/api/Availability/{stylistId}/time-off/{timeOffId}",
       { params: { path: { stylistId, timeOffId } } }
     );
     // A range already removed server-side (404) is not a save failure.
-    if ((!response.ok && response.status !== 404) || error) {
+    if (!response.ok && response.status !== 404) {
       let message = "Couldn't save availability. Try again.";
       try {
         message = await extractErrorMessage(response.clone());
