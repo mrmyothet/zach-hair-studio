@@ -6,9 +6,9 @@ current_phase: 4
 current_phase_name: Services & Availability
 status: verifying
 stopped_at: Completed 03-05-PLAN.md
-last_updated: "2026-07-16T12:35:36.310Z"
-last_activity: 2026-07-16
-last_activity_desc: "Completed quick task 260716-qfe: Fix gitleaks false positives on GSD manifest checksums"
+last_updated: "2026-07-31T14:58:54.462Z"
+last_activity: 2026-07-31
+last_activity_desc: "Completed quick task 260731-uj3: Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)"
 progress:
   total_phases: 8
   completed_phases: 3
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 4 — Staff Management (Services & Availability)
 Plan: Not started
 Status: Phase 03 plans complete — awaiting verify-work
-Last activity: 2026-07-16 — Completed quick task 260716-qfe: Fix gitleaks false positives on GSD manifest checksums
+Last activity: 2026-07-31 — Completed quick task 260731-uj3: Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)
 
 Progress: [████░░░░░░] 38%
 
@@ -119,6 +119,7 @@ Recent decisions affecting current work:
 | 260716-qfe | Fix gitleaks false positives on GSD manifest checksums (rule-targeted regex allowlist replaces stale .gitleaksignore fingerprints) | 2026-07-16 | 8e7a1d2 | [260716-qfe-fix-gitleaks-false-positives-on-gsd-mani](./quick/260716-qfe-fix-gitleaks-false-positives-on-gsd-mani/) |
 | 3 | Bump CI gitleaks v8.18.4 -> v8.30.1 so [[allowlists]] config applies in security.yml scan | 2026-07-16 | 1221ba5 | — |
 | 4 | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies | 2026-07-16 | b130c2d | — |
+| 260731-uj3 | Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet) | 2026-07-31 | 0747757 | [260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-](./quick/260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-/) |
 
 ## Deferred Items
 
