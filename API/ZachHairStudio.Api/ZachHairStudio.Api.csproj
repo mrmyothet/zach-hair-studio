@@ -23,4 +23,8 @@
     <ProjectReference Include="..\ZachHairStudio.Shared\ZachHairStudio.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Mcp\" />
+  </ItemGroup>
+
 </Project>
