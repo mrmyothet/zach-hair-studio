@@ -104,7 +104,7 @@ export async function sendChatMessage(
   }
 
   // d. hour / open / close
-  if (/\b(hour|open|close)\b/.test(normalizedInput)) {
+  if (/\b(hours?|open|close)\b/.test(normalizedInput)) {
     return `${SALON_HOURS}. ${BOOK_LINK}`;
   }
 
