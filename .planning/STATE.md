@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 4 — Staff Management (Services & Availability)
 Plan: Not started
 Status: Phase 03 plans complete — awaiting verify-work
-Last activity: 2026-07-31 — Completed quick task 260731-uj3: Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)
+Last activity: 2026-08-01 — Completed quick task 260801-irn: Add an MCP tool exposing appointment slot availability via GetSlots
 
 Progress: [████░░░░░░] 38%
 
@@ -121,6 +121,7 @@ Recent decisions affecting current work:
 | 4 | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies | 2026-07-16 | b130c2d | — |
 | 260731-uj3 | Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet) | 2026-07-31 | 0747757 | [260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-](./quick/260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-/) |
 | 6 | Fix plural "hours" match in chat.ts hours-keyword regex (\\b(hour\|open\|close)\\b -> \\b(hours?\|open\|close)\\b) | 2026-07-31 | dcbbfdf | — |
+| 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
 
 ## Deferred Items
 
