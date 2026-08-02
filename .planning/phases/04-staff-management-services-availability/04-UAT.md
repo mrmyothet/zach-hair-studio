@@ -5,15 +5,12 @@ mode: mvp
 source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
 user_story: "As a salon staff member, I want to keep the service catalog and stylist availability accurate from the dashboard without a code deploy, so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking."
 started: 2026-07-26T08:07:00Z
-updated: 2026-07-26T23:16:00Z
+updated: 2026-07-27T00:05:00Z
 ---
 
 ## Current Test
 
-number: 11
-name: Add Time Off and Save
-expected: Click Add Time Off, then click a start day and an end day in the month calendar to paint a range. The range renders as a dashed muted band and appears in the list below the grid. Click Save Changes and see the success confirmation.
-awaiting: user retest (G-04-5 fixed structurally by 04-06 — code/lint/build proof green, no dashboard test runner to drive a live pointer-drag session; resume the MVP-mode user-flow sequence from test 10/11 through test 22 in one browser session, per 04-VERIFICATION.md's human_verification list)
+[testing paused — user-flow test 13 failed (MVP mode halts on a user-flow failure); tests 14-22 remain pending until G-04-6 is fixed and retested]
 
 ## Tests
 
@@ -88,21 +85,25 @@ covers: [04-04 D2, 04-04 D4]
 
 ### 11. Add Time Off and Save
 expected: Click Add Time Off, then click a start day and an end day in the month calendar to paint a range. The range renders as a dashed muted band and appears in the list below the grid. Click Save Changes and see the success confirmation.
-result: issue
+result: pass
+first_attempt: issue
 reported: "Cannot update a component (`AvailabilityPage`) while rendering a different component (`WeekStripEditor`). To locate the bad setState() call inside `WeekStripEditor`, follow the stack trace as described in https://react.dev/link/setstate-in-render"
 severity: major
+fixed_by: "04-06 — previewRangeRef-based commit path (G-04-5)"
 section: user-flow
 covers: [04-04 D3]
 
 ### 12. Public Booking Reflects Both Changes
 expected: On the landing page booking flow, pick that stylist. The bookable slots match the hours you painted in step 10, and no slots are offered on the days you blocked as time off in step 11. (This is the second half of the outcome — clients book real open slots.)
-result: [pending]
+result: pass
 section: user-flow
 covers: [04-04 D4, outcome clause — clients book real open slots]
 
 ### 13. Conflicting Edit Is Blocked, Not Silently Applied
 expected: Book a real appointment through the public site so it is Confirmed. Back in Availability for that stylist, shrink the working hours so the booked slot falls outside them, and click Save Changes. Instead of saving, a rose "Can't Save — Conflicting Appointments" panel appears inline below Save Changes, listing the client name, service, stylist and salon-local time of the booking. Reload the page and confirm the hours were NOT changed. (This is the final clause of the outcome — no edit silently orphans a confirmed booking.)
-result: [pending]
+result: issue
+reported: "I am not able to shrik the existing ones, only can add by dragging"
+severity: major
 section: user-flow
 covers: [04-05 D7, outcome clause — no orphaned bookings]
 
@@ -234,14 +235,30 @@ coverage_id: 04-05 D6
 ## Summary
 
 total: 33
-passed: 20
+passed: 22
 issues: 2
-pending: 11
+pending: 8
 skipped: 0
 blocked: 0
-resolved_issues: 1
+resolved_issues: 2
 
 ## Gaps
+
+- gap_id: G-04-6
+  truth: "Availability lets staff shrink an existing working-hours segment on the week strip, not only add new ones by dragging"
+  status: failed
+  reason: "User reported: I am not able to shrik the existing ones, only can add by dragging"
+  severity: major
+  test: 13
+  root_cause: "WeekStripEditor.tsx has no edge-resize/shrink interaction at all — a genuine gap in the original 04-04 interaction design, not a 04-06 regression. onPointerDown (189-199) always starts a brand-new paint gesture (only excludes clicks on the x remove button). handleUp() unconditionally routes the drag through mergeSegments(), which unions the new range into the day's existing segments via `last.end = Math.max(last.end, seg.end)` — mathematically incapable of shrinking. The only way to reduce a segment today is to delete it entirely via the x button and repaint smaller from scratch."
+  artifacts:
+    - path: "dashboard/components/WeekStripEditor.tsx"
+      issue: "onPointerDown (189-199), handleMove/handleUp (140-157), mergeSegments (56-68), and the segment render block (213-234) have no edge-detection/resize drag mode — only additive union or all-or-nothing delete via removeSegment()"
+  missing:
+    - "Edge-detection zone near a segment's start/end boundary that enters a distinct resize drag mode targeting that segment instead of unioning a new range through mergeSegments"
+    - "On pointerup of a resize drag, replace that one segment's boundary (clamped against its own other edge and adjacent segments) rather than routing through mergeSegments"
+    - "Resize-handle affordance (e.g. small edge elements with stopPropagation like the existing x button, plus ew-resize cursor styling) so the interaction is discoverable"
+  debug_session: .planning/debug/week-strip-shrink-not-possible.md
 
 - gap_id: G-04-3
   truth: "Every service row shows a real image thumbnail; the seeded catalog is not a wall of placeholders"
@@ -289,6 +306,7 @@ resolved_issues: 1
   severity: major
   test: 11
   debug_session: .planning/debug/resolved/G-04-5-weekstrip-render-setstate.md
+  retested: "Test 11 re-run — pass"
   root_cause: "dashboard/components/WeekStripEditor.tsx handleUp() calls emitChange() -> onChange() (AvailabilityPage's setLocalHours) from inside the setPreviewRange functional updater callback. React invokes that updater while WeekStripEditor is still the currentlyRenderingFiber, so the reach-into-parent setState call fires mid-render of a different component, tripping React's render-phase-update guard."
   artifacts:
     - path: "dashboard/components/WeekStripEditor.tsx"

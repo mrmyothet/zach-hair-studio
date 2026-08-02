@@ -32,6 +32,12 @@ const WEEKDAY_LABEL: Record<DayOfWeekName, string> = {
 /** Minutes-from-OPEN_HOUR, the internal working unit for painting/merging. */
 type MinuteSegment = { start: number; end: number };
 
+/** Which edge of an existing segment is being dragged in resize mode. */
+type ResizeEdge = "start" | "end";
+
+/** Identifies the single segment (day + index) and edge currently being resized. */
+type ResizeTarget = { day: DayOfWeekName; index: number; edge: ResizeEdge };
+
 function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m - OPEN_HOUR * 60;
@@ -102,6 +108,9 @@ export function WeekStripEditor({ value, onChange, isLoading = false }: Props) {
     b: 0,
   });
   const previewRangeRef = useRef<{ a: number; b: number }>({ a: 0, b: 0 });
+  const [resizeTarget, setResizeTarget] = useState<ResizeTarget | null>(null);
+  const [resizePreview, setResizePreview] = useState<number>(0);
+  const resizeRef = useRef<{ target: ResizeTarget; value: number } | null>(null);
 
   const byDay = groupByDay(value);
 
@@ -132,6 +141,14 @@ export function WeekStripEditor({ value, onChange, isLoading = false }: Props) {
   function removeSegment(day: DayOfWeekName, index: number) {
     const remaining = byDay[day].filter((_, i) => i !== index);
     emitChange(day, remaining);
+  }
+
+  function startResize(day: DayOfWeekName, index: number, edge: ResizeEdge) {
+    const seg = byDay[day][index];
+    const initial = edge === "start" ? seg.start : seg.end;
+    resizeRef.current = { target: { day, index, edge }, value: initial };
+    setResizeTarget({ day, index, edge });
+    setResizePreview(initial);
   }
 
   useEffect(() => {
@@ -165,11 +182,54 @@ export function WeekStripEditor({ value, onChange, isLoading = false }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragDay]);
 
+  useEffect(() => {
+    if (!resizeTarget) return;
+
+    function handleResizeMove(e: PointerEvent) {
+      if (!resizeTarget) return;
+      const dayList = byDay[resizeTarget.day];
+      const seg = dayList[resizeTarget.index];
+      const prev = dayList[resizeTarget.index - 1];
+      const next = dayList[resizeTarget.index + 1];
+      const raw = posToMinutes(resizeTarget.day, e.clientX);
+      const value =
+        resizeTarget.edge === "start"
+          ? clamp(raw, prev ? prev.end : 0, seg.end - SNAP_MINUTES)
+          : clamp(raw, seg.start + SNAP_MINUTES, next ? next.start : TOTAL_MINUTES);
+      resizeRef.current = { target: resizeTarget, value };
+      setResizePreview(value);
+    }
+
+    function handleResizeUp() {
+      if (!resizeRef.current) {
+        setResizeTarget(null);
+        return;
+      }
+      const { target, value } = resizeRef.current;
+      const updated = byDay[target.day].map((seg, i) => {
+        if (i !== target.index) return seg;
+        return target.edge === "start" ? { ...seg, start: value } : { ...seg, end: value };
+      });
+      emitChange(target.day, updated);
+      setResizeTarget(null);
+      resizeRef.current = null;
+    }
+
+    window.addEventListener("pointermove", handleResizeMove);
+    window.addEventListener("pointerup", handleResizeUp);
+    return () => {
+      window.removeEventListener("pointermove", handleResizeMove);
+      window.removeEventListener("pointerup", handleResizeUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resizeTarget]);
+
   return (
     <div>
       <p className="text-xs uppercase tracking-wider text-muted mb-3">
         Drag across a row to paint hours (06:00–22:00, 15-min snap). Drag again
-        on the same day to add a break.
+        on the same day to add a break. Hover a segment and drag its edge to
+        resize it.
       </p>
       <div className="overflow-x-auto">
         <div style={{ minWidth: TRACK_WIDTH + 56 }} className="flex flex-col gap-1.5">
@@ -211,27 +271,64 @@ export function WeekStripEditor({ value, onChange, isLoading = false }: Props) {
                   ) : null}
 
                   {!isLoading &&
-                    segments.map((seg, i) => (
-                      <div
-                        key={`${seg.start}-${seg.end}`}
-                        className="group absolute top-0 bottom-0 bg-gold-dark/15 border border-gold-dark rounded-md"
-                        style={{
-                          left: seg.start * PX_PER_MINUTE,
-                          width: Math.max(2, (seg.end - seg.start) * PX_PER_MINUTE),
-                        }}
-                      >
-                        <button
-                          type="button"
-                          data-segment-remove
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={() => removeSegment(day, i)}
-                          aria-label={`Remove ${WEEKDAY_LABEL[day]} segment`}
-                          className="hidden group-hover:flex absolute -top-2 -right-2 h-5 w-5 items-center justify-center rounded-full bg-gold-dark text-white text-xs leading-none focus:outline-none focus:ring-2 focus:ring-gold-dark"
+                    segments.map((seg, i) => {
+                      const effectiveStart =
+                        resizeTarget &&
+                        resizeTarget.day === day &&
+                        resizeTarget.index === i &&
+                        resizeTarget.edge === "start"
+                          ? resizePreview
+                          : seg.start;
+                      const effectiveEnd =
+                        resizeTarget &&
+                        resizeTarget.day === day &&
+                        resizeTarget.index === i &&
+                        resizeTarget.edge === "end"
+                          ? resizePreview
+                          : seg.end;
+
+                      return (
+                        <div
+                          key={`${seg.start}-${seg.end}`}
+                          className="group absolute top-0 bottom-0 bg-gold-dark/15 border border-gold-dark rounded-md"
+                          style={{
+                            left: effectiveStart * PX_PER_MINUTE,
+                            width: Math.max(2, (effectiveEnd - effectiveStart) * PX_PER_MINUTE),
+                          }}
                         >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <div
+                            data-segment-resize="start"
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              startResize(day, i, "start");
+                            }}
+                            aria-label={`Resize ${WEEKDAY_LABEL[day]} segment start`}
+                            className="hidden group-hover:block absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
+                          />
+                          <div
+                            data-segment-resize="end"
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              startResize(day, i, "end");
+                            }}
+                            aria-label={`Resize ${WEEKDAY_LABEL[day]} segment end`}
+                            className="hidden group-hover:block absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
+                          />
+                          <button
+                            type="button"
+                            data-segment-remove
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() => removeSegment(day, i)}
+                            aria-label={`Remove ${WEEKDAY_LABEL[day]} segment`}
+                            className="hidden group-hover:flex absolute -top-2 -right-2 h-5 w-5 items-center justify-center rounded-full bg-gold-dark text-white text-xs leading-none focus:outline-none focus:ring-2 focus:ring-gold-dark"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
 
                   {!isLoading && dragDay === day ? (
                     <div
