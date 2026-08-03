@@ -154,7 +154,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    // Redirecting a plain-http dashboard call to the https port is a cross-origin
+    // redirect (different scheme+port) — browsers strip the Authorization header
+    // on cross-origin redirects, silently de-authenticating every dashboard request.
+    app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 
