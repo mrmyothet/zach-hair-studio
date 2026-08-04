@@ -138,7 +138,7 @@ export function ServiceForm({
 
     try {
       if (serviceId == null) {
-        const { data, response } = await api.POST("/api/Services", {
+        const { data, response, error: errorBody } = await api.POST("/api/Services", {
           body: buildPayload(),
         });
 
@@ -152,7 +152,11 @@ export function ServiceForm({
         // openapi-fetch can leave `data` untyped for this status — same
         // pattern as staff/new/page.tsx's create flow.
         if (!response.ok || !data) {
-          const message = await extractErrorMessage(response.clone());
+          // A 2xx with no body has no server error to report — keep a generic
+          // message rather than a misleading status line.
+          const message = response.ok
+            ? "Service created, but the response was empty. Reload to confirm."
+            : extractErrorMessage(errorBody, response.status);
           throw new ApiError(message, response.status || null);
         }
 
@@ -163,7 +167,7 @@ export function ServiceForm({
       } else {
         const id = serviceId;
         const payload = buildPayload();
-        const { response } = await api.PUT("/api/Services/{id}", {
+        const { response, error: errorBody } = await api.PUT("/api/Services/{id}", {
           params: { path: { id } },
           body: payload,
         });
@@ -175,8 +179,10 @@ export function ServiceForm({
           return;
         }
         if (!response.ok) {
-          const message = await extractErrorMessage(response.clone());
-          throw new ApiError(message, response.status || null);
+          throw new ApiError(
+            extractErrorMessage(errorBody, response.status),
+            response.status || null
+          );
         }
 
         // PUT returns 204 No Content — rebuild the dto from the submitted
@@ -220,7 +226,7 @@ export function ServiceForm({
     setRemovingImage(true);
     setError(null);
     try {
-      const { response } = await api.PUT("/api/Services/{id}", {
+      const { response, error: errorBody } = await api.PUT("/api/Services/{id}", {
         params: { path: { id: serviceId } },
         body: buildPayload({ imageUrl: null }),
       });
@@ -232,8 +238,10 @@ export function ServiceForm({
         return;
       }
       if (!response.ok) {
-        const message = await extractErrorMessage(response.clone());
-        throw new ApiError(message, response.status || null);
+        throw new ApiError(
+          extractErrorMessage(errorBody, response.status),
+          response.status || null
+        );
       }
 
       setImageUrl(null);

@@ -56,7 +56,7 @@ function LoginForm() {
       // Login must not trip the global 401→redirect middleware — wrong
       // credentials stay on this page with an inline error (DASH-05).
       // OpenAPI documents the controller-token path as /api/Auth/login (case-insensitive at runtime).
-      const { data, response } = await api.POST("/api/Auth/login", {
+      const { data, response, error: errorBody } = await api.POST("/api/Auth/login", {
         body: { email, password },
         headers: { "X-Skip-Auth-Redirect": "1" },
       });
@@ -76,12 +76,11 @@ function LoginForm() {
           return;
         }
 
-        let message = "Could not sign in. Please try again.";
-        try {
-          message = await extractErrorMessage(response.clone());
-        } catch {
-          // keep default
-        }
+        // A 2xx with a malformed payload has no server error to report — keep the
+        // generic message rather than surfacing a misleading status line.
+        const message = response.ok
+          ? "Could not sign in. Please try again."
+          : extractErrorMessage(errorBody, response.status);
         throw new ApiError(message, response.status || null);
       }
 
