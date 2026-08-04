@@ -156,7 +156,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Uploaded service images (D-03) are public catalog assets, so static-file serving
 // stays anonymous — only the POST {id}/image write action is Owner-gated (in
