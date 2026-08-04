@@ -1,16 +1,25 @@
 ---
-status: diagnosed
+status: testing
 phase: 04-staff-management-services-availability
 mode: mvp
 source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
 user_story: "As a salon staff member, I want to keep the service catalog and stylist availability accurate from the dashboard without a code deploy, so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking."
 started: 2026-07-26T08:07:00Z
-updated: 2026-07-27T00:05:00Z
+updated: 2026-08-04T00:00:00Z
 ---
 
 ## Current Test
 
-[testing paused — user-flow test 13 failed (MVP mode halts on a user-flow failure); tests 14-22 remain pending until G-04-6 is fixed and retested]
+number: 13
+name: Conflicting Edit Is Blocked, Not Silently Applied
+expected: |
+  Re-run after b7e4ad6. The edge-resize shrink itself is already confirmed working;
+  what needs re-checking is the conflict panel's CONTENTS. Shrink hours past a
+  Confirmed booking and Save Changes: the rose "Can't Save — Conflicting
+  Appointments" panel must now LIST the conflicting booking (client name, service,
+  stylist, salon-local time) rather than appearing with an empty body. Reload and
+  confirm the hours were not changed.
+awaiting: user response
 
 ## Tests
 
@@ -40,9 +49,13 @@ covers: [04-02 D2]
 
 ### 4. Create a Service
 expected: Click the add/new-service control, fill in name, description, duration and price, and Save. Save stays disabled until the required fields are filled. After saving, the form stays open (so an image can be added) and the new service appears in the list.
-result: issue
+result: pass
+first_attempt: issue
 reported: "I fill all input and also upload image. when I click \"Save Service\" button, it does not work"
 severity: major
+retest_of: G-04-4
+retest_after: "afc5aae — unambiguous save feedback, form closes on update, noValidate on the form"
+fixed_by: "afc5aae — retested 2026-08-04, passes"
 section: user-flow
 covers: [04-02 D4]
 investigation: "Create + image upload both confirmed persisted in the API SQL log. Backend PUT /api/Services/{id} verified working via curl with the exact post-upload payload (204). A browser repro of the same click (without the image step) issued the PUT and succeeded. Cause not yet isolated — awaiting the on-screen symptom and a request-logged retry."
@@ -101,9 +114,14 @@ covers: [04-04 D4, outcome clause — clients book real open slots]
 
 ### 13. Conflicting Edit Is Blocked, Not Silently Applied
 expected: Book a real appointment through the public site so it is Confirmed. Back in Availability for that stylist, shrink the working hours so the booked slot falls outside them, and click Save Changes. Instead of saving, a rose "Can't Save — Conflicting Appointments" panel appears inline below Save Changes, listing the client name, service, stylist and salon-local time of the booking. Reload the page and confirm the hours were NOT changed. (This is the final clause of the outcome — no edit silently orphans a confirmed booking.)
-result: issue
+result: [pending]
+first_attempt: issue
 reported: "I am not able to shrik the existing ones, only can add by dragging"
 severity: major
+retest_of: G-04-6
+retest_after: "8c24a84 — edge-resize drag mode on WeekStripEditor"
+shrink_verified: "Edge-resize drag confirmed working on the 2026-08-04 re-run (closes G-04-6)."
+reopened: "Re-run required after b7e4ad6 (G-04-7). extractConflicts had the same consumed-body defect, so the conflict panel listed zero appointments on every 409 — the block itself was correct but the panel's contents were empty. This test asserts the panel lists client, service, stylist and salon-local time, which could not have held."
 section: user-flow
 covers: [04-05 D7, outcome clause — no orphaned bookings]
 
@@ -235,21 +253,71 @@ coverage_id: 04-05 D6
 ## Summary
 
 total: 33
-passed: 22
-issues: 2
-pending: 8
+passed: 23
+issues: 0
+pending: 9
 skipped: 0
 blocked: 0
-resolved_issues: 2
+resolved_issues: 5
 
 ## Gaps
+
+- gap_id: G-04-7
+  truth: "When the API rejects a dashboard request, the user sees the server's actual reason, not a generic fallback"
+  status: resolved
+  resolved_by: "b7e4ad6 (inline fix during the UAT session — user chose fix_now)"
+  resolved_at: 2026-08-04
+  resolution:
+    decision: "extractErrorMessage takes openapi-fetch's already-parsed `error` body plus a status instead of a Response, so there is nothing to re-read and nothing to throw. All 12 call sites across 10 files updated."
+    also_fixed: "extractConflicts in useAvailability.ts had the identical defect and feeds the availability conflict panel — that panel was rendering an empty appointment list on every 409. Forces a re-run of UAT test 13."
+    exceptions:
+      - "app/login/page.tsx and components/ServiceForm.tsx keep a generic message on the 2xx-with-malformed-payload branch, where there is no server error to surface."
+    verified:
+      - "npx tsc --noEmit — clean"
+      - "npm run lint — no ESLint warnings or errors"
+      - "node dashboard/lib/auth.selfcheck.mjs — 12 assertions (both real failure shapes, ProblemDetails precedence, degenerate bodies, non-JSON passthrough)"
+      - "Live POST /api/staff-users with a duplicate email now extracts \"Username 'mr.myothet@gmail.com' is already taken.\""
+  reason: "User reported: creating a staff member fails with \"Could not add staff member.\" three times in a row, for three different underlying causes, none of them surfaced."
+  severity: major
+  test: 14
+  found_during: "Setting up a Staff login to run test 14"
+  root_cause: "openapi-fetch consumes the response body via `await response.text()` on its error path (node_modules/openapi-fetch/dist/index.mjs:196) before returning. Every dashboard call site then calls `extractErrorMessage(response.clone())`; cloning an already-read Response throws InvalidStateError, the surrounding catch keeps the hardcoded default message, and the parsed ProblemDetails body — which openapi-fetch already hands back as `error` — is discarded unused."
+  evidence:
+    - "curl POST /api/staff-users password='password' -> 400 with 3 explicit Identity policy messages"
+    - "curl POST /api/staff-users email=mr.myothet@gmail.com -> 400 \"Username 'mr.myothet@gmail.com' is already taken.\""
+    - "curl POST /api/staff-users fresh email + StaffPw!2026 -> 201 Created (backend correct throughout)"
+  artifacts:
+    - path: "dashboard/lib/auth.ts"
+      issue: "extractErrorMessage(res) takes a Response and reads it, but by call time the body is always consumed on the error path"
+    - path: "dashboard/app/staff/new/page.tsx"
+      issue: "line 85 — extractErrorMessage(response.clone()) inside try/catch that silently keeps the default on throw"
+    - path: "dashboard/components/ServiceForm.tsx"
+      issue: "lines 155, 178, 235 — same swallowing pattern"
+    - path: "dashboard/lib/useAvailability.ts"
+      issue: "lines 117, 204, 225, 255 — same swallowing pattern"
+    - path: "dashboard/lib/useSchedule.ts"
+      issue: "line 39 — same swallowing pattern"
+    - path: "dashboard/lib/useServices.ts"
+      issue: "line 27 — same swallowing pattern"
+    - path: "dashboard/lib/scheduleStatus.ts"
+      issue: "line 40 — same swallowing pattern"
+    - path: "dashboard/app/services/page.tsx"
+      issue: "lines 116, 148 — same swallowing pattern"
+    - path: "dashboard/components/StylistPicker.tsx"
+      issue: "line 25 — same swallowing pattern"
+    - path: "dashboard/app/login/page.tsx"
+      issue: "line 81 — same swallowing pattern"
+  missing:
+    - "Use the `error` value openapi-fetch already returns (parsed ProblemDetails) instead of re-reading the consumed Response"
+    - "A single shared helper so all 12 call sites are fixed at the source rather than one at a time"
+  secondary_finding: "StaffUserCreateDtoValidator only checks Password NotEmpty, while Program.cs:100 AddIdentity() applies the default policy (6+ chars, uppercase, digit, non-alphanumeric). The form gives no hint of the requirements until the server rejects — worth surfacing client-side once the message pipeline works."
 
 - gap_id: G-04-6
   truth: "Availability lets staff shrink an existing working-hours segment on the week strip, not only add new ones by dragging"
   status: resolved
   resolved_by: "04-07-PLAN.md — Task 1 commit 8c24a84 (edge-resize drag mode on WeekStripEditor)"
   resolved_at: 2026-08-04
-  retest_pending: "Test 13 re-run (human judgment — live pointer drag; 04-07-SUMMARY.md coverage D1 human_judgment: true)"
+  retested: "Test 13 re-run — pass (human judgment on the live pointer drag; closes 04-07-SUMMARY.md coverage D1 human_judgment: true)"
   reason: "User reported: I am not able to shrik the existing ones, only can add by dragging"
   severity: major
   test: 13
@@ -322,7 +390,10 @@ resolved_issues: 2
 
 - gap_id: G-04-4
   truth: "After creating a service and attaching an image, clicking Save Service persists the edit and gives the Owner clear feedback"
-  status: investigating
+  status: resolved
+  resolved_by: "afc5aae (UX hardening applied inline during the UAT session)"
+  resolved_at: 2026-08-04
+  retested: "Test 4 re-run — pass. The original silent no-op did not recur. Root cause was never isolated and was not reproducible in two independent browser repros; the hardening makes any future occurrence self-describing rather than silent."
   reason: "User reported: I fill all input and also upload image. when I click \"Save Service\" button, it does not work"
   severity: major
   test: 4
