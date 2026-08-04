@@ -1,0 +1,281 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "Z ZACHHAIR STUDIO" [ref=e4] [cursor=pointer]:
+        - /url: /#home
+        - generic [ref=e5]: Z
+        - generic [ref=e7]: ZACHHAIR STUDIO
+      - list [ref=e8]:
+        - listitem [ref=e9]:
+          - link "Home" [ref=e10] [cursor=pointer]:
+            - /url: /#home
+        - listitem [ref=e11]:
+          - link "Services" [ref=e12] [cursor=pointer]:
+            - /url: /#services
+        - listitem [ref=e13]:
+          - link "Gallery" [ref=e14] [cursor=pointer]:
+            - /url: /#gallery
+        - listitem [ref=e15]:
+          - link "Team" [ref=e16] [cursor=pointer]:
+            - /url: /#team
+        - listitem [ref=e17]:
+          - link "Reviews" [ref=e18] [cursor=pointer]:
+            - /url: /#reviews
+        - listitem [ref=e19]:
+          - link "Contact" [ref=e20] [cursor=pointer]:
+            - /url: /#contact
+      - link "Book Now" [ref=e21] [cursor=pointer]:
+        - /url: /book
+  - main [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: Premium Hair Experience
+          - heading "Elevate Your Style, Define Your Story." [level=1] [ref=e30]: ElevateYour Style,Define Your Story.
+          - paragraph [ref=e31]: At Zach Hair Studio, we blend artistry with expertise to craft looks that are uniquely yours — from precision cuts to bold transformations.
+          - generic [ref=e32]:
+            - link "Book Appointment" [ref=e33] [cursor=pointer]:
+              - /url: "#contact"
+            - link "Our Services" [ref=e34] [cursor=pointer]:
+              - /url: "#services"
+          - generic [ref=e35]:
+            - generic [ref=e36]:
+              - paragraph [ref=e37]: 18+
+              - paragraph [ref=e38]: Years Experience
+            - generic [ref=e39]:
+              - paragraph [ref=e40]: 5K+
+              - paragraph [ref=e41]: Happy Clients
+            - generic [ref=e42]:
+              - paragraph [ref=e43]: 20+
+              - paragraph [ref=e44]: Style Experts
+        - generic [ref=e46]:
+          - generic [ref=e48]:
+            - img "Premium Styling 1" [ref=e49]
+            - img "Premium Styling 2" [ref=e50]
+            - img "Premium Styling 3" [ref=e51]
+            - generic [ref=e52]:
+              - paragraph [ref=e53]: Premium Styling
+              - paragraph [ref=e54]: Your look, perfected
+              - generic [ref=e55]:
+                - button "Slide 1" [ref=e56]
+                - button "Slide 2" [ref=e57]
+                - button "Slide 3" [ref=e58]
+          - generic [ref=e64]:
+            - paragraph [ref=e65]: 4.9 Rating
+            - paragraph [ref=e66]: 500+ Reviews
+          - generic [ref=e67]:
+            - paragraph [ref=e68]: Open Today
+            - paragraph [ref=e69]: 9AM – 7:30PM
+      - paragraph [ref=e71]: Scroll
+    - generic [ref=e75]:
+      - generic [ref=e76]:
+        - paragraph [ref=e77]: What We Offer
+        - heading "Our Services" [level=2] [ref=e78]
+        - paragraph [ref=e79]: From everyday cuts to full transformations, our expert stylists deliver results that speak for themselves.
+      - generic [ref=e80]:
+        - heading "Services are being refreshed" [level=3] [ref=e81]
+        - paragraph [ref=e82]: The catalog is temporarily unavailable. Please check back soon or contact the studio for current service options.
+    - generic [ref=e84]:
+      - generic [ref=e85]:
+        - paragraph [ref=e86]: Our Work
+        - heading "Style Gallery" [level=2] [ref=e87]
+        - paragraph [ref=e88]: Each transformation tells a story. Browse our portfolio of stunning styles.
+      - generic [ref=e89]:
+        - generic [ref=e90] [cursor=pointer]:
+          - img "Blue & Yellow Two-Tone" [ref=e91]
+          - generic [ref=e92]:
+            - paragraph [ref=e93]: Two-Tone Color Cut
+            - paragraph [ref=e94]: Blue & Yellow
+        - generic [ref=e95] [cursor=pointer]:
+          - img "Ash Grey Long Straight" [ref=e96]
+          - generic [ref=e97]:
+            - paragraph [ref=e98]: Ash Grey Straight
+            - paragraph [ref=e99]: Silver Tone
+        - generic [ref=e100] [cursor=pointer]:
+          - img "Vivid Purple Waves" [ref=e101]
+          - generic [ref=e102]:
+            - paragraph [ref=e103]: Vivid Purple Waves
+            - paragraph [ref=e104]: Bold Color
+        - generic [ref=e105] [cursor=pointer]:
+          - img "Fiery Orange Long Curls" [ref=e106]
+          - generic [ref=e107]:
+            - paragraph [ref=e108]: Fiery Orange Curls
+            - paragraph [ref=e109]: Vivid Color Melt
+        - generic [ref=e110] [cursor=pointer]:
+          - img "Mauve Pink Straight" [ref=e111]
+          - generic [ref=e112]:
+            - paragraph [ref=e113]: Mauve Pink Straight
+            - paragraph [ref=e114]: Soft Color & Sleek Finish
+        - generic [ref=e115] [cursor=pointer]:
+          - img "Signature Style" [ref=e116]
+          - generic [ref=e117]:
+            - paragraph [ref=e118]: Signature Style
+            - paragraph [ref=e119]: Salon Exclusive
+    - generic [ref=e121]:
+      - generic [ref=e122]:
+        - paragraph [ref=e123]: The Experts
+        - heading "Meet Our Team" [level=2] [ref=e124]
+        - paragraph [ref=e125]: Passionate artists dedicated to making every client feel their absolute best.
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - heading "Mr. Zachary" [level=3] [ref=e133]
+          - paragraph [ref=e134]: Founder & Master Stylist
+          - paragraph [ref=e135]: Leading Zach Hair Studio with 18 years of expertise in the hair industry.
+        - generic [ref=e136]:
+          - heading "Aria Chen" [level=3] [ref=e142]
+          - paragraph [ref=e143]: Color Specialist
+          - paragraph [ref=e144]: Expert in balayage, ombre, and vivid color transformations.
+        - generic [ref=e145]:
+          - heading "Marcus Lee" [level=3] [ref=e151]
+          - paragraph [ref=e152]: Texture & Curl Expert
+          - paragraph [ref=e153]: Specializing in natural hair, curls, and protective styling.
+        - generic [ref=e154]:
+          - heading "Sofia Reyes" [level=3] [ref=e160]
+          - paragraph [ref=e161]: Bridal & Event Stylist
+          - paragraph [ref=e162]: Creating unforgettable looks for weddings and special occasions.
+    - generic [ref=e164]:
+      - generic [ref=e165]:
+        - paragraph [ref=e166]: Testimonials
+        - heading "Client Reviews" [level=2] [ref=e167]
+        - paragraph [ref=e168]: Don't just take our word for it — hear from the people who matter most.
+      - generic [ref=e169]:
+        - generic [ref=e170]:
+          - paragraph [ref=e182]: “Zach completely transformed my look! He treated my hair and gave me the exact haircut I wanted — it turned out absolutely beautiful.”
+          - generic [ref=e183]:
+            - generic [ref=e184]: K
+            - generic [ref=e185]:
+              - paragraph [ref=e186]: Khattar
+              - paragraph [ref=e187]: Happy Client
+        - generic [ref=e188]:
+          - paragraph [ref=e200]: “လက်ရာကောင်းပေမယ့် ဈေးလည်းအရမ်းမကြီးဘူး။ ညှပ်၊ လျှော်ကို ၂ သောင်းမကျော်ဘူးဆိုတော့ ဒီဈေးနဲ့ ဒီလိုမျိုး quality cut နဲ့ကအဆင်ပြေသလားလို့လေ။ Highly recommended ပါ။”
+          - generic [ref=e201]:
+            - generic [ref=e202]: R
+            - generic [ref=e203]:
+              - paragraph [ref=e204]: Rosie
+              - paragraph [ref=e205]: Recommended Client
+        - generic [ref=e206]:
+          - paragraph [ref=e218]: “Favorite hair studio in town 💇”
+          - generic [ref=e219]:
+            - generic [ref=e220]: P
+            - generic [ref=e221]:
+              - paragraph [ref=e222]: Paing Thet Htar
+              - paragraph [ref=e223]: Loyal Client
+    - generic [ref=e226]:
+      - generic [ref=e227]:
+        - generic [ref=e228]:
+          - paragraph [ref=e229]: Get In Touch
+          - heading "Book Your Appointment" [level=2] [ref=e230]
+          - paragraph [ref=e231]: Ready for your transformation? Choose a service and continue to our booking flow to pick a real open time. Walk-ins are also welcome during business hours.
+        - generic [ref=e232]:
+          - generic [ref=e238]:
+            - paragraph [ref=e239]: Zach Hair Studio (1)
+            - paragraph [ref=e240]:
+              - generic [ref=e241]: အမှတ် ၂၁၂၊ ပုဇွန်တောင်မြို့နယ်၊
+              - text: ဗိုလ်တထောင်ဘုရားလမ်း၊ ရန်ကုန်မြို့။
+            - paragraph [ref=e242]:
+              - link "09-777 190 314" [ref=e243] [cursor=pointer]:
+                - /url: tel:+959777190314
+          - generic [ref=e249]:
+            - paragraph [ref=e250]: Zach Hair Studio (2)
+            - paragraph [ref=e251]:
+              - generic [ref=e252]: အမှတ် (၁၃၂)၊ ဗားကရာလမ်းမကြီး၊
+              - text: စမ်းချောင်းမြို့နယ်၊ ရန်ကုန်မြို့။
+            - paragraph [ref=e253]:
+              - link "09-753 011 309" [ref=e254] [cursor=pointer]:
+                - /url: tel:+9509753011309
+          - generic [ref=e259]:
+            - paragraph [ref=e260]: Hours
+            - paragraph [ref=e261]: "Open Daily: 9:00 AM – 7:30 PM"
+          - generic [ref=e266]:
+            - paragraph [ref=e267]: Email
+            - paragraph [ref=e268]: aprileisu.2019@gmail.com
+      - generic [ref=e270]:
+        - generic [ref=e271]:
+          - generic [ref=e272]:
+            - generic [ref=e273]: First Name
+            - textbox "Zach" [ref=e274]
+          - generic [ref=e275]:
+            - generic [ref=e276]: Last Name
+            - textbox "Monroe" [ref=e277]
+        - generic [ref=e278]:
+          - generic [ref=e279]: Email Address
+          - textbox "you@example.com" [ref=e280]
+        - generic [ref=e281]:
+          - generic [ref=e282]: Phone Number
+          - textbox "(212) 555-0000" [ref=e283]
+        - generic [ref=e284]:
+          - generic [ref=e285]: Service
+          - combobox [ref=e286] [cursor=pointer]:
+            - option "Select a service..." [disabled] [selected]
+        - button "Continue to Booking" [ref=e287]
+  - contentinfo [ref=e291]:
+    - generic [ref=e292]:
+      - generic [ref=e293]:
+        - generic [ref=e294]:
+          - generic [ref=e295]:
+            - generic [ref=e296]: Z
+            - generic [ref=e298]: ZACHHAIR STUDIO
+          - paragraph [ref=e299]: Crafting confidence through artistry. Your premier destination for premium hair services in New York City.
+          - generic [ref=e300]:
+            - link "Instagram" [ref=e301] [cursor=pointer]:
+              - /url: "#"
+            - link "Facebook" [ref=e304] [cursor=pointer]:
+              - /url: https://www.facebook.com/zachhairstudio
+            - link "TikTok" [ref=e307] [cursor=pointer]:
+              - /url: "#"
+        - generic [ref=e310]:
+          - heading "Quick Links" [level=4] [ref=e311]
+          - list [ref=e312]:
+            - listitem [ref=e313]:
+              - link "Home" [ref=e314] [cursor=pointer]:
+                - /url: /#home
+            - listitem [ref=e315]:
+              - link "Services" [ref=e316] [cursor=pointer]:
+                - /url: /#services
+            - listitem [ref=e317]:
+              - link "Gallery" [ref=e318] [cursor=pointer]:
+                - /url: /#gallery
+            - listitem [ref=e319]:
+              - link "Team" [ref=e320] [cursor=pointer]:
+                - /url: /#team
+            - listitem [ref=e321]:
+              - link "Reviews" [ref=e322] [cursor=pointer]:
+                - /url: /#reviews
+            - listitem [ref=e323]:
+              - link "Contact" [ref=e324] [cursor=pointer]:
+                - /url: /#contact
+        - generic [ref=e325]:
+          - heading "Our Branches" [level=4] [ref=e326]
+          - list [ref=e327]:
+            - listitem [ref=e328]:
+              - generic [ref=e329]: Branch (1)
+              - generic [ref=e330]: အမှတ် ၂၁၂၊ ပုဇွန်တောင်မြို့နယ်၊
+              - generic [ref=e331]: ဗိုလ်တထောင်ဘုရားလမ်း၊ ရန်ကုန်မြို့။
+              - link "09-777 190 314" [ref=e332] [cursor=pointer]:
+                - /url: tel:+959777190314
+            - listitem [ref=e333]:
+              - generic [ref=e334]: Branch (2)
+              - generic [ref=e335]: အမှတ် (၁၃၂)၊ ဗားကရာလမ်းမကြီး၊
+              - generic [ref=e336]: စမ်းချောင်းမြို့နယ်၊ ရန်ကုန်မြို့။
+              - link "09-753 011 309" [ref=e337] [cursor=pointer]:
+                - /url: tel:+9509753011309
+            - listitem [ref=e338]: aprileisu.2019@gmail.com
+      - generic [ref=e339]:
+        - paragraph [ref=e340]: © 2024 Zach Hair Studio. All rights reserved.
+        - generic [ref=e341]:
+          - link "Privacy Policy" [ref=e342] [cursor=pointer]:
+            - /url: "#"
+          - link "Terms of Service" [ref=e343] [cursor=pointer]:
+            - /url: "#"
+  - button "Back to top"
+  - button "Close booking assistant" [expanded] [ref=e357]
+  - button "Open Next.js Dev Tools" [ref=e352] [cursor=pointer]
+  - alert [ref=e356]
+  - dialog "Booking assistant chat" [ref=e360]:
+    - generic [ref=e361]:
+      - generic [ref=e362]: Booking Assistant
+      - button "Close booking assistant" [ref=e363]
+    - generic [ref=e366]: I'd like to book an appointment
+    - generic [ref=e374]:
+      - textbox "Ask about services, pricing, hours..." [ref=e375]
+      - button "Send message" [disabled] [ref=e376]

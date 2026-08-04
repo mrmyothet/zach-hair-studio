@@ -11,7 +11,20 @@
       "Bash(python -c \"print\\(1\\)\")",
       "Bash(cat)",
       "Read(//tmp/**)",
-      "Bash(chmod +x /home/myothet/repos/vct/zach-hair-studio/.claude/hooks/*.sh)"
+      "Bash(chmod +x /home/myothet/repos/vct/zach-hair-studio/.claude/hooks/*.sh)",
+      "Bash(dotnet user-secrets *)",
+      "Bash(openssl rand *)",
+      "Skill(gsd-quick)",
+      "Skill(gsd-quick:*)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_type",
+      "Skill(gsd-fast)",
+      "Skill(gsd-fast:*)"
     ],
     "deny": [
       "Read(.env)",

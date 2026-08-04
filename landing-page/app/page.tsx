@@ -7,6 +7,7 @@ import Reviews from "@/components/Reviews";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import BackToTop from "@/components/BackToTop";
+import ChatWidget from "@/components/ChatWidget";
 import { fetchServices } from "@/lib/services";
 
 const HOMEPAGE_SERVICE_COUNT = 6;
@@ -37,6 +38,7 @@ export default async function Home({ searchParams }: Props) {
       </main>
       <Footer />
       <BackToTop />
+      <ChatWidget services={services} />
     </>
   );
 }

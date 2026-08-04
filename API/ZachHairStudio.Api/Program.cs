@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using ZachHairStudio.Api.Mcp;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
@@ -54,6 +55,14 @@ builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SalonOptions>>().Value);
 builder.Services.AddScoped<SlotService>();
 builder.Services.AddScoped<AvailabilityService>();
+
+// Stateless HTTP transport shares the ASP.NET Core per-request DI scope, which is what
+// lets the scoped SlotService (and its scoped BookingDbContext) resolve correctly per
+// tool call. Explicit WithTools<ScheduleTools>() (not assembly-wide discovery) keeps the
+// unauthenticated /mcp surface limited to exactly this one read-only tool (mitigates T-Q04).
+builder.Services.AddMcpServer()
+    .WithHttpTransport(options => { options.Stateless = true; })
+    .WithTools<ScheduleTools>();
 
 // Resend confirmation email (D-09/D-10/D-11). FromEmail is a non-secret appsettings
 // value; the API key is read from RESEND_API_KEY (user-secrets/env, D-13) — never a
@@ -214,6 +223,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapMcp("/mcp");
 
 app.Run();
 

@@ -44,18 +44,18 @@ Progress: [██████████] 100%
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1. Service Catalog | 4 | 3h 58m | 60 min |
-| 01 | 4 | - | - |
-| 03 | 5 | - | - |
+| Phase              | Plans | Total  | Avg/Plan |
+| ------------------ | ----- | ------ | -------- |
+| 1. Service Catalog | 4     | 3h 58m | 60 min   |
+| 01                 | 4     | -      | -        |
+| 03                 | 5     | -      | -        |
 
 **Recent Trend:**
 
 - Last 5 plans: 72m, 101m, 51m, 14m
 - Trend: Accelerating
 
-*Updated after each plan completion*
+_Updated after each plan completion_
 | Phase 02 P04 | 13min | 3 tasks | 16 files |
 | Phase 03 P01 | 14min | 3 tasks | 13 files |
 | Phase 03 P02 | 10min | 3 tasks | 9 files |
@@ -64,16 +64,16 @@ Progress: [██████████] 100%
 | Phase 03 P05 | close-out | 4 tasks | 12 files |
 **Per-Plan Metrics:**
 
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 04 P01 | 25min | 3 tasks | 10 files |
-| Phase 04 P02 | 45min | 3 tasks | 9 files |
-| Phase 04 P03 | 30min | 3 tasks | 9 files |
-| Phase 04 P04 | 45min | 3 tasks | 9 files |
-| Phase 04 P05 | 55min | 3 tasks | 11 files |
-| Phase 02 P09 | 20min | 2 tasks | 4 files |
-| Phase 04 P06 | 20min | 2 tasks | 2 files |
-| Phase 04 P07 | 20min | 1 tasks | 1 files |
+| Plan         | Duration | Tasks   | Files    |
+| ------------ | -------- | ------- | -------- |
+| Phase 04 P01 | 25min    | 3 tasks | 10 files |
+| Phase 04 P02 | 45min    | 3 tasks | 9 files  |
+| Phase 04 P03 | 30min    | 3 tasks | 9 files  |
+| Phase 04 P04 | 45min    | 3 tasks | 9 files  |
+| Phase 04 P05 | 55min    | 3 tasks | 11 files |
+| Phase 02 P09 | 20min    | 2 tasks | 4 files  |
+| Phase 04 P06 | 20min    | 2 tasks | 2 files  |
+| Phase 04 P07 | 20min    | 1 tasks | 1 files  |
 
 ## Accumulated Context
 
@@ -144,21 +144,23 @@ Recent decisions affecting current work:
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260712-tds | Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs) | 2026-07-12 | 40e3207 | [260712-tds-fix-semgrep-ci-findings-semgrepignore-ve](./quick/260712-tds-fix-semgrep-ci-findings-semgrepignore-ve/) |
+| #          | Description                                                                                                                        | Date       | Commit  | Directory                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| 260712-tds | Fix semgrep CI findings (semgrepignore vendored tooling, pin gitleaks workflow action SHAs)                                        | 2026-07-12 | 40e3207 | [260712-tds-fix-semgrep-ci-findings-semgrepignore-ve](./quick/260712-tds-fix-semgrep-ci-findings-semgrepignore-ve/) |
 | 260716-qfe | Fix gitleaks false positives on GSD manifest checksums (rule-targeted regex allowlist replaces stale .gitleaksignore fingerprints) | 2026-07-16 | 8e7a1d2 | [260716-qfe-fix-gitleaks-false-positives-on-gsd-mani](./quick/260716-qfe-fix-gitleaks-false-positives-on-gsd-mani/) |
-| 3 | Bump CI gitleaks v8.18.4 -> v8.30.1 so [[allowlists]] config applies in security.yml scan | 2026-07-16 | 1221ba5 | — |
-| 4 | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies | 2026-07-16 | b130c2d | — |
-| 260725-mx3 | Add Owner-gated includeInactive filter to GET /api/Services so retired services survive reload | 2026-07-25 | 2facace | [260725-mx3-add-owner-gated-includeinactive-filter-t](./quick/260725-mx3-add-owner-gated-includeinactive-filter-t/) |
+| 3          | Bump CI gitleaks v8.18.4 -> v8.30.1 so [[allowlists]] config applies in security.yml scan                                          | 2026-07-16 | 1221ba5 | —                                                                                                                   |
+| 4          | Pin GITLEAKS_VERSION 8.30.1 in gitleaks-action workflow so [[allowlists]] config applies                                           | 2026-07-16 | b130c2d | —                                                                                                                   |
+| 260731-uj3 | Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)    | 2026-07-31 | 0747757 | [260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-](./quick/260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-/) |
+| 6          | Fix plural "hours" match in chat.ts hours-keyword regex (\\b(hour\|open\|close)\\b -> \\b(hours?\|open\|close)\\b)                 | 2026-07-31 | dcbbfdf | —                                                                                                                   |
+| 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots                                                                | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
 
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| *(none)* | | | |
+| -------- | ---- | ------ | ----------- |
+| _(none)_ |      |        |             |
 
 ## Session Continuity
 
