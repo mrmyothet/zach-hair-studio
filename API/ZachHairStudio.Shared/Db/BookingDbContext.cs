@@ -59,7 +59,7 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                     Category = "Cuts",
                     DurationMinutes = 45,
                     Price = 35m,
-                    ImageUrl = null,
+                    ImageUrl = "/uploads/services/precision-cut.jpg",
                     IsActive = true,
                     DisplayOrder = 1,
                 },
@@ -73,7 +73,7 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                     Category = "Color",
                     DurationMinutes = 90,
                     Price = 80m,
-                    ImageUrl = null,
+                    ImageUrl = "/uploads/services/color-and-highlights.jpg",
                     IsActive = true,
                     DisplayOrder = 2,
                 },
@@ -87,7 +87,7 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                     Category = "Styling",
                     DurationMinutes = 45,
                     Price = 55m,
-                    ImageUrl = null,
+                    ImageUrl = "/uploads/services/blowout-and-styling.jpg",
                     IsActive = true,
                     DisplayOrder = 3,
                 },
@@ -101,7 +101,7 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                     Category = "Treatments",
                     DurationMinutes = 120,
                     Price = 120m,
-                    ImageUrl = null,
+                    ImageUrl = "/uploads/services/keratin-treatment.jpg",
                     IsActive = true,
                     DisplayOrder = 4,
                 },
@@ -115,7 +115,7 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                     Category = "Treatments",
                     DurationMinutes = 40,
                     Price = 65m,
-                    ImageUrl = null,
+                    ImageUrl = "/uploads/services/scalp-treatment.jpg",
                     IsActive = true,
                     DisplayOrder = 5,
                 },
@@ -129,7 +129,7 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                     Category = "Styling",
                     DurationMinutes = 210,
                     Price = 199m,
-                    ImageUrl = null,
+                    ImageUrl = "/uploads/services/full-glam-package.jpg",
                     IsActive = true,
                     DisplayOrder = 6,
                 });
@@ -144,15 +144,16 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
 
             // Seeded from landing-page/lib/data.ts `team` array (owner-editable content).
             entity.HasData(
-                new Stylist { Id = 1, Slug = "mr-zachary", Name = "Mr. Zachary", IsActive = true, DisplayOrder = 1 },
-                new Stylist { Id = 2, Slug = "aria-chen", Name = "Aria Chen", IsActive = true, DisplayOrder = 2 },
-                new Stylist { Id = 3, Slug = "marcus-lee", Name = "Marcus Lee", IsActive = true, DisplayOrder = 3 },
-                new Stylist { Id = 4, Slug = "sofia-reyes", Name = "Sofia Reyes", IsActive = true, DisplayOrder = 4 });
+                new Stylist { Id = 1, Slug = "zin-min", Name = "Zin Min", IsActive = true, DisplayOrder = 1 },
+                new Stylist { Id = 2, Slug = "may-yoon", Name = "May Yoon", IsActive = true, DisplayOrder = 2 },
+                new Stylist { Id = 3, Slug = "thiri-cho", Name = "Thiri Cho", IsActive = true, DisplayOrder = 3 },
+                new Stylist { Id = 4, Slug = "sai-min-htet", Name = "Sai Min Htet", IsActive = true, DisplayOrder = 4 });
         });
 
         modelBuilder.Entity<StylistWorkingHours>(entity =>
         {
-            // Owner-reviewable placeholder default schedule (Tue-Sat 09:00-18:00 per active stylist).
+            // Owner-reviewable placeholder default schedule (every day 09:00-18:00 per active stylist).
+            // The salon opens seven days a week — owner-directed 2026-07-23, replacing the earlier Tue-Sat default.
             // Mirrors the seed-price precedent from Phase 1 (D-15) — flag for owner review, not a final schedule.
             entity.HasData(
                 new StylistWorkingHours { Id = 1, StylistId = 1, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
@@ -174,7 +175,15 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                 new StylistWorkingHours { Id = 17, StylistId = 4, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
                 new StylistWorkingHours { Id = 18, StylistId = 4, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
                 new StylistWorkingHours { Id = 19, StylistId = 4, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
-                new StylistWorkingHours { Id = 20, StylistId = 4, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) });
+                new StylistWorkingHours { Id = 20, StylistId = 4, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 21, StylistId = 1, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 22, StylistId = 1, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 23, StylistId = 2, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 24, StylistId = 2, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 25, StylistId = 3, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 26, StylistId = 3, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 27, StylistId = 4, DayOfWeek = DayOfWeek.Sunday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) },
+                new StylistWorkingHours { Id = 28, StylistId = 4, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeOnly(9, 0), EndTime = new TimeOnly(18, 0) });
         });
 
         modelBuilder.Entity<StylistTimeOff>(entity =>

@@ -44,3 +44,7 @@ dashboard/node_modules/
 .vs
 
 /temp
+
+# Service image uploads (Phase 4 D-03) — created at runtime under
+# API/ZachHairStudio.Api/wwwroot/uploads/services/ by Program.cs; not source content.
+API/ZachHairStudio.Api/wwwroot/

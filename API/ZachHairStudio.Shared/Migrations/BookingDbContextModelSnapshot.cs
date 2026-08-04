@@ -448,6 +448,70 @@ namespace ZachHairStudio.Shared.Migrations
                             EndTime = new TimeOnly(18, 0, 0),
                             StartTime = new TimeOnly(9, 0, 0),
                             StylistId = 4
+                        },
+                        new
+                        {
+                            Id = 21,
+                            DayOfWeek = 0,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 1
+                        },
+                        new
+                        {
+                            Id = 22,
+                            DayOfWeek = 1,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 1
+                        },
+                        new
+                        {
+                            Id = 23,
+                            DayOfWeek = 0,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 2
+                        },
+                        new
+                        {
+                            Id = 24,
+                            DayOfWeek = 1,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 2
+                        },
+                        new
+                        {
+                            Id = 25,
+                            DayOfWeek = 0,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 3
+                        },
+                        new
+                        {
+                            Id = 26,
+                            DayOfWeek = 1,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 3
+                        },
+                        new
+                        {
+                            Id = 27,
+                            DayOfWeek = 0,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 4
+                        },
+                        new
+                        {
+                            Id = 28,
+                            DayOfWeek = 1,
+                            EndTime = new TimeOnly(18, 0, 0),
+                            StartTime = new TimeOnly(9, 0, 0),
+                            StylistId = 4
                         });
                 });
 
@@ -587,6 +651,7 @@ namespace ZachHairStudio.Shared.Migrations
                             Category = "Cuts",
                             DisplayOrder = 1,
                             DurationMinutes = 45,
+                            ImageUrl = "/uploads/services/precision-cut.jpg",
                             IsActive = true,
                             LongDescription = "A tailored cut shaped around your face, texture, and daily styling routine. Includes a consultation and finishing touches so your hair leaves polished and easy to maintain.",
                             Name = "Precision Cut",
@@ -600,6 +665,7 @@ namespace ZachHairStudio.Shared.Migrations
                             Category = "Color",
                             DisplayOrder = 2,
                             DurationMinutes = 90,
+                            ImageUrl = "/uploads/services/color-and-highlights.jpg",
                             IsActive = true,
                             LongDescription = "Dimensional color and highlight work customized to your skin tone, cut, and maintenance goals. The service uses premium products for glossy color, soft grow-out, and a salon-fresh finish.",
                             Name = "Color & Highlights",
@@ -613,6 +679,7 @@ namespace ZachHairStudio.Shared.Migrations
                             Category = "Styling",
                             DisplayOrder = 3,
                             DurationMinutes = 45,
+                            ImageUrl = "/uploads/services/blowout-and-styling.jpg",
                             IsActive = true,
                             LongDescription = "A smooth professional blowout or styled finish tailored to the occasion, from everyday polish to event-ready volume. Ideal when you want shine, movement, and a finished look without a full cut or color service.",
                             Name = "Blowout & Styling",
@@ -626,6 +693,7 @@ namespace ZachHairStudio.Shared.Migrations
                             Category = "Treatments",
                             DisplayOrder = 4,
                             DurationMinutes = 120,
+                            ImageUrl = "/uploads/services/keratin-treatment.jpg",
                             IsActive = true,
                             LongDescription = "A smoothing treatment designed to reduce frizz, increase shine, and make daily styling easier. Best for clients looking for a longer-lasting sleek finish and improved manageability between salon visits.",
                             Name = "Keratin Treatment",
@@ -639,6 +707,7 @@ namespace ZachHairStudio.Shared.Migrations
                             Category = "Treatments",
                             DisplayOrder = 5,
                             DurationMinutes = 40,
+                            ImageUrl = "/uploads/services/scalp-treatment.jpg",
                             IsActive = true,
                             LongDescription = "A restorative scalp-focused service that refreshes, hydrates, and supports a healthier hair environment. Recommended for clients wanting comfort, balance, and a relaxing reset between larger services.",
                             Name = "Scalp Treatment",
@@ -652,6 +721,7 @@ namespace ZachHairStudio.Shared.Migrations
                             Category = "Styling",
                             DisplayOrder = 6,
                             DurationMinutes = 210,
+                            ImageUrl = "/uploads/services/full-glam-package.jpg",
                             IsActive = true,
                             LongDescription = "The full studio transformation package combining a precision cut, color service, blowout, and scalp treatment. Built for clients who want the complete Zach Hair Studio experience in one coordinated visit.",
                             Name = "Full Glam Package",
@@ -698,32 +768,32 @@ namespace ZachHairStudio.Shared.Migrations
                             Id = 1,
                             DisplayOrder = 1,
                             IsActive = true,
-                            Name = "Mr. Zachary",
-                            Slug = "mr-zachary"
+                            Name = "Zin Min",
+                            Slug = "zin-min"
                         },
                         new
                         {
                             Id = 2,
                             DisplayOrder = 2,
                             IsActive = true,
-                            Name = "Aria Chen",
-                            Slug = "aria-chen"
+                            Name = "May Yoon",
+                            Slug = "may-yoon"
                         },
                         new
                         {
                             Id = 3,
                             DisplayOrder = 3,
                             IsActive = true,
-                            Name = "Marcus Lee",
-                            Slug = "marcus-lee"
+                            Name = "Thiri Cho",
+                            Slug = "thiri-cho"
                         },
                         new
                         {
                             Id = 4,
                             DisplayOrder = 4,
                             IsActive = true,
-                            Name = "Sofia Reyes",
-                            Slug = "sofia-reyes"
+                            Name = "Sai Min Htet",
+                            Slug = "sai-min-htet"
                         });
                 });
 

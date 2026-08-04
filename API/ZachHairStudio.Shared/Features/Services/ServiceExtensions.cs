@@ -2,7 +2,7 @@ namespace ZachHairStudio.Shared.Features.Services;
 
 public static class ServiceExtensions
 {
-    public static ServiceResponseDto ToDto(this Service service)
+    public static ServiceResponseDto ToDto(this Service service, bool includeStatus = false)
         => new ServiceResponseDto
         {
             Id = service.Id,
@@ -14,6 +14,7 @@ public static class ServiceExtensions
             DurationMinutes = service.DurationMinutes,
             Price = service.Price,
             ImageUrl = service.ImageUrl,
+            IsActive = includeStatus ? service.IsActive : null,
             DisplayOrder = service.DisplayOrder,
         };
 

@@ -3,9 +3,9 @@
     "allow": [
       "Bash(npx gsd-core *)",
       "Read(.planning/*)",
-      "Write(.planning/*)",
+      "Edit(.planning/*)",
       "Read(STATE.md)",
-      "Write(STATE.md)",
+      "Edit(STATE.md)",
       "WebSearch",
       "Bash(python3 -c \"print\\(1\\)\")",
       "Bash(python -c \"print\\(1\\)\")",
@@ -33,12 +33,12 @@
     ]
   },
   "enabledMcpjsonServers": [
-    "playwright",
-    "context7",
-    "github"
+    "playwright"
   ],
   "disabledMcpjsonServers": [
-    "sqlite"
+    "sqlite",
+    "context7",
+    "github"
   ],
   "hooks": {
     "SessionStart": [
@@ -201,5 +201,8 @@
   },
   "worktree": {
     "baseRef": "head"
+  },
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": false
   }
 }

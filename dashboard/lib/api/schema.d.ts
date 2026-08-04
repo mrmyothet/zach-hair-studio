@@ -131,6 +131,189 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Availability/{stylistId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AvailabilityResponseDto"];
+                        "application/json": components["schemas"]["AvailabilityResponseDto"];
+                        "text/json": components["schemas"]["AvailabilityResponseDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Availability/{stylistId}/working-hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkingHoursReplaceDto"];
+                    "text/json": components["schemas"]["WorkingHoursReplaceDto"];
+                    "application/*+json": components["schemas"]["WorkingHoursReplaceDto"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Availability/{stylistId}/time-off": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TimeOffCreateDto"];
+                    "text/json": components["schemas"]["TimeOffCreateDto"];
+                    "application/*+json": components["schemas"]["TimeOffCreateDto"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["StylistTimeOff"];
+                        "application/json": components["schemas"]["StylistTimeOff"];
+                        "text/json": components["schemas"]["StylistTimeOff"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Availability/{stylistId}/time-off/{timeOffId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stylistId: number | string;
+                    timeOffId: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/Schedule": {
         parameters: {
             query?: never;
@@ -265,7 +448,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    includeInactive?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -377,6 +562,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Services/{id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number | string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/x-www-form-urlencoded": {
+                        Image?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ServiceResponseDto"];
+                        "application/json": components["schemas"]["ServiceResponseDto"];
+                        "text/json": components["schemas"]["ServiceResponseDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff-users": {
         parameters: {
             query?: never;
@@ -401,17 +631,6 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "text/plain": components["schemas"]["StaffUserResponseDto"];
-                        "application/json": components["schemas"]["StaffUserResponseDto"];
-                        "text/json": components["schemas"]["StaffUserResponseDto"];
-                    };
-                };
                 /** @description Created */
                 201: {
                     headers: {
@@ -421,6 +640,39 @@ export interface paths {
                         "text/plain": components["schemas"]["StaffUserResponseDto"];
                         "application/json": components["schemas"]["StaffUserResponseDto"];
                         "text/json": components["schemas"]["StaffUserResponseDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
                     };
                 };
             };
@@ -512,6 +764,13 @@ export interface components {
         AppointmentStatusUpdateDto: {
             newStatus?: components["schemas"]["AppointmentStatus"];
         };
+        AvailabilityResponseDto: {
+            workingHours?: components["schemas"]["WorkingHoursSegmentDto"][];
+            timeOff?: components["schemas"]["TimeOffResponseDto"][];
+        };
+        DayOfWeek: number;
+        /** Format: binary */
+        IFormFile: string;
         LoginRequestDto: {
             email?: string;
             password?: string;
@@ -529,6 +788,14 @@ export interface components {
             /** Format: int32 */
             stylistId?: null | number | string;
             stylistName?: null | string;
+        };
+        ProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
         };
         ServiceCreateDto: {
             slug: string;
@@ -557,6 +824,7 @@ export interface components {
             /** Format: double */
             price?: number | string;
             imageUrl?: null | string;
+            isActive?: null | boolean;
             /** Format: int32 */
             displayOrder?: number | string;
         };
@@ -594,6 +862,43 @@ export interface components {
             name?: string;
             /** Format: int32 */
             displayOrder?: number | string;
+        };
+        StylistTimeOff: {
+            /** Format: int32 */
+            id?: number | string;
+            /** Format: int32 */
+            stylistId?: number | string;
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            reason?: null | string;
+        };
+        TimeOffCreateDto: {
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            reason?: null | string;
+        };
+        TimeOffResponseDto: {
+            /** Format: int32 */
+            id?: number | string;
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            reason?: null | string;
+        };
+        WorkingHoursReplaceDto: {
+            segments?: components["schemas"]["WorkingHoursSegmentDto"][];
+        };
+        WorkingHoursSegmentDto: {
+            dayOfWeek?: components["schemas"]["DayOfWeek"];
+            /** Format: time */
+            startTime?: string;
+            /** Format: time */
+            endTime?: string;
         };
     };
     responses: never;

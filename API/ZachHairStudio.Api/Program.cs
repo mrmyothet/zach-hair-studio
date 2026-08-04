@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ZachHairStudio.Api.Mcp;
@@ -53,6 +54,7 @@ builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon
 // (SlotService) can depend on it directly without referencing Microsoft.Extensions.Options.
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SalonOptions>>().Value);
 builder.Services.AddScoped<SlotService>();
+builder.Services.AddScoped<AvailabilityService>();
 
 // Stateless HTTP transport shares the ASP.NET Core per-request DI scope, which is what
 // lets the scoped SlotService (and its scoped BookingDbContext) resolve correctly per
@@ -154,13 +156,69 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-if (!app.Environment.IsDevelopment())
+app.UseHttpsRedirection();
+
+// Uploaded service images (D-03) are public catalog assets, so static-file serving
+// stays anonymous — only the POST {id}/image write action is Owner-gated (in
+// ServicesController). No wwwroot/ ships in source control, so ensure it (and the
+// uploads/services subfolder) exists here, and build the PhysicalFileProvider against
+// that resolved path explicitly rather than relying on env.WebRootFileProvider, which
+// is captured once at host-build time and would otherwise permanently bind to a
+// NullFileProvider if wwwroot didn't exist yet at that moment (RESEARCH Pitfall 4).
+// Also write the resolved path back onto IWebHostEnvironment.WebRootPath itself —
+// ASP.NET Core's own HostingEnvironment.Initialize leaves that property empty (not
+// just the file provider) when wwwroot is absent at Initialize time, and
+// ServicesController's UploadImage action reads WebRootPath directly via DI.
+var webRootPath = string.IsNullOrEmpty(app.Environment.WebRootPath)
+    ? Path.Combine(app.Environment.ContentRootPath, "wwwroot")
+    : app.Environment.WebRootPath;
+var servicesUploadPath = Path.Combine(webRootPath, "uploads", "services");
+Directory.CreateDirectory(servicesUploadPath);
+app.Environment.WebRootPath = webRootPath;
+
+// Seeded catalog images ship in SeedAssets/services/ and are copied into the (gitignored,
+// recreated-at-startup) upload root so a cold start on a fresh clone serves the same
+// catalog the seed data points at. Existing files are never overwritten — an Owner who
+// replaces a seeded image through the dashboard keeps their upload across restarts.
+foreach (var seedRoot in new[]
+         {
+             Path.Combine(app.Environment.ContentRootPath, "SeedAssets", "services"),
+             Path.Combine(AppContext.BaseDirectory, "SeedAssets", "services"),
+         })
 {
-    // Redirecting a plain-http dashboard call to the https port is a cross-origin
-    // redirect (different scheme+port) — browsers strip the Authorization header
-    // on cross-origin redirects, silently de-authenticating every dashboard request.
-    app.UseHttpsRedirection();
+    if (!Directory.Exists(seedRoot))
+    {
+        continue;
+    }
+
+    foreach (var source in Directory.EnumerateFiles(seedRoot))
+    {
+        var destination = Path.Combine(servicesUploadPath, Path.GetFileName(source));
+        if (File.Exists(destination))
+        {
+            continue;
+        }
+
+        try
+        {
+            File.Copy(source, destination);
+        }
+        catch (IOException)
+        {
+            // Another host started concurrently and copied this file between the check
+            // above and the copy (the test suite boots many WebApplicationFactory hosts
+            // in parallel against one upload root). The file exists either way, which is
+            // the outcome we wanted.
+        }
+    }
+
+    break;
 }
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(webRootPath),
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 

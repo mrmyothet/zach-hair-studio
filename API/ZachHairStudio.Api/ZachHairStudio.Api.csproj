@@ -24,4 +24,12 @@
     <ProjectReference Include="..\ZachHairStudio.Shared\ZachHairStudio.Shared.csproj" />
   </ItemGroup>
 
+  <!-- Seed catalog images. wwwroot/ is gitignored (it is a runtime upload target), so the
+       shipped images live here and Program.cs copies them into wwwroot/uploads/services/
+       at startup. Copying to the output directory keeps them resolvable from a published
+       build and from test hosts, where ContentRootPath is not the project directory. -->
+  <ItemGroup>
+    <Content Include="SeedAssets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

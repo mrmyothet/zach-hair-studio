@@ -94,4 +94,10 @@ export const CONFIRM_COPY = {
     body: "Mark this appointment as a no-show? This frees the time slot immediately and can't be undone.",
     confirmLabel: "Mark as No-Show",
   },
+  /** Retire Service needs the service name interpolated, so this entry is a factory (04-UI-SPEC.md). */
+  Retired: (name: string) => ({
+    title: "Retire Service",
+    body: `Retire ${name}? It won't be bookable on the public site until you reactivate it.`,
+    confirmLabel: "Retire Service",
+  }),
 } as const;

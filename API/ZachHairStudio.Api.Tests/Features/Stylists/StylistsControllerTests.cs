@@ -28,10 +28,10 @@ public class StylistsControllerTests : IClassFixture<CustomWebApplicationFactory
         Assert.NotNull(stylists);
         Assert.Equal(
             [
-                "mr-zachary",
-                "aria-chen",
-                "marcus-lee",
-                "sofia-reyes"
+                "zin-min",
+                "may-yoon",
+                "thiri-cho",
+                "sai-min-htet"
             ],
             stylists.Select(stylist => stylist.Slug));
     }

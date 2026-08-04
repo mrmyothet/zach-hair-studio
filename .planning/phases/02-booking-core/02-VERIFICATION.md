@@ -1,13 +1,16 @@
 ---
 phase: 02-booking-core
 verified: 2026-07-10T20:30:00Z
-status: gaps_found
+status: reconciled
+reconciled: 2026-07-25
+reconciliation_basis: "Evidence-based reconciliation against 02-UAT.md (2026-07-23, 9/9 pass) plus git history — NOT a fresh adversarial re-verification. See '## Post-Verification Reconciliation (2026-07-25)' below."
 score: 4/5 truths verified (1 present-but-behavior-partial)
 behavior_unverified: 1
 overrides_applied: 0
 gaps:
   - truth: "Client receives a confirmation email carrying full appointment details (service, stylist, salon-local time + zone label, duration, price) — required by 02-VALIDATION.md's Manual-Only Verification row for BOOK-03 and restated as Plan 06's own acceptance criteria"
     status: partial
+    resolution: "RESOLVED — fixed in commit ea8eb85 ('fix(02-06): confirmation email carries zone label, duration, and price'), confirmed by 02-UAT.md Test 6 (owner-confirmed receipt of the real email; ResendEmailService.cs now renders all five fields)."
     reason: "Email is genuinely sent and delivered (live-verified: Resend POST /emails -> 200, from a verified sending domain) and does carry service, stylist, and time — but is missing the zone label, duration, and price. 02-06-SUMMARY.md's own 'Known Gaps' section admits this. The phase's own validation contract (02-VALIDATION.md line 85) explicitly requires all five fields to be present in the received email; three of five are missing."
     artifacts:
       - path: "API/ZachHairStudio.Shared/Features/Appointments/ResendEmailService.cs"
@@ -306,3 +309,40 @@ actually lives.
 
 _Verified: 2026-07-10T20:30:00Z_
 _Verifier: Claude (gsd-verifier)_
+
+## Post-Verification Reconciliation (2026-07-25)
+
+This section reconciles the 2026-07-10 report above against what has since
+shipped and been independently confirmed. It is an evidence-based
+reconciliation against `02-UAT.md` (2026-07-23, 9/9 pass) plus git history —
+**not** a fresh adversarial re-verification. The original report body above
+is preserved unchanged as the historical record; nothing above this section
+was altered beyond the frontmatter `status`/`gaps` annotations.
+
+Every item this report raised is now closed or descoped:
+
+- **The one blocking gap (email missing zone label, duration, price) is
+  CLOSED.** Fixed in commit `ea8eb85` ("fix(02-06): confirmation email
+  carries zone label, duration, and price") and confirmed by `02-UAT.md`
+  Test 6: the owner confirmed receipt of the real email, and
+  `ResendEmailService.cs` now renders all five required fields (service,
+  stylist, salon-local time + zone label, duration, price).
+- **SC5's DST-transition proof gap is OWNER-DESCOPED.** `02-UAT.md` Test 9
+  (`resolution: descoped`): Asia/Yangon is fixed UTC+06:30 and never
+  observes DST, a documented judgment call for this deployment. The
+  DateTimeOffset-storage half of BOOK-05 remains separately confirmed live
+  (slots return `+06:30` offsets).
+- **The "backend suite couldn't run" limitation is CLOSED.** `02-UAT.md`
+  Test 8: suite green, 116 passed / 0 failed / 0 skipped of 116.
+- **UAT gap `G-02-8` is `resolved`** (`02-UAT.md` Gaps section) and is a
+  Phase-3 (DASH-05) test-isolation issue (`IdentitySeederTests` class-shared
+  InMemory DB leaking an orphan Owner across tests) — out of Phase-2 scope.
+- **Concern 5 (removed confirmation caption)** was already correctly
+  characterized by this report as owner-approved and non-blocking; Plan 09
+  separately reconciles the two Phase-2 plans (`02-05-PLAN.md`,
+  `02-06-PLAN.md`) that still asserted the caption as a requirement, so the
+  planning record no longer contradicts shipped behavior.
+
+This reconciliation is evidence-based — commit `ea8eb85`, direct code
+(`ResendEmailService.cs`), and owner-confirmed `02-UAT.md` results — not a
+new adversarial verdict.

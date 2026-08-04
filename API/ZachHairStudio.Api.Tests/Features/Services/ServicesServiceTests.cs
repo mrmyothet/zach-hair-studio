@@ -7,7 +7,7 @@ namespace ZachHairStudio.Api.Tests.Features.Services;
 public class ServicesServiceTests
 {
     [Fact]
-    public async Task GetActiveServicesAsync_ReturnsOnlyActiveServicesOrderedByDisplayOrder()
+    public async Task GetServicesAsync_ReturnsOnlyActiveServicesOrderedByDisplayOrder()
     {
         await using var dbContext = CreateDbContext();
         dbContext.Services.AddRange(
@@ -18,9 +18,33 @@ public class ServicesServiceTests
 
         var service = CreateServiceLayer(dbContext);
 
-        var results = (await service.GetActiveServicesAsync()).ToList();
+        var results = (await service.GetServicesAsync()).ToList();
 
         Assert.Equal(["first-active", "third-active"], results.Select(result => result.Slug));
+    }
+
+    [Fact]
+    public async Task GetServicesAsync_WithIncludeInactive_ReturnsActiveAndInactiveOrderedByDisplayOrder()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Services.AddRange(
+            CreateService(id: 1, slug: "third-active", displayOrder: 3),
+            CreateService(id: 2, slug: "second-inactive", displayOrder: 2, isActive: false),
+            CreateService(id: 3, slug: "first-active", displayOrder: 1));
+        await dbContext.SaveChangesAsync();
+
+        var service = CreateServiceLayer(dbContext);
+
+        var results = (await service.GetServicesAsync(includeInactive: true)).ToList();
+
+        Assert.Equal(
+            ["first-active", "second-inactive", "third-active"],
+            results.Select(result => result.Slug));
+
+        var inactiveResult = results.Single(result => result.Slug == "second-inactive");
+        var activeResult = results.Single(result => result.Slug == "first-active");
+        Assert.False(inactiveResult.IsActive);
+        Assert.True(activeResult.IsActive);
     }
 
     [Fact]
