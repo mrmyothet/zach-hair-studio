@@ -246,7 +246,10 @@ resolved_issues: 2
 
 - gap_id: G-04-6
   truth: "Availability lets staff shrink an existing working-hours segment on the week strip, not only add new ones by dragging"
-  status: failed
+  status: resolved
+  resolved_by: "04-07-PLAN.md — Task 1 commit 8c24a84 (edge-resize drag mode on WeekStripEditor)"
+  resolved_at: 2026-08-04
+  retest_pending: "Test 13 re-run (human judgment — live pointer drag; 04-07-SUMMARY.md coverage D1 human_judgment: true)"
   reason: "User reported: I am not able to shrik the existing ones, only can add by dragging"
   severity: major
   test: 13
