@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { Service } from "@/lib/services";
+import type { Stylist } from "@/lib/appointments";
 import {
   type ChatMessage,
   STARTER_PROMPTS,
@@ -113,9 +114,10 @@ function StarterChips({ onSelect }: { onSelect: (prompt: string) => void }) {
 
 type Props = {
   services: Service[];
+  stylists?: Stylist[];
 };
 
-export default function ChatWidget({ services }: Props) {
+export default function ChatWidget({ services, stylists = [] }: Props) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -158,7 +160,7 @@ export default function ChatWidget({ services }: Props) {
     setIsTyping(true);
 
     try {
-      const reply = await sendChatMessage(text, messages, services);
+      const reply = await sendChatMessage(text, messages, services, stylists);
       setMessages((prev) => [...prev, createMessage("assistant", reply)]);
     } catch {
       setMessages((prev) => [
