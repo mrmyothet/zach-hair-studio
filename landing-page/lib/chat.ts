@@ -108,40 +108,174 @@ function toIsoDate(year: number, month: number, day: number): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+const MONTH_NAME_PATTERN =
+  "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?";
+
 /**
- * Pulls a target date out of free-text chat input. Recognizes ISO (2026-07-26),
- * "Jul 26" / "July 26th" (optionally with a year), and numeric "7/26" formats.
+ * Resolves day/month from a numeric pair. When one side is > 12 the order is
+ * unambiguous (23/07 → day-first, 7/26 → month-first). When both are ≤ 12,
+ * prefer day-first — the salon locale is Myanmar (DD/MM).
+ */
+function resolveDayAndMonth(
+  first: number,
+  second: number
+): { day: number; month: number } | null {
+  if (first > 12 && second >= 1 && second <= 12) {
+    return { day: first, month: second };
+  }
+  if (second > 12 && first >= 1 && first <= 12) {
+    return { day: second, month: first };
+  }
+  if (first >= 1 && first <= 12 && second >= 1 && second <= 12) {
+    return { day: first, month: second };
+  }
+  return null;
+}
+
+function isValidCalendarDate(year: number, month: number, day: number): boolean {
+  if (year < 2000 || year > 2100) return false;
+  const probe = new Date(year, month - 1, day);
+  return (
+    probe.getFullYear() === year &&
+    probe.getMonth() === month - 1 &&
+    probe.getDate() === day
+  );
+}
+
+function parseYearToken(raw: string | undefined): number | null {
+  if (!raw) return null;
+  if (raw.length === 2) return 2000 + Number(raw);
+  return Number(raw);
+}
+
+/** Builds an ISO date, rolling a missing year forward past today when needed. */
+function finalizeDate(
+  year: number | null,
+  month: number,
+  day: number,
+  today: Date
+): string | null {
+  let resolvedYear = year ?? today.getFullYear();
+  if (year == null && new Date(resolvedYear, month - 1, day) < startOfDay(today)) {
+    resolvedYear += 1;
+  }
+  if (!isValidCalendarDate(resolvedYear, month, day)) return null;
+  return toIsoDate(resolvedYear, month, day);
+}
+
+function monthIndexFromName(name: string): number {
+  return MONTH_ABBREVIATIONS.indexOf(name.slice(0, 3).toLowerCase());
+}
+
+/**
+ * Pulls a target date out of free-text chat input. Supports common forms users
+ * type in chat:
+ * - ISO / year-first: 2026-07-23, 2026/07/23, 2026.07.23
+ * - Month then day: Jul 23, July 23rd 2026, July 23, 2026
+ * - Day then month: 23 Jul, 23rd of July 2026
+ * - Numeric DD/MM (Myanmar default) or unambiguous MM/DD: 23/07/2026,
+ *   23-07-2026, 23.07.2026, 23,07,2026, 23 07 2026, 7/26
+ * - Compact: 20260723, 23072026
+ * - Relative: today, tomorrow
+ *
  * A bare month/day with no year rolls forward to next year if that date has
  * already passed this year — chat is always asking about a future booking.
+ * Exported for coverage of the format matrix.
  */
-function parseDateFromText(input: string, today: Date): string | null {
-  const iso = input.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-
-  const monthName = input.match(
-    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/i
-  );
-  if (monthName) {
-    const monthIndex = MONTH_ABBREVIATIONS.indexOf(monthName[1].toLowerCase());
-    const day = Number(monthName[2]);
-    let year = monthName[3] ? Number(monthName[3]) : today.getFullYear();
-    if (!monthName[3] && new Date(year, monthIndex, day) < startOfDay(today)) {
-      year += 1;
-    }
-    return toIsoDate(year, monthIndex + 1, day);
+export function parseDateFromText(input: string, today: Date = new Date()): string | null {
+  // Year-first: 2026-07-23 / 2026/07/23 / 2026.07.23
+  const yearFirst = input.match(/\b(\d{4})([-/.])(\d{1,2})\2(\d{1,2})\b/);
+  if (yearFirst) {
+    return finalizeDate(
+      Number(yearFirst[1]),
+      Number(yearFirst[3]),
+      Number(yearFirst[4]),
+      today
+    );
   }
 
-  const numeric = input.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
-  if (numeric) {
-    const month = Number(numeric[1]);
-    const day = Number(numeric[2]);
-    let year = numeric[3]
-      ? (numeric[3].length === 2 ? 2000 + Number(numeric[3]) : Number(numeric[3]))
-      : today.getFullYear();
-    if (!numeric[3] && new Date(year, month - 1, day) < startOfDay(today)) {
-      year += 1;
+  // Month name then day: "Jul 23", "July 23rd, 2026"
+  const monthThenDay = input.match(
+    new RegExp(
+      `\\b(${MONTH_NAME_PATTERN})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{2,4}))?\\b`,
+      "i"
+    )
+  );
+  if (monthThenDay) {
+    const monthIndex = monthIndexFromName(monthThenDay[1]);
+    if (monthIndex >= 0) {
+      return finalizeDate(
+        parseYearToken(monthThenDay[3]),
+        monthIndex + 1,
+        Number(monthThenDay[2]),
+        today
+      );
     }
-    return toIsoDate(year, month, day);
+  }
+
+  // Day then month name: "23 Jul", "23rd of July 2026"
+  const dayThenMonth = input.match(
+    new RegExp(
+      `\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?(${MONTH_NAME_PATTERN})\\.?(?:,?\\s+(\\d{2,4}))?\\b`,
+      "i"
+    )
+  );
+  if (dayThenMonth) {
+    const monthIndex = monthIndexFromName(dayThenMonth[2]);
+    if (monthIndex >= 0) {
+      return finalizeDate(
+        parseYearToken(dayThenMonth[3]),
+        monthIndex + 1,
+        Number(dayThenMonth[1]),
+        today
+      );
+    }
+  }
+
+  // Space-separated day month year: "23 07 2026"
+  const spaced = input.match(/\b(\d{1,2})\s+(\d{1,2})\s+(\d{4})\b/);
+  if (spaced) {
+    const resolved = resolveDayAndMonth(Number(spaced[1]), Number(spaced[2]));
+    if (resolved) {
+      return finalizeDate(Number(spaced[3]), resolved.month, resolved.day, today);
+    }
+  }
+
+  // Separators / - , . — e.g. 23/07/2026, 23,07,2026, 7/26
+  const numeric = input.match(
+    /\b(\d{1,2})[/.,-](\d{1,2})(?:[/.,-](\d{2,4}))?\b/
+  );
+  if (numeric) {
+    const resolved = resolveDayAndMonth(Number(numeric[1]), Number(numeric[2]));
+    if (resolved) {
+      return finalizeDate(
+        parseYearToken(numeric[3]),
+        resolved.month,
+        resolved.day,
+        today
+      );
+    }
+  }
+
+  // Compact 8 digits: YYYYMMDD or DDMMYYYY
+  const compact = input.match(/\b(\d{8})\b/);
+  if (compact) {
+    const digits = compact[1];
+    const ymd = finalizeDate(
+      Number(digits.slice(0, 4)),
+      Number(digits.slice(4, 6)),
+      Number(digits.slice(6, 8)),
+      today
+    );
+    if (ymd) return ymd;
+
+    const dmy = finalizeDate(
+      Number(digits.slice(4, 8)),
+      Number(digits.slice(2, 4)),
+      Number(digits.slice(0, 2)),
+      today
+    );
+    if (dmy) return dmy;
   }
 
   if (/\btoday\b/.test(input)) {
@@ -179,21 +313,54 @@ function bookLink(service: Service): string {
   return `[Book ${service.name}](/book?service=${service.slug})`;
 }
 
+/** True when the message is asking about open times / availability, not just service info. */
+function isAvailabilityQuestion(normalizedInput: string): boolean {
+  return /\b(available|availability|schedule|slot|slots|openings?|free|bookable)\b/.test(
+    normalizedInput
+  );
+}
+
+/** Salon-local calendar date as YYYY-MM-DD (matches booking min-date / Asia/Yangon). */
+function salonTodayIso(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SALON_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const day = Number(parts.find((part) => part.type === "day")?.value);
+  return toIsoDate(year, month, day);
+}
+
 /**
  * Checks real slot availability (via GET /api/appointments/slots) for a
  * service the caller mentioned alongside a specific date, and replies with
  * what's actually open — instead of the static price/duration blurb.
+ * Past calendar days (and past clock times on today) are refused — same
+ * future-only rule as the booking form and StartsAt validator.
  */
 async function checkAvailabilityReply(
   service: Service,
   normalizedInput: string,
   isoDate: string,
-  stylists: Stylist[]
+  stylists: Stylist[],
+  now: Date = new Date()
 ): Promise<string> {
   const matchedStylist = findMatchingStylist(normalizedInput, stylists);
   const requestedTime = parseTimeFromText(normalizedInput);
   const dateLabel = availabilityDateFormatter.format(new Date(`${isoDate}T00:00:00Z`));
   const stylistLabel = matchedStylist ? ` with ${matchedStylist.name}` : "";
+  const todayIso = salonTodayIso(now);
+
+  if (isoDate < todayIso) {
+    return (
+      `${dateLabel} has already passed — I can only check availability for today or a future date. ` +
+      `${bookLink(service)}`
+    );
+  }
 
   let slots: OpenSlot[];
   try {
@@ -205,13 +372,34 @@ async function checkAvailabilityReply(
     );
   }
 
-  if (slots.length === 0) {
+  // Align with API BeInTheFuture — drop starts that are already gone (esp. today).
+  const bookableSlots = slots.filter((slot) => new Date(slot.startsAt) > now);
+
+  if (requestedTime && isoDate === todayIso) {
+    const requestedMinutes = requestedTime.hour * 60 + requestedTime.minute;
+    const stillOnGrid = slots.some((slot) => {
+      const { hour, minute } = slotTimeOfDay(slot);
+      return hour * 60 + minute === requestedMinutes;
+    });
+    const stillBookable = bookableSlots.some((slot) => {
+      const { hour, minute } = slotTimeOfDay(slot);
+      return hour * 60 + minute === requestedMinutes;
+    });
+    if (stillOnGrid && !stillBookable) {
+      return (
+        `That time has already passed on ${dateLabel}. ` +
+        `Pick a later time, or choose another day. ${bookLink(service)}`
+      );
+    }
+  }
+
+  if (bookableSlots.length === 0) {
     return `Sorry, there's no availability for ${service.name}${stylistLabel} on ${dateLabel}. ${bookLink(service)}`;
   }
 
   if (requestedTime) {
     const requestedMinutes = requestedTime.hour * 60 + requestedTime.minute;
-    const matchingSlot = slots.find((slot) => {
+    const matchingSlot = bookableSlots.find((slot) => {
       const { hour, minute } = slotTimeOfDay(slot);
       return hour * 60 + minute === requestedMinutes;
     });
@@ -223,7 +411,7 @@ async function checkAvailabilityReply(
       );
     }
 
-    const nearby = slots
+    const nearby = bookableSlots
       .slice(0, 5)
       .map((slot) => slotTimeFormatter.format(new Date(slot.startsAt)))
       .join(", ");
@@ -233,7 +421,7 @@ async function checkAvailabilityReply(
     );
   }
 
-  const times = slots
+  const times = bookableSlots
     .slice(0, 6)
     .map((slot) => slotTimeFormatter.format(new Date(slot.startsAt)))
     .join(", ");
@@ -256,13 +444,38 @@ export async function sendChatMessage(
   await new Promise((resolve) => setTimeout(resolve, MOCK_REPLY_DELAY_MS));
 
   const normalizedInput = userText.toLowerCase().trim();
+  const now = new Date();
+  // Parse relative to salon calendar day so "today" / year roll-forward match
+  // the past-date guard (Asia/Yangon), not the visitor's browser timezone.
+  const [salonYear, salonMonth, salonDay] = salonTodayIso(now)
+    .split("-")
+    .map(Number);
+  const salonCalendarToday = new Date(salonYear, salonMonth - 1, salonDay);
 
   const matchedService = findMatchingService(normalizedInput, services);
-  const requestedDate = parseDateFromText(normalizedInput, new Date());
+  const requestedDate = parseDateFromText(normalizedInput, salonCalendarToday);
 
   // a. Service + specific date → check real availability, not price/duration.
   if (matchedService && requestedDate) {
-    return checkAvailabilityReply(matchedService, normalizedInput, requestedDate, stylists);
+    return checkAvailabilityReply(
+      matchedService,
+      normalizedInput,
+      requestedDate,
+      stylists,
+      now
+    );
+  }
+
+  // a2. Availability asked without a date → prompt for one (don't fall through
+  // to the static price/duration blurb).
+  if (matchedService && isAvailabilityQuestion(normalizedInput)) {
+    const matchedStylist = findMatchingStylist(normalizedInput, stylists);
+    const stylistHint = matchedStylist ? ` with ${matchedStylist.name}` : "";
+    return (
+      `I can check openings for ${matchedService.name}${stylistHint} — ` +
+      `what date works for you? For example: Aug 12, or 12/08/2026. ` +
+      `${bookLink(matchedService)}`
+    );
   }
 
   // b. Service name match
