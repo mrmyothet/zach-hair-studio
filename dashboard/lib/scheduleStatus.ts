@@ -22,7 +22,7 @@ export async function updateAppointmentStatus(
 ): Promise<AppointmentResponseDto> {
   // OpenAPI schema types AppointmentStatus as number; runtime expects the
   // string enum name from the global JsonStringEnumConverter.
-  const { data, response } = await api.PATCH("/api/Schedule/{id}/status", {
+  const { data, response, error } = await api.PATCH("/api/Schedule/{id}/status", {
     params: { path: { id } },
     body: {
       newStatus: newStatus as unknown as components["schemas"]["AppointmentStatus"],
@@ -35,13 +35,10 @@ export async function updateAppointmentStatus(
   }
 
   if (!response.ok) {
-    let message = "Could not update appointment status.";
-    try {
-      message = await extractErrorMessage(response.clone());
-    } catch {
-      // keep default
-    }
-    throw new ApiError(message, response.status || null);
+    throw new ApiError(
+      extractErrorMessage(error, response.status),
+      response.status || null
+    );
   }
 
   if (!data) {

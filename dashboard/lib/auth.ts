@@ -37,27 +37,38 @@ export class ApiError extends Error {
   }
 }
 
-/** Pulls a friendly message out of an ASP.NET ProblemDetails / ModelState response. */
-export async function extractErrorMessage(res: Response): Promise<string> {
-  try {
-    const body = await res.json();
+/**
+ * Pulls a friendly message out of an ASP.NET ProblemDetails / ModelState body.
+ *
+ * Takes the already-parsed `error` that openapi-fetch returns — NOT the Response.
+ * openapi-fetch consumes the body itself (`await response.text()`) before returning,
+ * so `response.clone()` at a call site throws and silently loses the server's reason.
+ */
+export function extractErrorMessage(body: unknown, status: number): string {
+  if (body && typeof body === "object") {
+    const problem = body as {
+      errors?: Record<string, string[]>;
+      detail?: unknown;
+      title?: unknown;
+    };
 
-    if (body?.errors && typeof body.errors === "object") {
-      const messages = Object.values(body.errors as Record<string, string[]>)
-        .flat()
-        .filter(Boolean);
+    if (problem.errors && typeof problem.errors === "object") {
+      const messages = Object.values(problem.errors).flat().filter(Boolean);
       if (messages.length > 0) return messages.join(" ");
     }
 
-    if (typeof body?.detail === "string" && body.detail.length > 0) {
-      return body.detail;
+    if (typeof problem.detail === "string" && problem.detail.length > 0) {
+      return problem.detail;
     }
-    if (typeof body?.title === "string") return body.title;
-  } catch {
-    // Response wasn't JSON — fall through.
+    if (typeof problem.title === "string" && problem.title.length > 0) {
+      return problem.title;
+    }
   }
 
-  return `Something went wrong (${res.status}). Please try again.`;
+  // Non-JSON error bodies (proxy HTML, plain text) arrive as a string.
+  if (typeof body === "string" && body.trim().length > 0) return body;
+
+  return `Something went wrong (${status}). Please try again.`;
 }
 
 function readRaw(): AuthSession | null {

@@ -34,13 +34,10 @@ async function fetchSchedule(
   }
 
   if (!response.ok || error) {
-    let message = "Couldn't load the schedule.";
-    try {
-      message = await extractErrorMessage(response.clone());
-    } catch {
-      // keep default
-    }
-    throw new ApiError(message, response.status || null);
+    throw new ApiError(
+      extractErrorMessage(error, response.status),
+      response.status || null
+    );
   }
 
   return data ?? [];

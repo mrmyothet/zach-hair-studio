@@ -101,7 +101,7 @@ export default function ServicesPage() {
     setBusyId(id);
     setActionError(null);
     try {
-      const { response } = await api.PUT("/api/Services/{id}", {
+      const { response, error: errorBody } = await api.PUT("/api/Services/{id}", {
         params: { path: { id } },
         body: buildRetirePayload(pendingRetire, false),
       });
@@ -113,8 +113,10 @@ export default function ServicesPage() {
         return;
       }
       if (!response.ok) {
-        const message = await extractErrorMessage(response.clone());
-        throw new ApiError(message, response.status || null);
+        throw new ApiError(
+          extractErrorMessage(errorBody, response.status),
+          response.status || null
+        );
       }
 
       setPendingRetire(null);
@@ -133,7 +135,7 @@ export default function ServicesPage() {
     setBusyId(id);
     setActionError(null);
     try {
-      const { response } = await api.PUT("/api/Services/{id}", {
+      const { response, error: errorBody } = await api.PUT("/api/Services/{id}", {
         params: { path: { id } },
         body: buildRetirePayload(row, true),
       });
@@ -145,8 +147,10 @@ export default function ServicesPage() {
         return;
       }
       if (!response.ok) {
-        const message = await extractErrorMessage(response.clone());
-        throw new ApiError(message, response.status || null);
+        throw new ApiError(
+          extractErrorMessage(errorBody, response.status),
+          response.status || null
+        );
       }
 
       void mutate();

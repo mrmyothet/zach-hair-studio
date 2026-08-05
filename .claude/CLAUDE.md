@@ -50,13 +50,9 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 
 ### Frontends (`landing-page/`, `dashboard/`)
 
-Each is an independent Next.js app with its own `node_modules`/`package.json` — run these from inside the respective directory:
+Each is an independent Next.js app with its own `node_modules`/`package.json` — run these from inside the respective directory (standard `dev`/`build`/`start`/`lint` scripts; no `test` script exists yet):
 
-- Install: `npm install`
 - Dev server: `npm run dev` (landing-page → :3000; dashboard → `npm run dev -- -p 3001`, offset to avoid clashing with the landing page)
-- Build: `npm run build`
-- Lint: `npm run lint`
-- Neither `package.json` defines a `test` script yet — check before assuming one exists.
 - Regenerate the dashboard's typed API client from the live OpenAPI doc (API must be running): `npx -y openapi-typescript http://localhost:5236/openapi/v1.json -o lib/api/schema.d.ts`, run from `dashboard/`. See the `openapi-client` skill.
 
 ### Everything at once
@@ -67,10 +63,7 @@ Use the `dev` skill (`.claude/skills/dev/SKILL.md`) to launch the API and both f
 
 ### Backend (`API/ZachHairStudio.slnx`, 4 projects)
 
-- **`ZachHairStudio.Api`** — composition root. `Program.cs` wires DI, CORS (open in dev), JWT bearer auth + ASP.NET Core Identity, FluentValidation, static file serving for uploaded service images, and calls `db.Database.Migrate()` + `IdentitySeeder.SeedAsync` on boot (both skipped when `IWebHostEnvironment.EnvironmentName == "Testing"`, since the test suite seeds its own data per-host). `Controllers/` stay thin and delegate to the `*Service` classes in Shared.
-- **`ZachHairStudio.Shared`** — the domain layer. `Db/BookingDbContext.cs` is the single EF Core context (`IdentityDbContext<ApplicationUser, IdentityRole<int>, int>` — Identity tables share the same schema/migration history as booking data). `Features/<Name>/` folders (`Appointments`, `Availability`, `Identity`, `Services`, `Stylists`) each hold: the EF entity, `*CreateDto`/`*ResponseDto`/`*UpdateDto`, a FluentValidation validator, `*Extensions` for entity⇄DTO mapping, and a `*Service` with the business logic. New features should mirror this shape (see the `feature-scaffold` skill, which uses this pattern as its template).
-- **`ZachHairStudio.Api.Tests`** — xunit + `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory`-driven integration tests), mirrored under `Features/<Name>/` to match Shared. `TestSupport/` holds shared helpers.
-- **`ZachHairStudio.Admin`** — an unmodified `dotnet new mvc` scaffold (Home/Privacy views only); not wired into any active flow.
+New backend features mirror the `Features/<Name>/` shape in `ZachHairStudio.Shared` (see the `feature-scaffold` skill, which uses this pattern as its template). `ZachHairStudio.Admin` is an unmodified `dotnet new mvc` scaffold — not wired into any active flow, ignore it.
 
 Key invariants worth knowing before touching booking logic:
 - `AppointmentSlot` has an **unfiltered** unique index on `(StylistId, SlotStart)` — this is the double-booking guarantee (`ConcurrencyTests` relies on it). Never add a `HasFilter()` to it.
@@ -84,15 +77,8 @@ Two independent Next.js 15 / App Router apps, each with its own `lib/` fetch lay
 - **`dashboard`** — staff tool; has a generated typed client (`lib/api/client.ts` + `lib/api/schema.d.ts`, via `openapi-fetch`/`openapi-typescript` — regenerate, don't hand-edit `schema.d.ts`). Auth is a bearer JWT stored in `localStorage` (`lib/auth.ts`), attached to requests via an `openapi-fetch` middleware; a 401 clears the session and redirects to `/login`.
 
 <!-- GSD:skills-start source:skills/ -->
-
-## Project Skills
-
-| Skill | Description | Path |
-|-------|-------------|------|
-| dev | Launch the full Zach Hair Studio stack locally — the .NET API plus the Next.js frontends — for development and manual verification. | `.claude/skills/dev/SKILL.md` |
-| ef-migrations | Add and apply EF Core migrations against BookingDbContext, including the one-time switch off EnsureCreated() so migrations own the schema. | `.claude/skills/ef-migrations/SKILL.md` |
-| feature-scaffold | Scaffold a new backend feature mirroring the Features/Bookings pattern (entity, DTOs, mappers, DbSet, controller) plus a starter Next.js page. | `.claude/skills/feature-scaffold/SKILL.md` |
-| openapi-client | Regenerate a typed TypeScript API client for the Next.js frontends from the .NET OpenAPI document, keeping OpenAPI as the source of truth. | `.claude/skills/openapi-client/SKILL.md` |
+<!-- Project skills (dev, ef-migrations, feature-scaffold, openapi-client) are already
+     surfaced in the session's skill listing — not duplicated here. -->
 <!-- GSD:skills-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->

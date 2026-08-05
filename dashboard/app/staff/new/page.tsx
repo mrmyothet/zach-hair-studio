@@ -68,7 +68,7 @@ export default function AddStaffPage() {
 
     setSubmitting(true);
     try {
-      const { response } = await api.POST("/api/staff-users", {
+      const { response, error: errorBody } = await api.POST("/api/staff-users", {
         body: { displayName, email, password },
       });
 
@@ -80,13 +80,10 @@ export default function AddStaffPage() {
       // API returns 201 Created. Older OpenAPI docs only listed 200, so openapi-fetch
       // can leave `data` undefined on a successful create — treat any 2xx as success.
       if (!response.ok) {
-        let message = "Could not add staff member.";
-        try {
-          message = await extractErrorMessage(response.clone());
-        } catch {
-          // keep default
-        }
-        throw new ApiError(message, response.status || null);
+        throw new ApiError(
+          extractErrorMessage(errorBody, response.status),
+          response.status || null
+        );
       }
 
       setSuccess(
