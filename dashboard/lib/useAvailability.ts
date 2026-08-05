@@ -89,14 +89,14 @@ export class AvailabilityConflictError extends ApiError {
   }
 }
 
-async function extractConflicts(res: Response): Promise<AvailabilityConflict[]> {
-  try {
-    const body = await res.json();
-    if (Array.isArray(body?.conflicts)) {
-      return body.conflicts as AvailabilityConflict[];
-    }
-  } catch {
-    // Not JSON, or no conflicts array — treat as no parseable conflicts.
+/**
+ * Reads the conflict list out of a 409 body. Takes openapi-fetch's already-parsed
+ * `error` — the Response body is consumed by then, so re-reading it yields nothing.
+ */
+function extractConflicts(body: unknown): AvailabilityConflict[] {
+  if (body && typeof body === "object") {
+    const { conflicts } = body as { conflicts?: unknown };
+    if (Array.isArray(conflicts)) return conflicts as AvailabilityConflict[];
   }
   return [];
 }
@@ -112,13 +112,10 @@ async function fetchAvailability(stylistId: number): Promise<AvailabilityData> {
   }
 
   if (!response.ok || error) {
-    let message = "Couldn't load availability.";
-    try {
-      message = await extractErrorMessage(response.clone());
-    } catch {
-      // keep default
-    }
-    throw new ApiError(message, response.status || null);
+    throw new ApiError(
+      extractErrorMessage(error, response.status),
+      response.status || null
+    );
   }
 
   const hours = (data?.workingHours ?? []).map((segment) => ({
@@ -196,16 +193,13 @@ export async function saveAvailability(
     if (hoursResponse.status === 409) {
       throw new AvailabilityConflictError(
         "Can't save — some confirmed appointments fall outside the new hours or inside time off.",
-        await extractConflicts(hoursResponse.clone())
+        extractConflicts(hoursError)
       );
     }
-    let message = "Couldn't save availability. Try again.";
-    try {
-      message = await extractErrorMessage(hoursResponse.clone());
-    } catch {
-      // keep default
-    }
-    throw new ApiError(message, hoursResponse.status || null);
+    throw new ApiError(
+      extractErrorMessage(hoursError, hoursResponse.status),
+      hoursResponse.status || null
+    );
   }
 
   const keptIds = new Set(
@@ -214,19 +208,16 @@ export async function saveAvailability(
   const removedIds = originalTimeOffIds.filter((id) => !keptIds.has(id));
 
   for (const timeOffId of removedIds) {
-    const { response } = await api.DELETE(
+    const { response, error } = await api.DELETE(
       "/api/Availability/{stylistId}/time-off/{timeOffId}",
       { params: { path: { stylistId, timeOffId } } }
     );
     // A range already removed server-side (404) is not a save failure.
     if (!response.ok && response.status !== 404) {
-      let message = "Couldn't save availability. Try again.";
-      try {
-        message = await extractErrorMessage(response.clone());
-      } catch {
-        // keep default
-      }
-      throw new ApiError(message, response.status || null);
+      throw new ApiError(
+        extractErrorMessage(error, response.status),
+        response.status || null
+      );
     }
   }
 
@@ -247,16 +238,13 @@ export async function saveAvailability(
       if (response.status === 409) {
         throw new AvailabilityConflictError(
           "Can't save — some confirmed appointments fall outside the new hours or inside time off.",
-          await extractConflicts(response.clone())
+          extractConflicts(error)
         );
       }
-      let message = "Couldn't save availability. Try again.";
-      try {
-        message = await extractErrorMessage(response.clone());
-      } catch {
-        // keep default
-      }
-      throw new ApiError(message, response.status || null);
+      throw new ApiError(
+        extractErrorMessage(error, response.status),
+        response.status || null
+      );
     }
   }
 }
