@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 04 (staff-management-services-availability) — EXECUTING
 Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-08-09 - Completed quick task 260809-adm: Keep AdminChat starter-prompt buttons visible after the first message
+Last activity: 2026-08-09 - Completed quick task 260809-sz1: Increase AdminChat dialog panel size
 
 Progress: [██████████] 100%
 
@@ -155,6 +155,7 @@ Recent decisions affecting current work:
 | 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots                                                                | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
 | 260809-gpw | Fix semgrep SAST finding (detect-non-literal-regexp) in dashboard adminChat weekday matching                                      | 2026-08-09 | ba50770 | [260809-gpw-fix-semgrep-sast-finding-detect-non-lite](./quick/260809-gpw-fix-semgrep-sast-finding-detect-non-lite/) |
 | 260809-adm | Keep AdminChat starter-prompt buttons visible after the first message instead of disappearing                                    | 2026-08-09 | 589470e | [260809-adm-keep-starter-prompts-visible](./quick/260809-adm-keep-starter-prompts-visible/)                         |
+| 260809-sz1 | Increase AdminChat dialog panel size (24rem x 32rem -> 28rem x 40rem desktop)                                                     | 2026-08-09 | c05a2ec | [260809-sz1-increase-adminchat-box-size](./quick/260809-sz1-increase-adminchat-box-size/)                           |
 
 ## Deferred Items
 
