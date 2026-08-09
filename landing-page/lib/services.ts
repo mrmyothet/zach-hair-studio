@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ProductSchema } from "@/lib/products";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5236"
@@ -17,6 +18,7 @@ export const ServiceSchema = z.object({
   price: z.number(),
   imageUrl: z.string().nullable(),
   displayOrder: z.number(),
+  recommendedProducts: z.array(ProductSchema).optional(),
 });
 
 export const ServiceListSchema = z.array(ServiceSchema);
