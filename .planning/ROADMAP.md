@@ -183,7 +183,7 @@ Plans:
 
 ### Phase 5: Product Catalog
 
-**Goal**: Clients can browse a curated product catalog, framed as stylist-recommended extensions of the services they care about, not a general storefront.
+**Goal**: As a client, I want to browse a curated, stylist-recommended product catalog tied to the services I care about, so that I can find products my stylist actually recommends without wading through a general storefront.
 **Mode:** mvp
 **Depends on**: Phase 4 (sequenced after the service experience is complete, per the services-first priority — no functional dependency on Phase 4 itself)
 **Requirements**: PROD-01, PROD-02, PROD-03
@@ -198,7 +198,7 @@ Plans:
 
 ### Phase 6: Cart & Checkout
 
-**Goal**: Clients can add recommended products to a cart and complete a real, trustworthy purchase — server-authoritative pricing, atomic stock decrement, and payment-confirmed fulfillment — without needing an account.
+**Goal**: As a client, I want to add recommended products to a cart and check out as a guest with trustworthy, server-verified pricing and stock, so that I can complete a real purchase without creating an account.
 **Mode:** mvp
 **Depends on**: Phase 5 (needs product price/stock to sell)
 **Requirements**: SHOP-01, SHOP-02, SHOP-03, SHOP-04, SHOP-05, SHOP-06, SHOP-07
@@ -216,7 +216,7 @@ Plans:
 
 ### Phase 7: Accounts & Retention
 
-**Goal**: Clients can create an account to see their booking/order history and manage upcoming appointments themselves, sharing one identity system with staff auth, with strict per-client ownership boundaries and initial loyalty groundwork.
+**Goal**: As a client, I want to create an account to see my booking and order history and manage my upcoming appointments myself, so that I do not have to call the salon for things I can handle on my own.
 **Mode:** mvp
 **Depends on**: Phase 2 (booking history source), Phase 3 (extends the lightweight staff auth scheme into full Identity — one schema, not two), Phase 6 (order history source; guest checkout already shipped independently so this phase is additive, not blocking)
 **Requirements**: ACCT-01, ACCT-02, ACCT-03, ACCT-04, ACCT-05, ACCT-06, ACCT-07
@@ -234,7 +234,7 @@ Plans:
 
 ### Phase 8: Polish & Launch Readiness
 
-**Goal**: The site is production-ready — responsive, secure by default, observable, and deployed against a properly migrated production database — with the legacy Admin scaffold fully retired in favor of `dashboard/`.
+**Goal**: As a salon owner, I want to launch on a responsive, secure-by-default, observable site running a properly migrated production database with the legacy Admin scaffold retired, so that I can go live with confidence and no lingering legacy risk.
 **Mode:** mvp
 **Depends on**: Phase 7 (and all prior phases — this is the final hardening/launch pass over the complete system)
 **Requirements**: LAUNCH-01, LAUNCH-02, LAUNCH-03, LAUNCH-04, LAUNCH-05
