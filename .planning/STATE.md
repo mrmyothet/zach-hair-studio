@@ -7,8 +7,8 @@ current_phase_name: staff-management-services-availability
 status: executing
 stopped_at: Completed 04-07-PLAN.md (Phase 4 gap closure G-04-6 - WeekStripEditor edge-resize)
 last_updated: "2026-07-27T05:47:14.377Z"
-last_activity: 2026-07-27
-last_activity_desc: Phase 04 execution started
+last_activity: 2026-08-09
+last_activity_desc: "Completed quick task 260809-4d3: implement shell files for the same functionality of start-dev.bat and stop-dev.bat files"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 04 (staff-management-services-availability) — EXECUTING
 Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-07-27 — Phase 04 execution started
+Last activity: 2026-08-09 — Completed quick task 260809-4d3: implement shell files for the same functionality of start-dev.bat and stop-dev.bat files
 
 Progress: [██████████] 100%
 
@@ -153,6 +153,7 @@ Recent decisions affecting current work:
 | 260731-uj3 | Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)    | 2026-07-31 | 0747757 | [260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-](./quick/260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-/) |
 | 6          | Fix plural "hours" match in chat.ts hours-keyword regex (\\b(hour\|open\|close)\\b -> \\b(hours?\|open\|close)\\b)                 | 2026-07-31 | dcbbfdf | —                                                                                                                   |
 | 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots                                                                | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
+| 260809-4d3 | Implement shell files for the same functionality of start-dev.bat and stop-dev.bat files                                         | 2026-08-09 | 2c5e7c6 | [260809-4d3-implement-shell-files-for-the-same-funct](./quick/260809-4d3-implement-shell-files-for-the-same-funct/) |
 
 ## Deferred Items
 
