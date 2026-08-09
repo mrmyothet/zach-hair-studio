@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Products;
 using ZachHairStudio.Shared.Features.Services;
 using ZachHairStudio.Shared.Features.Stylists;
 
@@ -19,6 +20,8 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
     }
 
     public DbSet<Service> Services => Set<Service>();
+
+    public DbSet<Product> Products => Set<Product>();
 
     public DbSet<Stylist> Stylists => Set<Stylist>();
 
@@ -134,6 +137,136 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
                     DisplayOrder = 6,
                 });
         });
+
+        // Owner-reviewable placeholder catalog (D-17) — plausible stylist-recommended
+        // add-ons pairing with the existing seeded services below.
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.Property(e => e.Slug).HasMaxLength(150);
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.ShortDescription).HasMaxLength(200);
+            entity.Property(e => e.LongDescription).HasMaxLength(2000);
+            entity.Property(e => e.Category).HasMaxLength(50);
+            entity.Property(e => e.Price).HasPrecision(18, 2);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+
+            entity.HasIndex(e => e.Slug).IsUnique();
+
+            entity.HasData(
+                new Product
+                {
+                    Id = 1,
+                    Slug = "leave-in-repair-serum",
+                    Name = "Leave-In Repair Serum",
+                    ShortDescription = "A lightweight leave-in serum that locks in smoothness after a keratin service.",
+                    LongDescription = "A lightweight leave-in serum formulated to extend the smoothing effects of a keratin treatment between salon visits. Applies to damp or dry hair to reduce frizz and add shine without weighing hair down.",
+                    Category = "Hair Care",
+                    Price = 24.00m,
+                    Stock = 40,
+                    ImageUrl = null,
+                    IsActive = true,
+                },
+                new Product
+                {
+                    Id = 2,
+                    Slug = "color-safe-shampoo",
+                    Name = "Color-Safe Shampoo",
+                    ShortDescription = "A sulfate-free shampoo that protects vibrant color and highlights from fading.",
+                    LongDescription = "A sulfate-free, color-safe shampoo designed to preserve tone and shine after a color or highlight service. Gently cleanses without stripping the color molecules that give fresh color its vibrancy.",
+                    Category = "Hair Care",
+                    Price = 18.00m,
+                    Stock = 60,
+                    ImageUrl = null,
+                    IsActive = true,
+                },
+                new Product
+                {
+                    Id = 3,
+                    Slug = "color-safe-conditioner",
+                    Name = "Color-Safe Conditioner",
+                    ShortDescription = "A nourishing conditioner that pairs with our color-safe shampoo to extend color life.",
+                    LongDescription = "A nourishing, color-safe conditioner formulated to pair with the color-safe shampoo. Softens and detangles while helping lock in color vibrancy between coloring appointments.",
+                    Category = "Hair Care",
+                    Price = 19.00m,
+                    Stock = 55,
+                    ImageUrl = null,
+                    IsActive = true,
+                },
+                new Product
+                {
+                    Id = 4,
+                    Slug = "texturizing-styling-cream",
+                    Name = "Texturizing Styling Cream",
+                    ShortDescription = "A flexible-hold cream for defined texture and movement after a blowout.",
+                    LongDescription = "A flexible-hold styling cream that adds definition and texture without stiffness, perfect for extending a fresh blowout or building volume for an event-ready look.",
+                    Category = "Styling",
+                    Price = 22.00m,
+                    Stock = 0,
+                    ImageUrl = null,
+                    IsActive = true,
+                },
+                new Product
+                {
+                    Id = 5,
+                    Slug = "heat-protectant-spray",
+                    Name = "Heat Protectant Spray",
+                    ShortDescription = "A lightweight spray that shields hair from heat styling damage.",
+                    LongDescription = "A lightweight, non-greasy spray applied before blow-drying or hot tools to shield hair from heat damage, helping styled looks last longer between salon visits.",
+                    Category = "Styling",
+                    Price = 16.00m,
+                    Stock = 50,
+                    ImageUrl = null,
+                    IsActive = true,
+                },
+                new Product
+                {
+                    Id = 6,
+                    Slug = "revitalizing-scalp-oil",
+                    Name = "Revitalizing Scalp Oil",
+                    ShortDescription = "A soothing scalp oil that extends the benefits of an in-salon scalp treatment.",
+                    LongDescription = "A soothing, lightweight scalp oil blended to extend the hydrating benefits of an in-salon scalp treatment. Massage into the scalp between visits to support comfort and a healthier hair environment.",
+                    Category = "Treatments",
+                    Price = 28.00m,
+                    Stock = 30,
+                    ImageUrl = null,
+                    IsActive = true,
+                },
+                new Product
+                {
+                    Id = 7,
+                    Slug = "discontinued-styling-wax",
+                    Name = "Discontinued Styling Wax",
+                    ShortDescription = "A retired matte styling wax, kept only to exercise the inactive-product path.",
+                    LongDescription = "A retired matte styling wax no longer sold in the studio. Present only so the inactive-product 404 and enumeration-safety paths have a real seeded row to exercise.",
+                    Category = "Styling",
+                    Price = 15.00m,
+                    Stock = 0,
+                    ImageUrl = null,
+                    IsActive = false,
+                });
+        });
+
+        // Explicit join entity (D-11, RESEARCH Pattern 2) — seedable via HasData, unlike
+        // EF Core's implicit shadow join table (RESEARCH Pitfall 2). Curated per D-12;
+        // precision-cut (1) and full-glam-package (6) are deliberately left unlinked to
+        // exercise the "no recommended products" empty state.
+        modelBuilder.Entity<Service>()
+            .HasMany<Product>()
+            .WithMany()
+            .UsingEntity<ServiceRecommendedProduct>(
+                j => j.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId),
+                j => j.HasOne<Service>().WithMany().HasForeignKey(x => x.ServiceId),
+                j =>
+                {
+                    j.HasKey(x => new { x.ServiceId, x.ProductId });
+                    j.HasData(
+                        new ServiceRecommendedProduct { ServiceId = 4, ProductId = 1 }, // keratin-treatment -> leave-in-repair-serum
+                        new ServiceRecommendedProduct { ServiceId = 2, ProductId = 2 }, // color-and-highlights -> color-safe-shampoo
+                        new ServiceRecommendedProduct { ServiceId = 2, ProductId = 3 }, // color-and-highlights -> color-safe-conditioner
+                        new ServiceRecommendedProduct { ServiceId = 3, ProductId = 4 }, // blowout-and-styling -> texturizing-styling-cream
+                        new ServiceRecommendedProduct { ServiceId = 3, ProductId = 5 }, // blowout-and-styling -> heat-protectant-spray
+                        new ServiceRecommendedProduct { ServiceId = 5, ProductId = 6 }); // scalp-treatment -> revitalizing-scalp-oil
+                });
 
         modelBuilder.Entity<Stylist>(entity =>
         {
