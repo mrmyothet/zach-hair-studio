@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: staff-management-services-availability
 status: executing
-stopped_at: Completed quick task 260809-ipz (gitleaks CI fix - binary not Docker)
-last_updated: "2026-08-09T06:30:00.000Z"
+stopped_at: Completed quick task 260809-k3d (gitleaks CI fix - .codex manifest allowlist gap, the actual root cause)
+last_updated: "2026-08-09T07:45:00.000Z"
 last_activity: 2026-08-09
-last_activity_desc: Completed quick task 260809-ipz: replace Docker-based gitleaks CI step with direct binary install (becd367's dubious-ownership fix was confirmed ineffective)
+last_activity_desc: Completed quick task 260809-k3d - extended .gitleaks.toml's GSD manifest checksum allowlist to .codex/ paths, closing the real (false-positive) finding that becd367/260809-ipz's CI/Docker fixes never addressed
 progress:
   total_phases: 4
   completed_phases: 4
@@ -156,6 +156,7 @@ Recent decisions affecting current work:
 | 260809-gd7 | chat widget generic service term matching for haircut                                                                              | 2026-08-09 | 69d81fd | [260809-gd7-chat-widget-generic-service-term-matchin](./quick/260809-gd7-chat-widget-generic-service-term-matchin/) |
 | 260809-hui | Fix gitleaks docker "dubious ownership" error in security workflow (mark /repo safe in container's own gitconfig)                  | 2026-08-09 | becd367 | [260809-hui-fix-gitleaks-docker-dubious-ownership-er](./quick/260809-hui-fix-gitleaks-docker-dubious-ownership-er/) |
 | 260809-ipz | Fix gitleaks CI still failing after becd367 — replace Docker invocation with direct binary install (dubious-ownership was never the real cause; image already sets safe.directory at build time) | 2026-08-09 | f324da1 | [260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do](./quick/260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do/) |
+| 260809-k3d | Fix gitleaks CI still failing (real root cause) — extend .gitleaks.toml's GSD manifest checksum allowlist to .codex/ paths; 3 genuine generic-api-key false positives in .codex/gsd-file-manifest.json, unmasked only once 260809-ipz let the scan complete | 2026-08-09 | 979f316 | [260809-k3d-fix-gitleaks-codex-manifest-allowlist](./quick/260809-k3d-fix-gitleaks-codex-manifest-allowlist/) |
 
 ## Deferred Items
 
@@ -167,8 +168,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-27T05:47:14.360Z
-Stopped at: Completed 04-07-PLAN.md (Phase 4 gap closure G-04-6 - WeekStripEditor edge-resize)
+Last session: 2026-08-09T07:45:00.000Z
+Stopped at: Completed quick task 260809-k3d (gitleaks .codex manifest allowlist fix — closes the PR #43 secrets(gitleaks) investigation)
 Resume file: None
 
-Next action: Phase 04 complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
+Next action: Push commits 636a08f/979f316 and confirm PR #43's `secrets (gitleaks)` check-run itself shows conclusion=success (not just workflow-run level). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
