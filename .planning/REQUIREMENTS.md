@@ -43,9 +43,9 @@ Requirements for the current milestone (full services-led platform, specs roadma
 
 ### Product Catalog (P5)
 
-- [ ] **PROD-01**: Client can browse a list of products showing name, description, price, image, and stock
-- [ ] **PROD-02**: Client can open a product detail page
-- [ ] **PROD-03**: A service detail page surfaces stylist-recommended product add-ons via a curated service→product mapping
+- [x] **PROD-01**: Client can browse a list of products showing name, description, price, image, and stock
+- [x] **PROD-02**: Client can open a product detail page
+- [x] **PROD-03**: A service detail page surfaces stylist-recommended product add-ons via a curated service→product mapping
 
 ### Cart & Checkout (P6)
 
@@ -132,9 +132,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | MGMT-01 | Phase 4 | Complete |
 | MGMT-02 | Phase 4 | Complete |
 | MGMT-03 | Phase 4 | Complete |
-| PROD-01 | Phase 5 | Pending |
-| PROD-02 | Phase 5 | Pending |
-| PROD-03 | Phase 5 | Pending |
+| PROD-01 | Phase 5 | Complete |
+| PROD-02 | Phase 5 | Complete |
+| PROD-03 | Phase 5 | Complete |
 | SHOP-01 | Phase 6 | Pending |
 | SHOP-02 | Phase 6 | Pending |
 | SHOP-03 | Phase 6 | Pending |

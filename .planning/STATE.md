@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 03
-current_phase_name: Schedule
-status: planning
-stopped_at: "Phase 4 complete (UAT 32/32 pass, 5 gaps closed, security verified — threats_open: 0), ready to plan Phase 5"
-last_updated: "2026-08-09T06:54:04.727Z"
+current_phase: 05
+current_phase_name: Product Catalog
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-08-09T10:01:56.913Z"
 last_activity: 2026-08-09
-last_activity_desc: Phase 2 complete, transitioned to Phase 03
+last_activity_desc: Phase 05 execution started
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 25
-  completed_plans: 25
+  total_plans: 27
+  completed_plans: 26
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-09)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 5 — Product Catalog
+**Current focus:** Phase 05 — Product Catalog
 
 ## Current Position
 
-Phase: 03 — Staff Dashboard (Schedule)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-09 — Phase 2 complete, transitioned to Phase 03
+Phase: 05 (Product Catalog) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-08-09 — Phase 05 execution started
 
-Progress: [██████████] 100%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ _Updated after each plan completion_
 | Phase 02 P09 | 20min    | 2 tasks | 4 files  |
 | Phase 04 P06 | 20min    | 2 tasks | 2 files  |
 | Phase 04 P07 | 20min    | 1 tasks | 1 files  |
+| Phase 05 P01 | 27min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 4 Plan 06: ESLint no-restricted-syntax core rule (no plugin/package) guards against onChange/emit* calls nested inside set*() state updaters -- the exact G-04-5 defect shape.
 - [Phase ?]: Phase 4 Plan 06: WeekStripEditor commits the painted drag range via a previewRangeRef mirror (written on pointerdown/pointermove), letting handleUp call emitChange from its own event-handler body instead of inside the previewRange state updater -- closing G-04-5's render-phase parent setState.
 - [Phase ?]: Phase 4 Plan 07: WeekStripEditor resize commits as a direct per-segment array replace via emitChange, bypassing mergeSegments, so a shrink can never be silently re-expanded by the additive union logic (closes gap G-04-6).
+- [Phase ?]: Phase 5 Plan 01: ServiceRecommendedProduct is an explicit join POCO configured via UsingEntity<T>() rather than EF's implicit shadow join table, so HasData seeding works with typed objects.
+- [Phase ?]: Phase 5 Plan 01: Recommended-products query lives in ServicesService.GetBySlugAsync (not a separate ProductsService method) since both entities share BookingDbContext.
+- [Phase ?]: Phase 5 Plan 01: ServiceResponseDto.RecommendedProducts extends the existing DTO rather than a dedicated endpoint, resolving D-16 discretion.
 
 ### Pending Todos
 
@@ -167,8 +171,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-09
-Stopped at: Phase 4 complete (UAT 32/32 pass, 5 gaps closed, security verified — threats_open: 0), ready to plan Phase 5
+Last session: 2026-08-09T10:01:56.886Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
 
 Next action: /gsd-discuss-phase 5 — gather context for Product Catalog before planning.

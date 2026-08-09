@@ -193,11 +193,11 @@ Plans:
   2. Client can open a product detail page
   3. A service detail page surfaces a curated set of stylist-recommended products tied to that specific service
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Product/ServiceRecommendedProduct backend: entity, DTOs, ProductsService/Controller, AddProducts migration + seed, extended ServicesService recommendations (PROD-01, PROD-02, PROD-03)
+- [x] 05-01-PLAN.md — Product/ServiceRecommendedProduct backend: entity, DTOs, ProductsService/Controller, AddProducts migration + seed, extended ServicesService recommendations (PROD-01, PROD-02, PROD-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -269,7 +269,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 2. Booking Core | 9/9 | Complete    | 2026-08-09 |
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
-| 5. Product Catalog | 0/TBD | Not started | - |
+| 5. Product Catalog | 1/2 | In Progress|  |
 | 6. Cart & Checkout | 0/TBD | Not started | - |
 | 7. Accounts & Retention | 0/TBD | Not started | - |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |
