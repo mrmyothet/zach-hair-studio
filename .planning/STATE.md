@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: staff-management-services-availability
 status: executing
-stopped_at: Completed 04-07-PLAN.md (Phase 4 gap closure G-04-6 - WeekStripEditor edge-resize)
-last_updated: "2026-07-27T05:47:14.377Z"
-last_activity: 2026-07-27
-last_activity_desc: Phase 04 execution started
+stopped_at: Completed quick task 260809-ipz (gitleaks CI fix - binary not Docker)
+last_updated: "2026-08-09T06:30:00.000Z"
+last_activity: 2026-08-09
+last_activity_desc: Completed quick task 260809-ipz: replace Docker-based gitleaks CI step with direct binary install (becd367's dubious-ownership fix was confirmed ineffective)
 progress:
   total_phases: 4
   completed_phases: 4
@@ -155,6 +155,7 @@ Recent decisions affecting current work:
 | 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots                                                                | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
 | 260809-gd7 | chat widget generic service term matching for haircut                                                                              | 2026-08-09 | 69d81fd | [260809-gd7-chat-widget-generic-service-term-matchin](./quick/260809-gd7-chat-widget-generic-service-term-matchin/) |
 | 260809-hui | Fix gitleaks docker "dubious ownership" error in security workflow (mark /repo safe in container's own gitconfig)                  | 2026-08-09 | becd367 | [260809-hui-fix-gitleaks-docker-dubious-ownership-er](./quick/260809-hui-fix-gitleaks-docker-dubious-ownership-er/) |
+| 260809-ipz | Fix gitleaks CI still failing after becd367 — replace Docker invocation with direct binary install (dubious-ownership was never the real cause; image already sets safe.directory at build time) | 2026-08-09 | f324da1 | [260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do](./quick/260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do/) |
 
 ## Deferred Items
 
