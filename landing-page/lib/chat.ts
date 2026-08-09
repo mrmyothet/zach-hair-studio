@@ -75,6 +75,16 @@ function byDisplayOrder(services: Service[]): Service[] {
   return services.toSorted((a, b) => a.displayOrder - b.displayOrder);
 }
 
+// Generic terms visitors use for a seeded Category, beyond its exact name/slug.
+// Keys are lowercased to match `.toLowerCase()` category lookups. Keep in sync
+// with lib/chat.selfcheck.mjs.
+const CATEGORY_ALIASES: Record<string, readonly string[]> = {
+  cuts: ["cut", "haircut", "hair cut"],
+  color: ["dye", "colour"],
+  styling: ["style"],
+  treatments: ["treatment"],
+};
+
 function findMatchingService(
   normalizedInput: string,
   services: Service[]
@@ -82,7 +92,18 @@ function findMatchingService(
   return byDisplayOrder(services).find((service) => {
     const name = service.name.toLowerCase();
     const slugAsWords = service.slug.replace(/-/g, " ").toLowerCase();
-    return normalizedInput.includes(name) || normalizedInput.includes(slugAsWords);
+    const category = service.category.toLowerCase();
+    if (
+      normalizedInput.includes(name) ||
+      normalizedInput.includes(slugAsWords) ||
+      normalizedInput.includes(category)
+    ) {
+      return true;
+    }
+    const aliases = CATEGORY_ALIASES[category] ?? [];
+    return aliases.some((alias) =>
+      new RegExp(`\\b${alias}\\b`).test(normalizedInput)
+    );
   });
 }
 
