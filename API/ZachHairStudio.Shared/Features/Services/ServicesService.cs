@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Products;
 
 namespace ZachHairStudio.Shared.Features.Services;
 
@@ -39,9 +40,25 @@ public class ServicesService
         var service = await _dbContext.Services
             .FirstOrDefaultAsync(service => service.Slug == slug && service.IsActive);
 
-        return service is null
-            ? Result<ServiceResponseDto>.NotFoundError($"Service '{slug}' not found.")
-            : Result<ServiceResponseDto>.Success(service.ToDto());
+        if (service is null)
+        {
+            return Result<ServiceResponseDto>.NotFoundError($"Service '{slug}' not found.");
+        }
+
+        // Only active linked products are surfaced (RESEARCH Pitfall 3, T-05-02).
+        var recommendedProducts = await _dbContext.Set<ServiceRecommendedProduct>()
+            .Where(link => link.ServiceId == service.Id)
+            .Join(
+                _dbContext.Products.Where(product => product.IsActive),
+                link => link.ProductId,
+                product => product.Id,
+                (link, product) => product)
+            .Select(product => product.ToDto())
+            .ToListAsync();
+
+        var dto = service.ToDto();
+        dto.RecommendedProducts = recommendedProducts;
+        return Result<ServiceResponseDto>.Success(dto);
     }
 
     public async Task<Result<ServiceResponseDto>> CreateAsync(ServiceCreateDto request)

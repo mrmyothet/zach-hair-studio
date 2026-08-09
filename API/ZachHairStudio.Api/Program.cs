@@ -12,6 +12,7 @@ using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Products;
 using ZachHairStudio.Shared.Features.Services;
 using ZachHairStudio.Shared.Features.Stylists;
 
@@ -48,6 +49,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddValidatorsFromAssemblyContaining<ServiceCreateDtoValidator>();
 builder.Services.AddScoped<ServicesService>();
+builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<StylistsService>();
 builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon"));
 // Bridge IOptions<SalonOptions> -> plain SalonOptions so Shared-project services

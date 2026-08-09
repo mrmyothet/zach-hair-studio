@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ZachHairStudio.Shared.Features.Products;
 
 namespace ZachHairStudio.Shared.Features.Services;
 
@@ -21,4 +22,9 @@ public class ServiceResponseDto
     public bool? IsActive { get; set; }
 
     public int DisplayOrder { get; set; }
+
+    // Populated only by GetBySlugAsync (PROD-03); GetServicesAsync never sets this,
+    // so the list endpoint's wire shape stays byte-identical (D-16).
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<ProductResponseDto>? RecommendedProducts { get; set; }
 }
