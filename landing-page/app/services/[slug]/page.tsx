@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import BackToTop from "@/components/BackToTop";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import SectionHeading from "@/components/SectionHeading";
 import { formatDuration } from "@/lib/formatDuration";
 import { fetchServiceBySlug } from "@/lib/services";
+import type { Product } from "@/lib/products";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -91,11 +93,71 @@ export default async function ServiceDetailPage({ params }: Props) {
                 </p>
               </aside>
             </div>
+
+            {service.recommendedProducts && service.recommendedProducts.length > 0 ? (
+              <section className="mt-16">
+                <SectionHeading
+                  eyebrow="Stylist Picks for This Service"
+                  title="Recommended"
+                  highlight="Products"
+                  subtitle=""
+                />
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {service.recommendedProducts.map((product) => (
+                    <RecommendedProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         </section>
       </main>
       <Footer />
       <BackToTop />
     </>
+  );
+}
+
+function RecommendedProductCard({ product }: { product: Product }) {
+  return (
+    <Link
+      href={`/products/${product.slug}`}
+      className="card-hover bg-charcoal border border-white/5 hover:border-gold/30 rounded-2xl p-7 group flex flex-col"
+    >
+      {product.imageUrl ? (
+        <Image
+          src={product.imageUrl}
+          alt=""
+          width={640}
+          height={360}
+          className="aspect-video w-full rounded-xl object-cover mb-5"
+        />
+      ) : (
+        <div className="w-14 h-14 bg-gold/10 group-hover:bg-gold/20 rounded-xl flex items-center justify-center mb-5 transition-colors">
+          <span className="text-gold font-serif text-2xl" aria-hidden="true">
+            Z
+          </span>
+        </div>
+      )}
+      <p className="text-gold text-xs uppercase tracking-widest mb-2">
+        {product.category}
+      </p>
+      <h3 className="text-white text-lg font-semibold mb-3">
+        {product.name}
+      </h3>
+      <p className="text-gray-500 text-sm leading-relaxed mb-6 flex-1">
+        {product.shortDescription}
+      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-5">
+        <span className="text-gold font-bold text-lg">
+          {priceFormatter.format(product.price)}
+        </span>
+        {product.stock === 0 ? (
+          <span className="bg-white/5 border border-white/10 text-gray-400 text-xs uppercase tracking-wider px-3 py-1 rounded-full">
+            Out of Stock
+          </span>
+        ) : null}
+      </div>
+    </Link>
   );
 }
