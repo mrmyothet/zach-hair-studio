@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Products;
 using ZachHairStudio.Shared.Features.Services;
 
 namespace ZachHairStudio.Api.Tests.Features.Services;
@@ -110,6 +111,84 @@ public class ServicesServiceTests
         Assert.True(result.IsSuccess);
         Assert.Equal("signature-blowout", result.Data.Slug);
         Assert.Single(dbContext.Services);
+    }
+
+    [Fact]
+    public async Task GetBySlugAsync_RecommendedProducts_ReturnsOnlyActiveLinkedProducts()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Services.Add(CreateService(id: 1, slug: "keratin-treatment", displayOrder: 1));
+        dbContext.Products.AddRange(
+            CreateProduct(id: 1, slug: "leave-in-serum", isActive: true),
+            CreateProduct(id: 2, slug: "color-safe-shampoo", isActive: true),
+            CreateProduct(id: 3, slug: "discontinued-wax", isActive: false));
+        dbContext.Set<ServiceRecommendedProduct>().AddRange(
+            new ServiceRecommendedProduct { ServiceId = 1, ProductId = 1 },
+            new ServiceRecommendedProduct { ServiceId = 1, ProductId = 2 },
+            new ServiceRecommendedProduct { ServiceId = 1, ProductId = 3 });
+        await dbContext.SaveChangesAsync();
+        var service = CreateServiceLayer(dbContext);
+
+        var result = await service.GetBySlugAsync("keratin-treatment");
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data.RecommendedProducts);
+        Assert.Equal(
+            ["leave-in-serum", "color-safe-shampoo"],
+            result.Data.RecommendedProducts!.Select(product => product.Slug),
+            new IgnoreOrderComparer());
+    }
+
+    [Fact]
+    public async Task GetBySlugAsync_RecommendedProducts_ReturnsEmptyListWhenUnlinked()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Services.Add(CreateService(id: 1, slug: "scalp-treatment", displayOrder: 1));
+        await dbContext.SaveChangesAsync();
+        var service = CreateServiceLayer(dbContext);
+
+        var result = await service.GetBySlugAsync("scalp-treatment");
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data.RecommendedProducts);
+        Assert.Empty(result.Data.RecommendedProducts!);
+    }
+
+    [Fact]
+    public async Task GetBySlugAsync_RecommendedProducts_OmittedFromServicesListResponse()
+    {
+        await using var dbContext = CreateDbContext();
+        dbContext.Services.Add(CreateService(id: 1, slug: "precision-cut", displayOrder: 1));
+        dbContext.Products.Add(CreateProduct(id: 1, slug: "leave-in-serum", isActive: true));
+        dbContext.Set<ServiceRecommendedProduct>().Add(new ServiceRecommendedProduct { ServiceId = 1, ProductId = 1 });
+        await dbContext.SaveChangesAsync();
+        var service = CreateServiceLayer(dbContext);
+
+        var results = await service.GetServicesAsync();
+
+        Assert.All(results, result => Assert.Null(result.RecommendedProducts));
+    }
+
+    private static Product CreateProduct(int id, string slug, bool isActive = true)
+        => new Product
+        {
+            Id = id,
+            Slug = slug,
+            Name = $"Product {id}",
+            ShortDescription = "A stylist-recommended hair care product.",
+            LongDescription = "A stylist-recommended hair care product for testing recommendations.",
+            Category = "Hair Care",
+            Price = 20,
+            Stock = 5,
+            IsActive = isActive,
+        };
+
+    private sealed class IgnoreOrderComparer : IEqualityComparer<IEnumerable<string>>
+    {
+        public bool Equals(IEnumerable<string>? x, IEnumerable<string>? y)
+            => x is not null && y is not null && x.OrderBy(v => v).SequenceEqual(y.OrderBy(v => v));
+
+        public int GetHashCode(IEnumerable<string> obj) => 0;
     }
 
     private static BookingDbContext CreateDbContext()
