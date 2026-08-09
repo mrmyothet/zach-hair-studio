@@ -101,10 +101,10 @@ function findMatchingService(
       return true;
     }
     const aliases = CATEGORY_ALIASES[category] ?? [];
-    // alias is drawn only from the hardcoded CATEGORY_ALIASES map above, never from
-    // user input (normalizedInput) — no ReDoS surface.
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     return aliases.some((alias) =>
+      // alias is drawn only from the hardcoded CATEGORY_ALIASES map above, never from
+      // user input (normalizedInput) — no ReDoS surface.
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
       new RegExp(`\\b${alias}\\b`).test(normalizedInput)
     );
   });
