@@ -37,6 +37,46 @@ export function createMessage(role: ChatRole, text: string): ChatMessage {
 
 export type Intent = "bookings" | "services" | "availability" | "help";
 
+/**
+ * Minimal slot-filling memory, round-tripped by the caller (widget) between
+ * turns. `awaiting` names the field the assistant just asked for, so the next
+ * message can be interpreted as its answer instead of reclassified from
+ * scratch — e.g. "Scalp Treatment" after "Which service?" instead of
+ * requiring "open slots for Scalp Treatment today" every time.
+ */
+export type ChatSession = {
+  awaiting?: "service";
+  lastService?: ServiceResponseDto;
+  lastDate?: string;
+};
+
+// Explicit topic-switch signal — deliberately excludes "today"/"tomorrow"
+// (date modifiers, not topic words) so a bare "Tomorrow" follow-up still
+// reads as a continuation rather than a new bookings query.
+const TOPIC_SWITCH_WORDS =
+  /\b(book\w*|appointments?|schedule|clients?|who'?s|busy|services?|pric\w*|costs?|how much|menu|offers?)\b/;
+
+function looksLikeTopicSwitch(text: string): boolean {
+  return TOPIC_SWITCH_WORDS.test(text.toLowerCase());
+}
+
+const DATE_WORD =
+  /\b(\d{4}-\d{2}-\d{2}|tom+or+ow|yester+day|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i;
+
+/**
+ * True when this message reads as a continuation of an in-progress or just-
+ * completed availability check rather than a fresh, unrelated query:
+ * - it's the direct answer to "which service?" ("Scalp Treatment"), or
+ * - it's a bare date/time follow-up after a service is already known
+ *   ("Tomorrow", "2 PM") — neither names a service on its own, so without
+ *   `lastService` they'd have nothing to check availability for.
+ */
+function isAvailabilityFollowUp(text: string, session: ChatSession): boolean {
+  if (looksLikeTopicSwitch(text)) return false;
+  if (session.awaiting === "service") return true;
+  return Boolean(session.lastService) && (DATE_WORD.test(text) || parseTimeOfDay(text) != null);
+}
+
 const WEEKDAYS = [
   "sunday",
   "monday",
@@ -254,22 +294,37 @@ async function answerServices(text: string): Promise<string> {
   return `${services.length} active services:\n${lines}\n[Manage services](/services)`;
 }
 
-async function answerAvailability(text: string): Promise<string> {
+async function answerAvailability(
+  text: string,
+  session: ChatSession
+): Promise<{ reply: string; session: ChatSession }> {
   const today = todayDateOnly();
-  const date = resolveDate(text, today);
-  const label = dayLabel(date, today);
 
   const services =
     (await unwrap(
       await api.GET("/api/Services", { params: { query: { includeInactive: false } } })
     )) ?? [];
 
-  const service = matchService(text, services);
+  // Slot-filling: if the assistant is waiting on a service name and this
+  // message doesn't switch topics, treat the whole message as that answer —
+  // still resolved against the live catalog via matchService, never invented.
+  const directAnswer =
+    session.awaiting === "service" && !looksLikeTopicSwitch(text)
+      ? matchService(text, services)
+      : undefined;
+
+  const service = directAnswer ?? matchService(text, services) ?? session.lastService;
+  // A date word in this message wins; otherwise reuse the last resolved date
+  // (so "2 PM" alone still means "today" the first time, "tomorrow" the same day).
+  const date = DATE_WORD.test(text) || !session.lastDate ? resolveDate(text, today) : session.lastDate;
+  const label = dayLabel(date, today);
+
   if (!service?.id) {
     const names = services.map((s) => s.name).join(", ");
-    return names
-      ? `Which service? I can check openings for: ${names}.`
+    const reply = names
+      ? `Which service would you like to check? I can check openings for: ${names}.`
       : "No active services to check availability against. [Manage services](/services)";
+    return { reply, session: { awaiting: "service", lastDate: date } };
   }
 
   const stylists = (await unwrap(await api.GET("/api/Stylists", {}))) ?? [];
@@ -292,6 +347,7 @@ async function answerAvailability(text: string): Promise<string> {
     )) ?? [];
 
   const who = stylist ? ` with ${stylist.name}` : "";
+  const nextSession: ChatSession = { lastService: service, lastDate: date };
 
   // A named time narrows to that exact slot; report the near misses when it's taken.
   if (atMinutes != null) {
@@ -302,7 +358,10 @@ async function answerAvailability(text: string): Promise<string> {
 
     if (exact) {
       const by = exact.stylistName ? ` with ${exact.stylistName}` : who;
-      return `Yes — ${asked} ${label} is open for ${service.name}${by}. [Open the schedule](/schedule)`;
+      return {
+        reply: `Yes — ${asked} ${label} is open for ${service.name}${by}. [Open the schedule](/schedule)`,
+        session: nextSession,
+      };
     }
 
     const nearby = slots
@@ -312,13 +371,18 @@ async function answerAvailability(text: string): Promise<string> {
       })
       .map((s) => formatSalonTime(s.startsAt!));
 
-    return nearby.length > 0
-      ? `${asked} ${label} is not open for ${service.name}${who}. Nearest: ${nearby.join(", ")}\n[Open the schedule](/schedule)`
-      : `${asked} ${label} is not open for ${service.name}${who}, and nothing else is free within 90 minutes. [Open the schedule](/schedule)`;
+    const reply =
+      nearby.length > 0
+        ? `${asked} ${label} is not open for ${service.name}${who}. Nearest: ${nearby.join(", ")}\n[Open the schedule](/schedule)`
+        : `${asked} ${label} is not open for ${service.name}${who}, and nothing else is free within 90 minutes. [Open the schedule](/schedule)`;
+    return { reply, session: nextSession };
   }
 
   if (slots.length === 0) {
-    return `No openings for ${service.name}${who} ${label}. [Open the schedule](/schedule)`;
+    return {
+      reply: `No openings for ${service.name}${who} ${label}. [Open the schedule](/schedule)`,
+      session: nextSession,
+    };
   }
 
   const times = slots
@@ -329,7 +393,10 @@ async function answerAvailability(text: string): Promise<string> {
     })
     .join(", ");
 
-  return `${slots.length} openings for ${service.name}${who} ${label}: ${times}\n[Open the schedule](/schedule)`;
+  return {
+    reply: `${slots.length} openings for ${service.name}${who} ${label}: ${times}\n[Open the schedule](/schedule)`,
+    session: nextSession,
+  };
 }
 
 const HELP_TEXT =
@@ -343,16 +410,31 @@ const HELP_TEXT =
  * API client — the same SlotService/Schedule data the MCP `get_appointment_slots`
  * tool exposes to external clients. Intent routing is keyword-based, not an LLM;
  * swapping in a real model means replacing this body only.
+ *
+ * `session` carries slot-filling state (what the assistant is waiting on, and
+ * the last resolved service/date) across turns — see ChatSession. Pass back
+ * whatever `session` this returns on the next call so short follow-up
+ * answers ("Scalp Treatment", "Tomorrow", "2 PM") resolve against the
+ * question just asked instead of being reclassified as a whole new query.
  */
-export async function sendChatMessage(userText: string): Promise<string> {
-  switch (classifyIntent(userText)) {
+export async function sendChatMessage(
+  userText: string,
+  session: ChatSession = {}
+): Promise<{ reply: string; session: ChatSession }> {
+  // Stay in availability handling for slot-filling answers and bare
+  // date/time follow-ups, instead of reclassifying every message from scratch.
+  const intent = isAvailabilityFollowUp(userText, session)
+    ? "availability"
+    : classifyIntent(userText);
+
+  switch (intent) {
     case "bookings":
-      return answerBookings(userText);
+      return { reply: await answerBookings(userText), session: {} };
     case "services":
-      return answerServices(userText);
+      return { reply: await answerServices(userText), session: {} };
     case "availability":
-      return answerAvailability(userText);
+      return answerAvailability(userText, session);
     default:
-      return HELP_TEXT;
+      return { reply: HELP_TEXT, session: {} };
   }
 }

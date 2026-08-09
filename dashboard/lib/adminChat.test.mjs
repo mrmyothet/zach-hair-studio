@@ -66,6 +66,22 @@ function matchService(text, services) {
     .sort((a, b) => (b.name?.length ?? 0) - (a.name?.length ?? 0))[0];
 }
 
+const TOPIC_SWITCH_WORDS =
+  /\b(book\w*|appointments?|schedule|clients?|who'?s|busy|services?|pric\w*|costs?|how much|menu|offers?)\b/;
+
+function looksLikeTopicSwitch(text) {
+  return TOPIC_SWITCH_WORDS.test(text.toLowerCase());
+}
+
+const DATE_WORD =
+  /\b(\d{4}-\d{2}-\d{2}|tom+or+ow|yester+day|sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i;
+
+function isAvailabilityFollowUp(text, session) {
+  if (looksLikeTopicSwitch(text)) return false;
+  if (session.awaiting === "service") return true;
+  return Boolean(session.lastService) && (DATE_WORD.test(text) || parseTimeOfDay(text) != null);
+}
+
 // --- intent routing ---------------------------------------------------------
 assert.equal(classifyIntent("Who's booked today?"), "bookings");
 assert.equal(classifyIntent("What's on tomorrow?"), "bookings");
@@ -126,5 +142,30 @@ assert.equal(
   "longest stylist name wins"
 );
 assert.equal(matchService("available for zin tomorrow", stylists).slug, "zin");
+
+// --- slot-filling: "which service?" -> a bare service-name answer ----------
+const catalog = [
+  { id: 1, name: "Haircut", slug: "haircut" },
+  { id: 2, name: "Scalp Treatment", slug: "scalp-treatment" },
+];
+assert.equal(looksLikeTopicSwitch("Scalp Treatment"), false,
+  "a bare service name is not a topic switch");
+assert.equal(looksLikeTopicSwitch("who's booked today"), true,
+  "a bookings question while awaiting a service is a topic switch");
+assert.equal(matchService("Scalp Treatment", catalog).id, 2,
+  "the awaited answer resolves against the real catalog, not invented");
+assert.equal(matchService("Balayage", catalog), undefined,
+  "an unknown service never gets fabricated");
+
+// The reported conversation: "Open slots" -> awaiting service -> "Scalp Treatment".
+assert.equal(isAvailabilityFollowUp("Scalp Treatment", { awaiting: "service" }), true);
+assert.equal(isAvailabilityFollowUp("who's booked today", { awaiting: "service" }), false,
+  "an explicit topic switch is never swallowed as the awaited answer");
+// Bare date/time follow-ups after a service is already known.
+const withService = { lastService: catalog[1], lastDate: "2026-08-05" };
+assert.equal(isAvailabilityFollowUp("Tomorrow", withService), true);
+assert.equal(isAvailabilityFollowUp("2 PM", withService), true);
+assert.equal(isAvailabilityFollowUp("Tomorrow", {}), false,
+  "a bare date means nothing without a prior service in context");
 
 console.log("adminChat self-check: all assertions passed");
