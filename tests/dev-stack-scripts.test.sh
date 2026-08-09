@@ -79,8 +79,8 @@ class Handler(socketserver.BaseRequestHandler):
         self.request.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK")
 
 server = socketserver.TCPServer(("127.0.0.1", int(sys.argv[1])), Handler)
-signal.signal(signal.SIGTERM, lambda *_: server.shutdown())
-signal.signal(signal.SIGINT, lambda *_: server.shutdown())
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
 server.serve_forever(poll_interval=0.05)
 PY
 chmod +x "$FAKE_BIN/listener.py"
