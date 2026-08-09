@@ -6,5 +6,8 @@
 # UserSecretsId GUID documented in STACK.md — a public identifier (it lives in
 # the csproj), not a secret.
 c05c785156930157102f52e3d1e5acc2666879e1:.planning/codebase/STACK.md:generic-api-key:68
+dbc3f0d0d7ee47376bfe4525f981ec0ceaeacf7c:.codex/gsd-file-manifest.json:generic-api-key:18
+dbc3f0d0d7ee47376bfe4525f981ec0ceaeacf7c:.codex/gsd-file-manifest.json:generic-api-key:167
+dbc3f0d0d7ee47376bfe4525f981ec0ceaeacf7c:.codex/gsd-file-manifest.json:generic-api-key:216
 # Path-level ignores (whole files) live in .gitleaks.toml — this file only
 # accepts exact fingerprints.
