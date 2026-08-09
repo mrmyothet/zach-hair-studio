@@ -1,7 +1,7 @@
 ---
 phase: 04-staff-management-services-availability
 verified: 2026-07-27T16:20:00Z
-status: human_needed
+status: passed
 score: 1/3 roadmap truths fully verified; 2/3 present-and-wired with behavior-unverified or open-investigation items
 behavior_unverified: 2
 overrides_applied: 0
@@ -9,6 +9,7 @@ re_verification:
   previous_status: human_needed
   previous_score: "3/3 roadmap success criteria present+wired; 1 truth behavior-unverified at UI level; 1 UAT gap open (investigating)"
   gaps_closed:
+
     - "G-04-5 (WeekStripEditor render-phase setState error) — manual browser retest of UAT test 11 actually performed and passed (04-UAT.md test 11: result pass, gap status: resolved, retested: 'Test 11 re-run — pass'). This closes human_verification item #2 from the prior report."
     - "UAT test 12 (public booking reflects both availability changes) — actually run and passed (04-UAT.md test 12: result pass). This closes human_verification item #3 from the prior report."
     - "G-04-6 (WeekStripEditor had no shrink/edge-resize gesture, only additive paint) — discovered by the human UAT session between the last verification and now (test 13 first attempt: 'I am not able to shrik the existing ones, only can add by dragging'), root-caused, planned, and closed in code by Plan 04-07 (commit 8c24a84): a second ref-committed drag gesture (resizeTarget/resizeRef, startResize, handleResizeMove/handleResizeUp) now lets staff drag either edge of an existing segment; the commit path calls emitChange directly and never mergeSegments, so a shrink cannot be silently re-expanded. Confirmed present and wired by direct code read of dashboard/components/WeekStripEditor.tsx (lines 35-39, 111-113, 146-225, 299-318). Structural/lint/build proof only — no dashboard test runner exists to drive an actual pointer-drag sequence, so this is present+wired, not behaviorally proven."
@@ -17,10 +18,12 @@ re_verification:
 gaps: []
 deferred: []
 behavior_unverified_items:
+
   - truth: "After creating a service and attaching an image, clicking Save Service persists the edit and gives the Owner clear feedback (no silent no-op)."
     test: "Fill every field on a new service, upload an image, click Save Service; confirm the form either closes (edit) or shows explicit 'saved, image can now be added' feedback (create), with no click that visibly does nothing."
     expected: "No silent no-op; feedback is always visible (banner, form close, or disabled-button messaging)."
     why_human: "UAT gap G-04-4 (test 4) remains status: investigating in 04-UAT.md, unchanged since the last verification. Two independent browser reproductions succeeded and the backend persisted correctly; the original user-reported silent no-op was never isolated to a specific cause. UX hardening (afc5aae) closes the three most plausible causes but the root cause is still unconfirmed — a human retest is the only way to close this."
+
   - truth: "Staff can grab either edge of an existing working-hours segment and drag it inward to shrink the segment (the new G-04-6 edge-resize gesture added by Plan 04-07), and doing so does not break the pre-existing paint-new-segment, gap-as-break, or remove-via-x gestures."
     test: "On /availability, hover an existing painted segment; confirm resize handles appear at both edges with an ew-resize cursor; drag the right edge inward and confirm the segment visually shrinks, snaps to 15-minute steps, and is clamped against its own opposite edge and any adjacent segment; release and confirm the shrink persists; then confirm painting a new segment elsewhere and removing a segment via the x button both still work unchanged."
     expected: "The segment shrinks live during the drag, clamps correctly at both ends, commits on release via a direct per-segment replacement (never silently re-expanded by a later save), and no existing gesture regresses."
@@ -37,6 +40,7 @@ behavior_unverified_items:
 ## Context for This Run
 
 This run follows the execution of exactly one gap-closure plan, **04-07**, which closed gap **G-04-6** (WeekStripEditor could only add new working-hours segments, never shrink an existing one). Since the prior verification (`499fffb`, 2026-07-27T00:00:52+0700), a real human UAT session occurred (`d1f08ec`, 11:31) that:
+
 - Retested UAT test 11 (G-04-5 render-phase fix) — **passed**, closing that prior human-verification item.
 - Ran UAT test 12 (public booking reflects painted hours + time off) — **passed**, closing that prior human-verification item.
 - Ran UAT test 13 (conflicting edit blocked) for the first time and **failed** it — not because the conflict-block logic was wrong, but because the UI had no way to shrink an existing segment at all (only add via drag-paint). This became gap G-04-6.

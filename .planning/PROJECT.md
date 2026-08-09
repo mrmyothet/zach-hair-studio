@@ -38,12 +38,12 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 - ✓ **Per-feature service layer + validation layer** — `ServicesService` owns all `BookingDbContext` access; FluentValidation rejects invalid writes before they reach the database. Validated in Phase 1: Service Catalog (2026-07-09)
 - ✓ **Booking core** — appointments + stylist availability; open-slot query; pick service → choose slot → confirm with DB-enforced double-booking prevention; confirmation email. Validated in Phase 2: Booking Core (2026-07-10; gap-closure 2026-07-16)
 - ✓ **Staff dashboard (schedule)** — authenticated day/week schedule in `dashboard/`; appointment detail; Complete/Cancel/No-show with distinct no-show; staff auth gate. Validated in Phase 3: Staff Dashboard (Schedule) (2026-07-16)
+- ✓ **Staff management of services & availability** — Owner-gated Services CRUD (create/edit/retire/reactivate, image upload) in `dashboard/`; any-staff Availability editor (weekly hours paint/resize, time off) feeding the same Phase 2 slot logic; server-side hard-block (409 + conflict list) on any availability edit that would orphan a Confirmed booking. Validated in Phase 4: Staff Management (Services & Availability) (2026-08-09; UAT 32/33 checkpoints passed, 1 auto-covered by passing automated tests)
 
 ### Active
 
 <!-- Current milestone: full specs roadmap P1–8. Hypotheses until shipped and validated. -->
 
-- [ ] **Staff management of services & availability** — dashboard CRUD for services; manage stylist availability feeding the slot logic
 - [ ] **Product catalog (read-only)** — model products (name, description, price, image, stock); list + detail API; public browse surfaced as stylist-recommended add-ons
 - [ ] **Cart & checkout** — cart on the public site; create order; decrement stock; integrate a payment provider and complete checkout
 - [ ] **Accounts & retention** — client accounts and auth; booking & order history per client; loyalty/rewards groundwork
@@ -61,7 +61,7 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 ## Context
 
 - **Brownfield.** Phase 0 (foundation) is already shipped: the .NET API boots with EF Core + SQL Server, and the Next.js landing page calls it successfully via a working booking form. A `dashboard/` app is scaffolded but not built; a `mobile-app/` is only referenced.
-- **Phases 1–3 shipped:** service catalog, slot-based booking with confirmation email, and an authenticated staff schedule dashboard (`dashboard/`) with status updates including distinct no-show. Next: staff self-serve services & availability (Phase 4).
+- **Phases 1–4 shipped:** service catalog, slot-based booking with confirmation email, an authenticated staff schedule dashboard (`dashboard/`) with status updates including distinct no-show, and staff self-serve Services/Availability management with conflict-blocked availability edits. Next: product catalog (Phase 5).
 - **Codebase map** lives in `.planning/codebase/` (STACK, ARCHITECTURE, STRUCTURE, CONVENTIONS, TESTING, INTEGRATIONS, CONCERNS).
 - **Known concerns flagged during mapping** (see `.planning/codebase/CONCERNS.md`): open CORS (must be restricted before public deployment / Phase 8); staff JWT auth is in place for dashboard APIs (Phase 3); `db.Database.Migrate()` runs on startup.
 - **Project skills exist** for this stack: `dev`, `ef-migrations`, `feature-scaffold`, `openapi-client` (see `specs/tooling.md`).
@@ -83,6 +83,8 @@ slot is the primary, friction-free path. If everything else fails, this must wor
 | Services-led product (booking primary, products supporting) | Booking is the core value; products reinforce the service relationship | ✓ Good |
 | Stack locked to Next.js + .NET / EF Core / SQL Server | Matches existing repo; maintainable, modern | ✓ Good |
 | Separate `dashboard/` app for staff | Clear access boundaries and independent deployment | — Pending |
+| Services CRUD is Owner-only; Availability writes open to any authenticated staff (D-13) | Service catalog changes are business-critical (pricing/branding); availability edits are routine day-to-day stylist self-service | ✓ Good |
+| Availability edits that conflict with a Confirmed booking are hard-blocked server-side (409 + conflict list), never silently applied | The one property the phase's outcome clause required — no edit may silently orphan a client's booking | ✓ Good |
 | Auth provider / session strategy (staff vs. client) | Deferred — decide when Phase 7 (accounts) / staff-dashboard access needs it | — Pending |
 | Payment provider for product checkout | Deferred — decide when Phase 6 (cart & checkout) needs it | — Pending |
 | Hosting / deployment targets | Deferred — decide in Phase 8 (launch readiness) | — Pending |
@@ -106,4 +108,4 @@ This document evolves at phase transitions and milestone boundaries.
 5. Update Context with current state
 
 ---
-*Last updated: 2026-07-16 after Phase 3 (Staff Dashboard) completion*
+*Last updated: 2026-08-09 after Phase 4 (Staff Management: Services & Availability) completion*
