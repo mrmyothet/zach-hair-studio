@@ -193,7 +193,16 @@ Plans:
   2. Client can open a product detail page
   3. A service detail page surfaces a curated set of stylist-recommended products tied to that specific service
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Product/ServiceRecommendedProduct backend: entity, DTOs, ProductsService/Controller, AddProducts migration + seed, extended ServicesService recommendations (PROD-01, PROD-02, PROD-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 05-02-PLAN.md — /products catalog + detail pages, extended ServiceSchema, Recommended Products section on service detail (PROD-01, PROD-02, PROD-03)
+
 **UI hint**: yes
 
 ### Phase 6: Cart & Checkout
