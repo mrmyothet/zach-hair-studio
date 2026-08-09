@@ -200,28 +200,28 @@ export function AdminChatWidget() {
             className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
           >
             {messages.length === 0 && (
-              <div className="space-y-3">
-                <p className="text-muted text-sm">
-                  Ask about the day&apos;s bookings, the service menu, or open slots.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {STARTER_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      onClick={() => void handleSend(prompt)}
-                      className="border border-border hover:border-gold-dark text-ink hover:text-gold-dark rounded-full px-3 py-1.5 text-xs transition-colors"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-muted text-sm">
+                Ask about the day&apos;s bookings, the service menu, or open slots.
+              </p>
             )}
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
             {isTyping && <TypingIndicator />}
+          </div>
+
+          <div className="border-t border-border px-4 py-2.5 flex flex-wrap gap-2">
+            {STARTER_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => void handleSend(prompt)}
+                disabled={isTyping}
+                className="border border-border hover:border-gold-dark text-ink hover:text-gold-dark rounded-full px-3 py-1.5 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
 
           <form
