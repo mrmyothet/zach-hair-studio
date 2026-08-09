@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: staff-management-services-availability
 status: executing
-stopped_at: Completed 04-07-PLAN.md (Phase 4 gap closure G-04-6 - WeekStripEditor edge-resize)
-last_updated: "2026-07-27T05:47:14.377Z"
-last_activity: 2026-07-27
-last_activity_desc: Phase 04 execution started
+stopped_at: Completed quick task 260809-n8x (fixed misplaced nosemgrep comment in chat.ts; local semgrep run now 0 findings)
+last_updated: "2026-08-09T10:54:00.000Z"
+last_activity: 2026-08-09
+last_activity_desc: Completed quick task 260809-n8x - 260809-m2q's nosemgrep comment in chat.ts sat 2 lines above the flagged new RegExp() call (not directly above it) and never actually suppressed the finding; live CI on PR #43 (run 31308767427) still failed sast(semgrep) against commit fe26590. Moved the comment inside the arrow function directly above new RegExp(...); verified via a real local semgrep install (before: 1 blocking finding reproducing the CI failure; after: 0 findings, exit 0). gitleaks is confirmed green on the same run.
 progress:
   total_phases: 4
   completed_phases: 4
@@ -30,7 +30,10 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 04 (staff-management-services-availability) — EXECUTING
 Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-08-09 - Completed quick task 260809-sf1: Add slot-filling conversation state to AdminChat
+
+Completed quick task 260809-sf1: Add slot-filling conversation state to AdminChat
+
+Last activity: 2026-08-09 - Completed quick task 260809-hui: fix gitleaks docker dubious ownership error in security workflow
 
 Progress: [██████████] 100%
 
@@ -153,10 +156,19 @@ Recent decisions affecting current work:
 | 260731-uj3 | Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)    | 2026-07-31 | 0747757 | [260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-](./quick/260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-/) |
 | 6          | Fix plural "hours" match in chat.ts hours-keyword regex (\\b(hour\|open\|close)\\b -> \\b(hours?\|open\|close)\\b)                 | 2026-07-31 | dcbbfdf | —                                                                                                                   |
 | 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots                                                                | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
+
 | 260809-gpw | Fix semgrep SAST finding (detect-non-literal-regexp) in dashboard adminChat weekday matching                                      | 2026-08-09 | ba50770 | [260809-gpw-fix-semgrep-sast-finding-detect-non-lite](./quick/260809-gpw-fix-semgrep-sast-finding-detect-non-lite/) |
 | 260809-adm | Keep AdminChat starter-prompt buttons visible after the first message instead of disappearing                                    | 2026-08-09 | 589470e | [260809-adm-keep-starter-prompts-visible](./quick/260809-adm-keep-starter-prompts-visible/)                         |
 | 260809-sz1 | Increase AdminChat dialog panel size (24rem x 32rem -> 28rem x 40rem desktop)                                                     | 2026-08-09 | c05a2ec | [260809-sz1-increase-adminchat-box-size](./quick/260809-sz1-increase-adminchat-box-size/)                           |
 | 260809-sf1 | Add slot-filling conversation state to AdminChat (bare service/date follow-ups now resolve against the pending question)          | 2026-08-09 | 148dda6 | [260809-sf1-adminchat-slot-filling](./quick/260809-sf1-adminchat-slot-filling/)                                     |
+
+| 260809-gd7 | chat widget generic service term matching for haircut                                                                              | 2026-08-09 | 69d81fd | [260809-gd7-chat-widget-generic-service-term-matchin](./quick/260809-gd7-chat-widget-generic-service-term-matchin/) |
+| 260809-hui | Fix gitleaks docker "dubious ownership" error in security workflow (mark /repo safe in container's own gitconfig)                  | 2026-08-09 | becd367 | [260809-hui-fix-gitleaks-docker-dubious-ownership-er](./quick/260809-hui-fix-gitleaks-docker-dubious-ownership-er/) |
+| 260809-ipz | Fix gitleaks CI still failing after becd367 — replace Docker invocation with direct binary install (dubious-ownership was never the real cause; image already sets safe.directory at build time) | 2026-08-09 | f324da1 | [260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do](./quick/260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do/) |
+| 260809-k3d | Fix gitleaks CI still failing (real root cause) — extend .gitleaks.toml's GSD manifest checksum allowlist to .codex/ paths; 3 genuine generic-api-key false positives in .codex/gsd-file-manifest.json, unmasked only once 260809-ipz let the scan complete | 2026-08-09 | 979f316 | [260809-k3d-fix-gitleaks-codex-manifest-allowlist](./quick/260809-k3d-fix-gitleaks-codex-manifest-allowlist/) |
+| 260809-m2q | Suppress semgrep detect-non-literal-regexp false positive on chat.ts/chat.selfcheck.mjs alias RegExp — alias is hardcoded (CATEGORY_ALIASES), never user input, no ReDoS surface; targeted nosemgrep comment + rationale | 2026-08-09 | 9ae1533 | [260809-m2q-fix-semgrep-redos-false-positive-alias-r](./quick/260809-m2q-fix-semgrep-redos-false-positive-alias-r/) |
+| 260809-n8x | Fix misplaced nosemgrep comment in chat.ts (260809-m2q's comment sat 2 lines above the flagged new RegExp() call, never actually suppressed it); moved directly above the call, verified 0 findings via real local semgrep run | 2026-08-09 | 973b2fb | [260809-n8x-fix-semgrep-nosemgrep-comment-placement](./quick/260809-n8x-fix-semgrep-nosemgrep-comment-placement/) |
+
 
 ## Deferred Items
 
@@ -168,8 +180,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-27T05:47:14.360Z
-Stopped at: Completed 04-07-PLAN.md (Phase 4 gap closure G-04-6 - WeekStripEditor edge-resize)
+Last session: 2026-08-09T10:54:00.000Z
+Stopped at: Completed quick task 260809-n8x (fixed misplaced nosemgrep comment in chat.ts) — gitleaks is confirmed green on live CI (run 31308767427, head fe26590); semgrep fix corrected locally (0 findings, exit 0) but NOT YET PUSHED
 Resume file: None
 
-Next action: Phase 04 complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
+Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.

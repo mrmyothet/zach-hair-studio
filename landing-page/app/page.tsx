@@ -8,6 +8,7 @@ import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import BackToTop from "@/components/BackToTop";
 import ChatWidget from "@/components/ChatWidget";
+import { fetchStylists } from "@/lib/appointments";
 import { fetchServices } from "@/lib/services";
 
 const HOMEPAGE_SERVICE_COUNT = 6;
@@ -17,9 +18,10 @@ type Props = {
 };
 
 export default async function Home({ searchParams }: Props) {
-  const [{ service }, services] = await Promise.all([
+  const [{ service }, services, stylists] = await Promise.all([
     searchParams,
     fetchServices(),
+    fetchStylists(),
   ]);
   const homepageServices = services
     .toSorted((a, b) => a.displayOrder - b.displayOrder)
@@ -38,7 +40,7 @@ export default async function Home({ searchParams }: Props) {
       </main>
       <Footer />
       <BackToTop />
-      <ChatWidget services={services} />
+      <ChatWidget services={services} stylists={stylists} />
     </>
   );
 }
