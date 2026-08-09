@@ -1,0 +1,14 @@
+{
+  "ecosystem": "nuget",
+  "config": { "exa_search": false, "brave_search": false, "firecrawl": false, "tavily_search": false },
+  "questions": [
+    { "text": "How to create a Stripe Checkout Session server-side in .NET using Stripe.net: SessionCreateOptions, line items, success_url/cancel_url, mode=payment, client_reference_id, metadata, customer_email, and the returned Session.Url for client redirect?", "kind": "docs", "library": "stripe-dotnet", "version": "latest" },
+    { "text": "How to verify a Stripe webhook signature in ASP.NET Core: StripeWebhookHandler, StripeEventUtility.ConstructEvent(requestBody, signature, endpointSecret), which event types to handle (checkout.session.completed), and idempotent processing?", "kind": "docs", "library": "stripe-dotnet", "version": "latest" },
+    { "text": "What is the current Stripe.net NuGet package version and its .NET target frameworks? Does it work with .NET 10?", "kind": "web", "library": "Stripe.net", "version": "latest" },
+    { "text": "Stripe idempotency: how idempotency keys work for Checkout Session creation, and what the recommended pattern is for preventing duplicate orders from webhook retries?", "kind": "web" },
+    { "text": "Atomic stock decrement in EF Core / SQL Server: conditional UPDATE ... SET Stock = Stock - @qty WHERE Id = @id AND Stock >= @qty pattern, ExecuteSqlInterpolated vs ExecuteUpdate with row-affected count, concurrency-safe order creation in same transaction?", "kind": "web" },
+    { "text": "Stripe test mode and local development: stripe CLI listen for webhook forwarding, test secret keys, and how to develop webhook handling locally before going live?", "kind": "web" },
+    { "text": "Guest cart architecture patterns for stateless web apps: cart session key via cookie vs header, server-side cart storage keyed by anonymous session id, and checkout binding the cart to the order?", "kind": "web" },
+    { "text": "How to run the Stripe .NET library in a webhook endpoint: best practices for ASP.NET Core webhook controller receiving raw request body (not [FromBody] model binding), reading Request.Body raw, and responding 200 quickly?", "kind": "web" }
+  ]
+}
