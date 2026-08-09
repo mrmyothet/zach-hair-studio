@@ -1,7 +1,8 @@
 ---
 phase: 02-booking-core
 verified: 2026-07-10T20:30:00Z
-status: reconciled
+status: passed
+previous_status: reconciled
 reconciled: 2026-07-25
 reconciliation_basis: "Evidence-based reconciliation against 02-UAT.md (2026-07-23, 9/9 pass) plus git history — NOT a fresh adversarial re-verification. See '## Post-Verification Reconciliation (2026-07-25)' below."
 score: 4/5 truths verified (1 present-but-behavior-partial)

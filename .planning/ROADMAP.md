@@ -257,7 +257,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Service Catalog | 4/4 | Complete    | 2026-07-09 |
-| 2. Booking Core | 9/9 | In Progress|  |
+| 2. Booking Core | 9/9 | Complete    | 2026-08-09 |
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 0/TBD | Not started | - |
