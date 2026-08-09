@@ -36,6 +36,8 @@ targetRules = ["generic-api-key"]
 paths = [
     '''\.claude/gsd-file-manifest\.json''',
     '''\.claude/gsd-local-patches/backup-meta\.json''',
+    '''\.codex/gsd-file-manifest\.json''',
+    '''\.codex/gsd-local-patches/backup-meta\.json''',
 ]
 regexTarget = "line"
 regexes = [
