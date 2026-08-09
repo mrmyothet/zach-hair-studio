@@ -51,6 +51,17 @@ public class ProductsControllerTests : IClassFixture<CustomWebApplicationFactory
     }
 
     [Fact]
+    public async Task GetProduct_ReturnsExactSeededPrice()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/products/leave-in-repair-serum");
+        var product = await response.Content.ReadFromJsonAsync<ProductResponseDto>();
+
+        Assert.Equal(24.00m, product!.Price);
+    }
+
+    [Fact]
     public void ProductsController_DoesNotDependOnBookingDbContext()
     {
         var ctorParams = typeof(ProductsController)
