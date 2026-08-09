@@ -177,7 +177,7 @@ export function AdminChatWidget() {
           role="dialog"
           aria-modal="true"
           aria-label="Salon assistant chat"
-          className="fixed z-50 inset-x-4 bottom-24 top-24 sm:inset-x-auto sm:top-auto sm:right-6 sm:w-96 sm:h-[32rem] sm:max-h-[70vh] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          className="fixed z-50 inset-x-4 bottom-16 top-16 sm:inset-x-auto sm:top-auto sm:right-6 sm:w-[28rem] sm:h-[40rem] sm:max-h-[85vh] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         >
           <div className="border-b border-border px-4 py-3 flex items-center justify-between">
             <span className="font-serif text-lg text-ink">Salon Assistant</span>
