@@ -51,7 +51,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                 {service.imageUrl ? (
                   <Image
                     src={service.imageUrl}
-                    alt=""
+                    alt={service.name}
                     width={960}
                     height={480}
                     className="mb-8 h-72 w-full rounded-2xl object-cover"
@@ -127,7 +127,7 @@ function RecommendedProductCard({ product }: { product: Product }) {
       {product.imageUrl ? (
         <Image
           src={product.imageUrl}
-          alt=""
+          alt={product.name}
           width={640}
           height={360}
           className="aspect-video w-full rounded-xl object-cover mb-5"

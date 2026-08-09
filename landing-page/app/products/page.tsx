@@ -50,7 +50,7 @@ function ProductCard({ product }: { product: Product }) {
       {product.imageUrl ? (
         <Image
           src={product.imageUrl}
-          alt=""
+          alt={product.name}
           width={640}
           height={360}
           className="aspect-video w-full rounded-xl object-cover mb-5"

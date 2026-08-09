@@ -48,7 +48,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 {product.imageUrl ? (
                   <Image
                     src={product.imageUrl}
-                    alt=""
+                    alt={product.name}
                     width={960}
                     height={480}
                     className="mb-8 h-72 w-full rounded-2xl object-cover"
