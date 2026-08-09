@@ -1,7 +1,8 @@
 ---
 phase: 6
 slug: cart-checkout
-status: draft
+status: approved
+reviewed_at: 2026-08-09
 shadcn_initialized: false
 preset: none
 created: 2026-08-09
