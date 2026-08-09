@@ -35,21 +35,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0             # full history so gitleaks scans past commits too
-      - name: gitleaks (secrets scan)
-        # Run the gitleaks Docker image directly, NOT gitleaks-action@v2 — the Action
-        # demands a paid GITLEAKS_LICENSE for ORGANIZATION accounts (even public repos).
-        # The image has no license gate. Exits non-zero on findings; continue-on-error
-        # keeps the job green (advisory). Findings appear in the run logs.
+      - name: Install gitleaks
         run: |
-          # The container's UID differs from the mounted /repo directory's owner, so
-          # git inside the container refuses to operate ("dubious ownership") unless
-          # /repo is explicitly marked safe in that container's OWN gitconfig.
-          # actions/checkout's safe.directory fix only lands in the runner's
-          # gitconfig, not the container's, so it must be set here per-invocation.
-          docker run --rm -v "$PWD:/repo" --entrypoint sh ghcr.io/gitleaks/gitleaks:v8.30.1 \
-            -c 'git config --global --add safe.directory /repo && gitleaks detect --source /repo --redact --verbose'
-          # Pinned tag = reproducible + a known `detect` subcommand. Bump the tag
-          # occasionally for fresh secret patterns.
+          curl -sSfL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: gitleaks (secrets scan)
+        # Binary, not Docker: the becd367 entrypoint fix (safe.directory /repo) already
+        # tried to resolve a container UID/volume-mount "dubious ownership" failure and
+        # didn't work — gitleaks:v8.30.1's own Dockerfile already sets
+        # `safe.directory '*'` at build time, so that was never the real cause. Running
+        # the binary directly on the runner sidesteps the whole container-layer failure
+        # class. gitleaks-action@v2's paid-license requirement for organization accounts
+        # applies only to that wrapper Action, not the OSS binary — running it directly
+        # here stays license-free, same as the Docker invocation it replaces.
+        run: ./gitleaks detect --source . --redact --verbose
 
   sast:
     name: sast (semgrep)
