@@ -32,7 +32,8 @@ function resolveDate(text, today) {
   if (explicit) return explicit[1];
   if (/\btom+or+ow\b/.test(t)) return addDays(today, 1);
   if (/\byester+day\b/.test(t)) return addDays(today, -1);
-  const named = WEEKDAYS.findIndex((day) => new RegExp(`\\b${day}\\b`).test(t));
+  const words = t.split(/\W+/);
+  const named = WEEKDAYS.findIndex((day) => words.includes(day));
   if (named >= 0) {
     const todayDow = new Date(`${today}T12:00:00Z`).getUTCDay();
     return addDays(today, (named - todayDow + 7) % 7);

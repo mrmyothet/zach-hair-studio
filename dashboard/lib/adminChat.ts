@@ -87,7 +87,10 @@ export function resolveDate(text: string, today: string = todayDateOnly()): stri
   if (/\byester+day\b/.test(t)) return addDays(today, -1);
 
   // Nearest upcoming occurrence of a named weekday (today counts as itself).
-  const named = WEEKDAYS.findIndex((day) => new RegExp(`\\b${day}\\b`).test(t));
+  // Word-split instead of a per-day RegExp(day) — avoids building a regex from
+  // a variable (semgrep detect-non-literal-regexp) and is simpler besides.
+  const words = t.split(/\W+/);
+  const named = WEEKDAYS.findIndex((day) => words.includes(day));
   if (named >= 0) {
     // parseDateOnly anchors at noon UTC, so getUTCDay is the salon weekday.
     const todayDow = new Date(`${today}T12:00:00Z`).getUTCDay();
