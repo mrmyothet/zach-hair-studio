@@ -66,6 +66,7 @@ Exceptions (pre-existing baseline; new components must remain consistent with th
 - **44px minimum touch target** (`h-11`/`w-11`) for quantity-stepper +/- buttons, the add-on chip "+ Add" affordance, and the cart icon link in the navbar — the same WCAG 2.5.5 floor Phase 2 declared for slot-grid cells; cart quantity steppers are exactly this kind of fast-tap-on-mobile control.
 - **128px top padding** (`pt-32`) on every new `<main>` (`/cart`, `/checkout`, `/checkout/success`, `/checkout/cancel`) — reserves space for the fixed `Navbar`.
 - **`gap-16` (64px)** remains the large-layout-split default where the `Contact.tsx` two-column pattern is mirrored; the cart/checkout two-column uses `gap-8` (xl) matching the product-detail layout instead.
+- **`py-2.5` (10px) on suggestion chips** is baseline-inherited from Phase 2's chip anatomy (`rounded-full border px-5 py-2.5 text-sm`, the exact Book Now pill classes) — declared here so the 10px value is a registered, pre-existing exception rather than a new undeclared value.
 
 ---
 
@@ -78,8 +79,8 @@ treatment carried in as a baseline-inherited exception (see note below).
 |------|------|--------|-------------|
 | Label | 12px (`text-xs`) | Regular (400) | 1.4 — uppercase, `tracking-wider`; cart eyebrow, suggestion-chip eyebrow, "Remove" link, out-of-stock/error micro-copy, navbar cart label |
 | Body | 14px (`text-sm`) | Regular (400) | 1.5 — line-item metadata, order-summary rows, checkout form inputs/helper text, confirmation detail rows, empty/error state body |
-| Heading | 18–20px (`text-lg` cart line-item name + section sub-labels / `text-xl` section and empty-state headings, confirmation heading) | Semibold (600) | 1.2–1.3 — same range Phase 5's card-title + aside-heading roles used |
-| Display | 36px / 48–60px (`text-4xl md:text-5xl` via `SectionHeading`; `text-4xl md:text-6xl` on success/cancel `h1`, matching the product-detail `h1` class) | Regular (400), `font-serif` | 1.15 |
+| Heading | 20px (`text-xl` section and empty-state headings, confirmation heading, cart line-item product names) | Semibold (600) | 1.2–1.3 — one heading size across all new components; `text-lg` is not used for any heading role |
+| Display | 36 / 48px (`text-4xl md:text-5xl` via `SectionHeading`; success/cancel `h1` reuses the same pair, dropping `md:text-6xl`) | Regular (400), `font-serif` | 1.15 |
 
 Weight notes:
 
@@ -88,6 +89,17 @@ Weight notes:
 - **`font-bold` (700) on price values is baseline-inherited, not a new component weight** — cart unit prices, line totals, subtotal, and the order Total reuse the catalog's exact `text-gold font-bold text-lg` treatment from `app/products/page.tsx` so the same product price reads identically in the catalog and the cart. Do not retrofit other `font-bold`/`font-medium` usages; do not add a third weight to new components.
 
 ---
+
+## Visual Anchor (focal point)
+
+Each primary screen leads the eye to exactly one gold-accented element before anything else:
+
+- `/cart` — the sticky gold **Proceed to Checkout** button in the Order Summary aside is the anchor; the gold cart count badge in the navbar is the secondary signal.
+- `/checkout` — the gold **Continue to Payment** button; the email field is the first focusable input the eye lands on above it.
+- `/checkout/success` — the gold checkmark icon + ring centered above the confirmation heading.
+- `/checkout/cancel` — the gold forward button (return to cart).
+
+Nothing else on a screen may compete for the gold accent (see the "Accent reserved for" list).
 
 ## Color
 
@@ -121,6 +133,7 @@ Never use gold for: body text, "Remove" links, disabled buttons/states, unselect
 | Empty state body | "You haven't added any products yet. Browse our stylist-recommended picks and add a few to get started." + a **Browse Products** link-button to `/products` |
 | Error state (checkout create) | **Couldn't Start Checkout** — "We couldn't reach our payment provider. Your cart is still saved — please try again." + **Try Again** button |
 | Error state (cart load) | **Couldn't Load Your Cart** — "We had trouble reaching the server. Please try again." + **Try Again** button |
+| Error state (add to cart) | **Couldn't Add to Cart** — "We couldn't update your cart. Please try again." rendered as the inline rose alert inside the product-detail aside; the "Add to Cart" button itself doubles as the retry affordance (tap again to retry) |
 | Destructive confirmation | **Remove** — quiet gray text link (`text-gray-400 hover:text-white`, 12px uppercase) per line item. No confirmation dialog: the action is reversible (item re-addable from the catalog) and nothing is charged until checkout. Never rendered destructive-red. |
 
 Additional flow copy (extends the template's six rows):
@@ -129,7 +142,7 @@ Additional flow copy (extends the template's six rows):
 |---------|------|
 | Cart page heading | Eyebrow: "Your Selection" · Title: "Your **Cart**" (gold-gradient on "Cart", via `SectionHeading`) |
 | Cart page subtitle | "Review your picks before checking out." |
-| Line-item rows | Product name (`text-lg font-semibold`) · unit price (gold) · quantity stepper · line total (gold) · "Remove" link |
+| Line-item rows | Product name (`text-xl font-semibold`) · unit price (gold) · quantity stepper · line total (gold) · "Remove" link |
 | Order Summary aside | Heading "Order Summary"; rows Subtotal and Total (gold, `text-xl font-bold`); the **Proceed to Checkout** button; below it a quiet "Continue Shopping" text link (`text-gray-400 hover:text-gold`, mirrors the breadcrumb-link treatment) to `/products` |
 | Suggestion chips heading | "Complete Your Routine" |
 | Suggestion chips subtitle | "Add-ons our stylists recommend with your picks." |
