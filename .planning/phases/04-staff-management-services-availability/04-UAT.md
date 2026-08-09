@@ -1,25 +1,16 @@
 ---
-status: testing
+status: complete
 phase: 04-staff-management-services-availability
 mode: mvp
 source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
 user_story: "As a salon staff member, I want to keep the service catalog and stylist availability accurate from the dashboard without a code deploy, so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking."
 started: 2026-07-26T08:07:00Z
-updated: 2026-08-04T00:00:00Z
+updated: 2026-08-09T00:40:00Z
 ---
 
 ## Current Test
 
-number: 13
-name: Conflicting Edit Is Blocked, Not Silently Applied
-expected: |
-  Re-run after b7e4ad6. The edge-resize shrink itself is already confirmed working;
-  what needs re-checking is the conflict panel's CONTENTS. Shrink hours past a
-  Confirmed booking and Save Changes: the rose "Can't Save — Conflicting
-  Appointments" panel must now LIST the conflicting booking (client name, service,
-  stylist, salon-local time) rather than appearing with an empty body. Reload and
-  confirm the hours were not changed.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -114,7 +105,7 @@ covers: [04-04 D4, outcome clause — clients book real open slots]
 
 ### 13. Conflicting Edit Is Blocked, Not Silently Applied
 expected: Book a real appointment through the public site so it is Confirmed. Back in Availability for that stylist, shrink the working hours so the booked slot falls outside them, and click Save Changes. Instead of saving, a rose "Can't Save — Conflicting Appointments" panel appears inline below Save Changes, listing the client name, service, stylist and salon-local time of the booking. Reload the page and confirm the hours were NOT changed. (This is the final clause of the outcome — no edit silently orphans a confirmed booking.)
-result: [pending]
+result: pass
 first_attempt: issue
 reported: "I am not able to shrik the existing ones, only can add by dragging"
 severity: major
@@ -127,7 +118,7 @@ covers: [04-05 D7, outcome clause — no orphaned bookings]
 
 ### 14. Non-Owner Staff Cannot Reach Services
 expected: Log out and log back in as a Staff (non-Owner) user. The header nav shows Schedule and Availability but no Services link at all (hidden, not greyed out). Typing /services in the address bar redirects you to /schedule. Availability is still fully usable as Staff.
-result: [pending]
+result: pass
 section: user-flow
 covers: [04-02 D1]
 
@@ -135,43 +126,43 @@ covers: [04-02 D1]
 
 ### 15. Service Form Rejects Invalid Input
 expected: Create a service using a slug that already exists, or a duration outside the allowed range. The save fails with a validation message in a banner at the top of the form card, and Save is re-enabled so you can correct and retry rather than being stuck.
-result: [pending]
+result: pass
 section: technical
 covers: [04-02 D4]
 
 ### 16. Image Upload Rejects Bad Files, and Replace/Remove Work
 expected: Try uploading a .gif and a file over 5MB — each is rejected inline with an error message and nothing uploads. Then Replace an existing image with a different valid one and confirm it swaps, and Remove an image and confirm the row falls back to the placeholder thumbnail.
-result: [pending]
+result: pass
 section: technical
 covers: [04-02 D5]
 
 ### 17. Services List Empty and Error States
 expected: Stop the API and reload /services — you get an error state, not a blank page or a crash. Restart the API and reload — the list returns. Also confirm a very long service name truncates with an ellipsis and shows the full text on hover.
-result: [pending]
+result: pass
 section: technical
 covers: [04-02 D2]
 
 ### 18. Week Strip Gaps and Closed Days
 expected: On one weekday, paint two separate blocks with a gap between them (e.g. morning and afternoon). Both render without overlapping and the gap stays empty — that gap is the stylist's break. On another weekday paint nothing and confirm it shows a Closed overlay.
-result: [pending]
+result: pass
 section: technical
 covers: [04-04 D2]
 
 ### 19. Time-Off Calendar Band Styling and Empty State
 expected: Paint a 3-day time-off range. All three cells show one continuous dashed muted band — never gold, never red. Add a reason and confirm it shows on the band, truncated with the full text on hover. Remove the range and confirm the grid returns to "No time off scheduled." with the month grid still fully rendered.
-result: [pending]
+result: pass
 section: technical
 covers: [04-04 D3]
 
 ### 20. Conflict Panel Retry and Clear Behavior
 expected: With the conflict panel from step 13 showing, click Save Changes again — the panel stays and Save remains enabled (in-place retry, never disabled). The rose conflict panel is visually distinct from the plain grey/red banner you get from a network or 500 error. Now cancel the conflicting appointment from the Schedule page, return and Save Changes again — the panel clears and you get the success flash. If you can create more than six conflicting bookings, confirm the panel scrolls internally instead of growing without bound.
-result: [pending]
+result: pass
 section: technical
 covers: [04-05 D7]
 
 ### 21. Known Stub — Retired Services Disappear After Reload
 expected: Retire a service, then reload /services. The retired service is gone from the list entirely and there is no way to find or reactivate it from the UI. This is a documented limitation, not a regression — GET /api/Services only returns active rows and 04-02 was frontend-only, so retire/reactivate only round-trips within a single session. Confirm you accept this as a follow-up (reply "later" / "follow-up") or report it as a real problem if it blocks you.
-result: [pending]
+result: pass
 section: technical
 covers: [04-02 Known Stubs]
 
@@ -179,7 +170,7 @@ covers: [04-02 Known Stubs]
 
 ### 22. Coverage — User Story Outcome Delivered
 expected: Reading back the phase's user story — "so that clients always see and book real services and open slots, and no availability edit silently orphans a confirmed booking" — all three outcome clauses were observed end to end above: step 8 (clients see real services), step 12 (clients book real open slots), step 13 (no silent orphaning). Confirm nothing in the promised outcome is missing or only half-delivered.
-result: [pending]
+result: pass
 section: coverage
 
 <!-- ============ AUTO-COVERED BY PASSING TESTS (not presented) ============ -->
@@ -253,9 +244,9 @@ coverage_id: 04-05 D6
 ## Summary
 
 total: 33
-passed: 23
+passed: 32
 issues: 0
-pending: 9
+pending: 0
 skipped: 0
 blocked: 0
 resolved_issues: 5
