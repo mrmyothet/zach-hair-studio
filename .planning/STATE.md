@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-07-07)
 Phase: 04 (staff-management-services-availability) — EXECUTING
 Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-07-27 — Phase 04 execution started
+Last activity: 2026-08-09 - Completed quick task 260809-gd7: chat widget generic service term matching for haircut
 
 Progress: [██████████] 100%
 
@@ -153,6 +153,7 @@ Recent decisions affecting current work:
 | 260731-uj3 | Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)    | 2026-07-31 | 0747757 | [260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-](./quick/260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-/) |
 | 6          | Fix plural "hours" match in chat.ts hours-keyword regex (\\b(hour\|open\|close)\\b -> \\b(hours?\|open\|close)\\b)                 | 2026-07-31 | dcbbfdf | —                                                                                                                   |
 | 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots                                                                | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
+| 260809-gd7 | chat widget generic service term matching for haircut                                                                              | 2026-08-09 | 69d81fd | [260809-gd7-chat-widget-generic-service-term-matchin](./quick/260809-gd7-chat-widget-generic-service-term-matchin/) |
 
 ## Deferred Items
 
