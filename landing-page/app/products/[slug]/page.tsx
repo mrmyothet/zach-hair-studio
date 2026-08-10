@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import AddToCartPanel from "@/components/AddToCartPanel";
 import BackToTop from "@/components/BackToTop";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
@@ -85,6 +86,7 @@ export default async function ProductDetailPage({ params }: Props) {
                     </dd>
                   </div>
                 </dl>
+                <AddToCartPanel productId={product.id} stock={product.stock} />
               </aside>
             </div>
           </div>
