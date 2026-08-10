@@ -133,7 +133,7 @@ Each task was committed atomically:
 2. **Task 2: Add to Cart on product detail + Navbar cart badge** - `68d6913` (feat)
 3. **Task 3: /cart review page** - `6298fcb` (feat)
 
-**Plan metadata:** _(pending docs commit)_
+**Plan metadata:** `707f3ae` (docs: complete plan)
 
 ## Files Created/Modified
 
