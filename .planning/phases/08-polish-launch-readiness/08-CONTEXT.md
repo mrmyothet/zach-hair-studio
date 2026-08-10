@@ -14,28 +14,21 @@ Final hardening and launch pass over the complete system: responsive/visual poli
 ## Implementation Decisions
 
 ### Production CORS & Admin retirement
-- Production origins come from config/env list (`Cors:Origins`) covering landing + dashboard URLs — secrets/config pattern, never commit production URLs with credentials (D-13)
-- Development/Testing may stay permissive; Production uses the allowlist only (no AllowAnyOrigin in Production)
-- Delete ZachHairStudio.Admin project from the solution and remove the folder; dashboard/ is the staff app
-- Remove solution/CI references that build Admin; no runtime redirect stubs required (MVC unused)
+- **D-01:** Production origins come from config/env list (`Cors:Origins`) covering landing + dashboard URLs — secrets/config pattern, never commit production URLs with credentials (project D-13). Development/Testing may stay permissive; Production uses the allowlist only (no AllowAnyOrigin in Production).
+- **D-02:** Delete ZachHairStudio.Admin project from the solution and remove the folder; dashboard/ is the staff app. Remove solution/CI references that build Admin; no runtime redirect stubs required (MVC unused).
 
 ### Production migrations
-- Skip `db.Database.Migrate()` in Production only; keep Migrate in Development/Testing for local convenience
-- Production schema applied via documented deploy step: `dotnet ef database update` (CI/CD or release checklist)
-- Fail fast if Production starts against an outdated schema (health/check or clear failure — no silent drift)
-- Short runbook in CLAUDE.md / deploy notes plus Phase 8 SUMMARY
+- **D-03:** Skip `db.Database.Migrate()` in Production only; keep Migrate in Development/Testing for local convenience. Production schema applied via documented deploy step: `dotnet ef database update` (CI/CD or release checklist).
+- **D-04:** Fail fast if Production starts against an outdated schema (health/check or clear failure — no silent drift).
+- **D-05:** Short runbook in CLAUDE.md / deploy notes plus Phase 8 SUMMARY.
 
 ### Structured logging
-- Built-in ASP.NET Core + JSON console formatter — no new vendor logging SDK
-- Request middleware plus explicit structured events for auth (login/register), appointments create/cancel, and checkout/quote
-- Never log passwords/tokens/full payment secrets; truncate or hash email; booking/order ids OK
-- Information in Production; Debug allowed in Development
+- **D-06:** Built-in ASP.NET Core + JSON console formatter — no new vendor logging SDK. Information in Production; Debug allowed in Development.
+- **D-07:** Request middleware plus explicit structured events for auth (login/register), appointments create/cancel, and checkout/quote. Never log passwords/tokens/full payment secrets; truncate or hash email; booking/order ids OK.
 
 ### Rate limiting & visual polish
-- Rate limit auth (`/api/auth/*`) and checkout (`/api/orders/checkout*`) only
-- Fixed window per IP (auth ~10/min, checkout ~20/min); respond 429 with Retry-After using ASP.NET RateLimiter
-- Visual polish = pass responsive review at common breakpoints; fix clear overflow/touch-target issues; no redesign/rebrand
-- Verification via checklist in VERIFICATION.md plus brief human spot-check (mobile/desktop)
+- **D-08:** Rate limit auth (`/api/auth/*`) and checkout (`/api/orders/checkout*`) only. Fixed window per IP (auth ~10/min, checkout ~20/min); respond 429 with Retry-After using ASP.NET RateLimiter.
+- **D-09:** Visual polish = pass responsive review at common breakpoints; fix clear overflow/touch-target issues; no redesign/rebrand. Verification via checklist in VERIFICATION.md plus brief human spot-check (mobile/desktop).
 
 ### Claude's Discretion
 - Exact Cors:Origins key shape and parsing (semicolon vs array)
