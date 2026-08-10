@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 6
+current_phase: 06
 current_phase_name: Cart & Checkout
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-08-10T06:11:50.017Z"
-last_activity: 2026-08-09
-last_activity_desc: Phase 05 complete, transitioned to Phase 6
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-08-10T06:20:23.980Z"
+last_activity: 2026-08-10
+last_activity_desc: Phase 06 execution started
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
-  total_plans: 27
-  completed_plans: 27
+  total_plans: 32
+  completed_plans: 28
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-09)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 05 — Product Catalog
+**Current focus:** Phase 06 — Cart & Checkout
 
 ## Current Position
 
-Phase: 6 — Cart & Checkout
-Plan: Not started
+Phase: 06 (Cart & Checkout) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-09 — Phase 05 complete, transitioned to Phase 6
+Last activity: 2026-08-10 — Phase 06 execution started
 
-Progress: [██████████] 100%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ _Updated after each plan completion_
 | Phase 04 P07 | 20min    | 1 tasks | 1 files  |
 | Phase 05 P01 | 27min    | 3 tasks | 14 files |
 | Phase 05 P02 | 6min     | 3 tasks | 6 files  |
+| Phase 06 P01 | 6min | 2 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 5 Plan 01: ServiceResponseDto.RecommendedProducts extends the existing DTO rather than a dedicated endpoint, resolving D-16 discretion.
 - [Phase ?]: Phase 5 Plan 02: SectionHeading's subtitle prop passed an empty string on the Recommended Products section (required by type, renders no visible text)
 - [Phase ?]: Phase 5 Plan 02: RecommendedProductCard is a deliberate small markup duplication of app/products/page.tsx's ProductCard — both Server Components, no shared client bundle concern, extraction deferred
+- [Phase 06]: Cart upsert sets absolute Quantity clamped to Products.Stock; unknown session GET returns empty items
+- [Phase 06]: Guest cart session via X-Cart-Session-Id header (max 64) because AllowAnyOrigin blocks credentialed cookies
+- [Phase 06]: Message-only Result.ConflictError overload added for stock 409 (Pitfall 7)
 
 ### Pending Todos
 
@@ -188,8 +192,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-09T10:54:00.000Z
-Stopped at: Completed quick task 260809-n8x (fixed misplaced nosemgrep comment in chat.ts) — gitleaks is confirmed green on live CI (run 31308767427, head fe26590); semgrep fix corrected locally (0 findings, exit 0) but NOT YET PUSHED
+Last session: 2026-08-10T06:20:23.962Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
 
 Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
