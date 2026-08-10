@@ -4,10 +4,11 @@ using Microsoft.Extensions.Configuration;
 namespace ZachHairStudio.Shared.Features.Identity;
 
 /// <summary>
-/// Ensures the Owner/Staff roles exist and exactly one seeded Owner account exists (D-04).
+/// Ensures Owner/Staff/Client roles exist and exactly one seeded Owner account exists.
 /// Owner credentials come from configuration (user-secrets/env, "Owner:Email" /
-/// "Owner:InitialPassword") — never a tracked file. No self-registration path. Idempotent:
-/// running SeedAsync repeatedly creates nothing new once the roles and Owner already exist.
+/// "Owner:InitialPassword") — never a tracked file. Client users are never seeded
+/// (self-register only, D-01). Idempotent: running SeedAsync repeatedly creates nothing
+/// new once the roles and Owner already exist.
 /// </summary>
 public static class IdentitySeeder
 {
@@ -16,7 +17,7 @@ public static class IdentitySeeder
         UserManager<ApplicationUser> userManager,
         IConfiguration config)
     {
-        foreach (var role in new[] { StaffRoles.Owner, StaffRoles.Staff })
+        foreach (var role in new[] { StaffRoles.Owner, StaffRoles.Staff, StaffRoles.Client })
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
