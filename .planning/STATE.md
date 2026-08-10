@@ -168,6 +168,7 @@ Recent decisions affecting current work:
 - [Phase ?]: UI Cancel/Reschedule only for upcoming Confirmed; past/terminal view-only
 - [Phase ?]: LoyaltyReasons Earn/Redeem strings; filtered unique index on AppointmentId where Reason=Earn
 - [Phase ?]: Payment-failure compensation appends positive Redeem delta (append-only; no ledger deletes)
+- [Phase ?]: Phase 07 Plan 05: Public create attaches Client NameIdentifier only (Staff/guest null); landing Bearer + embedded claim on Bookings
 - [Phase ?]: Optional Client JWT on checkout/quote via NameIdentifier; RedeemPoints-only money authority
 
 ### Pending Todos
@@ -225,7 +226,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-08-10T10:34:35.534Z
-Stopped at: Completed 07-04-PLAN.md
+Stopped at: Completed 07-05-PLAN.md (gap closure)
 Resume file: None
 
-Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
+Next action: Re-verify Phase 07 after gap closure (`/gsd-execute-phase 7` verify step or autonomous post-execution routing), then continue to Phase 8.
