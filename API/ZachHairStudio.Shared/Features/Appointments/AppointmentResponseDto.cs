@@ -21,6 +21,9 @@ public class AppointmentResponseDto
     public string Email { get; set; } = null!;
     public string? Phone { get; set; }
 
+    /// <summary>Owning client user id when claimed/linked; null for guest-only rows.</summary>
+    public int? ClientUserId { get; set; }
+
     // Minimal status audit (D-12) — null until the first staff-initiated status change.
     public DateTimeOffset? StatusChangedAt { get; set; }
     public string? StatusChangedBy { get; set; }

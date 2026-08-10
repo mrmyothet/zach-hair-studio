@@ -26,6 +26,12 @@ public class Appointment
     [Phone, StringLength(30)]
     public string? Phone { get; set; }
 
+    /// <summary>
+    /// Null for guest bookings; set when a Client claims history by email (D-04/D-08)
+    /// or books while authenticated. Mirrors <c>Order.ClientId</c>.
+    /// </summary>
+    public int? ClientUserId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Minimal status audit (D-12) — the acting staff member's DisplayName, not a full
