@@ -135,7 +135,7 @@ status: complete
 2. **Task 2: GREEN — Ledger, earn, redeem** - `065787b` (feat)
 3. **Task 3: Account strip + checkout redeem UI** - `a1441b2` (feat)
 
-**Plan metadata:** (pending docs commit)
+**Plan metadata:** `3960bba` (docs: complete plan)
 
 ## Files Created/Modified
 
