@@ -255,7 +255,7 @@ Plans:
   4. Staff authentication and client accounts share a single ASP.NET Core Identity schema/migration — not two separate auth stores
   5. A client earns a loyalty point for each completed appointment, visible in their account and redeemable as a discount
 
-**Plans:** 5 plans (4 executed + 1 gap closure)
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -276,7 +276,7 @@ Plans:
 
 **Wave 5** *(gap closure — blocked on Wave 3 ownership/cancel surface)*
 
-- [ ] 07-05-PLAN.md — Attach ClientUserId on public book (API + landing Bearer) + claim re-entry + regression
+- [x] 07-05-PLAN.md — Attach ClientUserId on public book (API + landing Bearer) + claim re-entry + regression
 
 **Research flag**: yes — auth provider/session strategy is an explicit open decision in PROJECT.md; re-verify the ASP.NET Core Identity vs. Auth.js/Better Auth landscape immediately before planning this phase
 **UI hint**: yes
@@ -311,5 +311,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
 | 6. Cart & Checkout | 4/5 | In Progress|  |
-| 7. Accounts & Retention | 4/5 | Gap closure planned |  |
+| 7. Accounts & Retention | 5/5 | In Progress|  |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |
