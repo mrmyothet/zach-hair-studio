@@ -121,7 +121,7 @@ Each task was committed atomically:
 2. **Task 2: GREEN — Cancel/Reschedule API** - `acec6f5` (feat)
 3. **Task 3: Account Bookings UI** - `d7b8a33` (feat)
 
-**Plan metadata:** (pending docs commit)
+**Plan metadata:** `ddf2067` (docs: complete plan)
 
 ## Files Created/Modified
 
