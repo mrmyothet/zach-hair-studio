@@ -2,23 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { Service } from "@/lib/services";
-import type { Stylist } from "@/lib/appointments";
 import {
   type ChatMessage,
+  type ChatSession,
   STARTER_PROMPTS,
   createMessage,
   sendChatMessage,
-} from "@/lib/chat";
-import { ChatBubbleIcon, CloseIcon, SendIcon } from "./icons";
-
-const inputClass =
-  "w-full bg-charcoal-light border border-white/10 hover:border-gold/30 focus:border-gold rounded-xl px-4 py-2.5 text-white placeholder-gray-600 text-sm outline-none transition-colors";
+} from "@/lib/adminChat";
+import { ApiError } from "@/lib/auth";
+import { ChatBubbleIcon, CloseIcon, SendIcon } from "@/components/icons";
 
 // Matches assistant-authored `[label](/relative-path)` link markup. The href
-// group is anchored to a literal leading slash so only site-relative paths
-// can ever become a href — anything else (javascript:, data:, absolute
-// cross-origin URLs) stays inert plain text.
+// group is anchored to a literal leading slash so only site-relative paths can
+// ever become a href — anything else (javascript:, data:, absolute cross-origin
+// URLs) stays inert plain text.
 const LINK_PATTERN = /\[([^\]]+)\]\((\/[^)\s]*)\)/g;
 
 function renderMessageText(text: string): React.ReactNode[] {
@@ -41,7 +38,7 @@ function renderMessageText(text: string): React.ReactNode[] {
       <Link
         key={`link-${segmentIndex}`}
         href={href}
-        className="text-gold underline underline-offset-2"
+        className="text-gold-dark underline underline-offset-2"
       >
         {label}
       </Link>
@@ -64,8 +61,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line ${
           isUser
-            ? "bg-gold text-charcoal rounded-2xl rounded-br-sm"
-            : "bg-charcoal-light border border-white/10 text-gray-200 rounded-2xl rounded-bl-sm"
+            ? "bg-gold text-ink rounded-2xl rounded-br-sm"
+            : "bg-surface-alt border border-border text-ink rounded-2xl rounded-bl-sm"
         }`}
       >
         {renderMessageText(message.text)}
@@ -77,47 +74,25 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="bg-charcoal-light border border-white/10 rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex items-center gap-1">
-        <span
-          className="w-1.5 h-1.5 bg-gold/70 rounded-full animate-bounce"
-          style={{ animationDelay: "0ms" }}
-        />
-        <span
-          className="w-1.5 h-1.5 bg-gold/70 rounded-full animate-bounce"
-          style={{ animationDelay: "150ms" }}
-        />
-        <span
-          className="w-1.5 h-1.5 bg-gold/70 rounded-full animate-bounce"
-          style={{ animationDelay: "300ms" }}
-        />
+      <div className="bg-surface-alt border border-border rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex items-center gap-1">
+        {[0, 150, 300].map((delay) => (
+          <span
+            key={delay}
+            className="w-1.5 h-1.5 bg-gold-dark/70 rounded-full animate-bounce"
+            style={{ animationDelay: `${delay}ms` }}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function StarterChips({ onSelect }: { onSelect: (prompt: string) => void }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {STARTER_PROMPTS.map((prompt) => (
-        <button
-          key={prompt}
-          type="button"
-          onClick={() => onSelect(prompt)}
-          className="border border-gold/20 hover:border-gold text-gray-300 hover:text-gold rounded-full px-3 py-1.5 text-xs transition-colors"
-        >
-          {prompt}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-type Props = {
-  services: Service[];
-  stylists?: Stylist[];
-};
-
-export default function ChatWidget({ services, stylists = [] }: Props) {
+/**
+ * Staff-side assistant. Answers from live salon data via the authenticated API
+ * client, so it only ever shows what the signed-in user could already see.
+ * Mounted once in DashboardNav — present on every authenticated page.
+ */
+export function AdminChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -126,6 +101,9 @@ export default function ChatWidget({ services, stylists = [] }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
+  // Slot-filling state across turns (e.g. "which service?" -> "Scalp Treatment").
+  // A ref, not state: it's never rendered, only read/written around the send call.
+  const sessionRef = useRef<ChatSession>({});
 
   useEffect(() => {
     if (!open) return;
@@ -160,15 +138,23 @@ export default function ChatWidget({ services, stylists = [] }: Props) {
     setIsTyping(true);
 
     try {
-      const reply = await sendChatMessage(text, messages, services, stylists);
+      const { reply, session } = await sendChatMessage(text, sessionRef.current);
+      sessionRef.current = session;
       setMessages((prev) => [...prev, createMessage("assistant", reply)]);
-    } catch {
+    } catch (error) {
+      // A 401 has already redirected to /login via handleUnauthorized; anything
+      // else surfaces the server's reason rather than a generic apology.
+      if (error instanceof ApiError && error.isUnauthorized) return;
+      // A failed turn shouldn't leave the assistant stuck "awaiting" an answer
+      // that was never captured.
+      sessionRef.current = {};
+      const detail =
+        error instanceof ApiError
+          ? error.message
+          : "Something went wrong reading the schedule.";
       setMessages((prev) => [
         ...prev,
-        createMessage(
-          "assistant",
-          "Sorry, something went wrong on my end. You can always book directly: [Book an appointment](/book)"
-        ),
+        createMessage("assistant", `${detail} [Open the schedule](/schedule)`),
       ]);
     } finally {
       setIsTyping(false);
@@ -181,22 +167,15 @@ export default function ChatWidget({ services, stylists = [] }: Props) {
     void handleSend();
   }
 
-  function handleInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      void handleSend();
-    }
-  }
-
   return (
     <>
       <button
         type="button"
         ref={launcherRef}
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close booking assistant" : "Open booking assistant"}
+        aria-label={open ? "Close salon assistant" : "Open salon assistant"}
         aria-expanded={open}
-        className="fixed bottom-6 right-24 w-14 h-14 bg-gold hover:bg-gold-dark text-charcoal rounded-full shadow-lg flex items-center justify-center transition-all duration-300 z-40"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gold hover:bg-gold-dark text-ink rounded-full shadow-lg flex items-center justify-center transition-colors z-40"
       >
         {open ? <CloseIcon className="w-6 h-6" /> : <ChatBubbleIcon className="w-6 h-6" />}
       </button>
@@ -205,19 +184,19 @@ export default function ChatWidget({ services, stylists = [] }: Props) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Booking assistant chat"
-          className="fixed z-50 inset-x-4 bottom-24 top-24 sm:inset-x-auto sm:top-auto sm:right-6 sm:w-96 sm:h-[32rem] sm:max-h-[70vh] bg-charcoal border border-gold/20 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          aria-label="Salon assistant chat"
+          className="fixed z-50 inset-x-4 bottom-16 top-16 sm:inset-x-auto sm:top-auto sm:right-6 sm:w-[28rem] sm:h-[40rem] sm:max-h-[85vh] bg-surface border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         >
-          <div className="border-b border-gold/20 px-4 py-3 flex items-center justify-between">
-            <span className="font-serif text-gold">Booking Assistant</span>
+          <div className="border-b border-border px-4 py-3 flex items-center justify-between">
+            <span className="font-serif text-lg text-ink">Salon Assistant</span>
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
                 launcherRef.current?.focus();
               }}
-              aria-label="Close booking assistant"
-              className="text-gray-400 hover:text-gold transition-colors"
+              aria-label="Close salon assistant"
+              className="text-muted hover:text-gold-dark transition-colors"
             >
               <CloseIcon className="w-5 h-5" />
             </button>
@@ -229,12 +208,9 @@ export default function ChatWidget({ services, stylists = [] }: Props) {
             className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
           >
             {messages.length === 0 && (
-              <div className="space-y-3">
-                <p className="text-gray-400 text-sm">
-                  Hi! Ask me about services, pricing, hours, or booking.
-                </p>
-                <StarterChips onSelect={(prompt) => void handleSend(prompt)} />
-              </div>
+              <p className="text-muted text-sm">
+                Ask about the day&apos;s bookings, the service menu, or open slots.
+              </p>
             )}
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
@@ -242,24 +218,38 @@ export default function ChatWidget({ services, stylists = [] }: Props) {
             {isTyping && <TypingIndicator />}
           </div>
 
+          <div className="border-t border-border px-4 py-2.5 flex flex-wrap gap-2">
+            {STARTER_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => void handleSend(prompt)}
+                disabled={isTyping}
+                className="border border-border hover:border-gold-dark text-ink hover:text-gold-dark rounded-full px-3 py-1.5 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+
           <form
             onSubmit={handleFormSubmit}
-            className="border-t border-white/10 p-3 flex items-center gap-2"
+            className="border-t border-border p-3 flex items-center gap-2"
           >
             <input
               ref={inputRef}
               type="text"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              onKeyDown={handleInputKeyDown}
-              placeholder="Ask about services, pricing, hours..."
-              className={inputClass}
+              placeholder="Who's booked tomorrow?"
+              aria-label="Message the salon assistant"
+              className="w-full bg-surface-alt border border-border hover:border-gold-dark/40 focus:border-gold-dark rounded-xl px-4 py-2.5 text-ink placeholder-muted text-sm outline-none transition-colors"
             />
             <button
               type="submit"
               aria-label="Send message"
               disabled={isTyping || input.trim().length === 0}
-              className="w-10 h-10 bg-gold hover:bg-gold-dark text-charcoal rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-10 h-10 bg-gold hover:bg-gold-dark text-ink rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <SendIcon className="w-4 h-4" />
             </button>

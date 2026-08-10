@@ -49,9 +49,9 @@ Progress: [██████████] 100%
 | 1. Service Catalog | 4     | 3h 58m | 60 min   |
 | 01                 | 4     | -      | -        |
 | 03                 | 5     | -      | -        |
-| 04 | 7 | - | - |
-| 2 | 9 | - | - |
-| 05 | 2 | - | - |
+| 04                 | 7     | -      | -        |
+| 2                  | 9     | -      | -        |
+| 05                 | 2     | -      | -        |
 
 **Recent Trend:**
 
@@ -77,8 +77,8 @@ _Updated after each plan completion_
 | Phase 02 P09 | 20min    | 2 tasks | 4 files  |
 | Phase 04 P06 | 20min    | 2 tasks | 2 files  |
 | Phase 04 P07 | 20min    | 1 tasks | 1 files  |
-| Phase 05 P01 | 27min | 3 tasks | 14 files |
-| Phase 05 P02 | 6min | 3 tasks | 6 files |
+| Phase 05 P01 | 27min    | 3 tasks | 14 files |
+| Phase 05 P02 | 6min     | 3 tasks | 6 files  |
 
 ## Accumulated Context
 
@@ -163,7 +163,20 @@ Recent decisions affecting current work:
 | 260731-uj3 | Add an AI chat widget UI to the landing page - booking-assistant floating chat bubble with mock responses (no real backend yet)    | 2026-07-31 | 0747757 | [260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-](./quick/260731-uj3-add-an-ai-chat-widget-ui-to-the-landing-/) |
 | 6          | Fix plural "hours" match in chat.ts hours-keyword regex (\\b(hour\|open\|close)\\b -> \\b(hours?\|open\|close)\\b)                 | 2026-07-31 | dcbbfdf | —                                                                                                                   |
 | 260801-irn | Add an MCP tool exposing appointment slot availability via GetSlots                                                                | 2026-08-01 | 27f256c | [260801-irn-add-an-mcp-tool-exposing-appointment-slo](./quick/260801-irn-add-an-mcp-tool-exposing-appointment-slo/) |
-| 260809-4d3 | Implement shell files for the same functionality of start-dev.bat and stop-dev.bat files                                         | 2026-08-09 | 2c5e7c6 | [260809-4d3-implement-shell-files-for-the-same-funct](./quick/260809-4d3-implement-shell-files-for-the-same-funct/) |
+
+| 260809-gpw | Fix semgrep SAST finding (detect-non-literal-regexp) in dashboard adminChat weekday matching | 2026-08-09 | ba50770 | [260809-gpw-fix-semgrep-sast-finding-detect-non-lite](./quick/260809-gpw-fix-semgrep-sast-finding-detect-non-lite/) |
+| 260809-adm | Keep AdminChat starter-prompt buttons visible after the first message instead of disappearing | 2026-08-09 | 589470e | [260809-adm-keep-starter-prompts-visible](./quick/260809-adm-keep-starter-prompts-visible/) |
+| 260809-sz1 | Increase AdminChat dialog panel size (24rem x 32rem -> 28rem x 40rem desktop) | 2026-08-09 | c05a2ec | [260809-sz1-increase-adminchat-box-size](./quick/260809-sz1-increase-adminchat-box-size/) |
+| 260809-sf1 | Add slot-filling conversation state to AdminChat (bare service/date follow-ups now resolve against the pending question) | 2026-08-09 | 148dda6 | [260809-sf1-adminchat-slot-filling](./quick/260809-sf1-adminchat-slot-filling/) |
+
+| 260809-gd7 | chat widget generic service term matching for haircut | 2026-08-09 | 69d81fd | [260809-gd7-chat-widget-generic-service-term-matchin](./quick/260809-gd7-chat-widget-generic-service-term-matchin/) |
+| 260809-hui | Fix gitleaks docker "dubious ownership" error in security workflow (mark /repo safe in container's own gitconfig) | 2026-08-09 | becd367 | [260809-hui-fix-gitleaks-docker-dubious-ownership-er](./quick/260809-hui-fix-gitleaks-docker-dubious-ownership-er/) |
+| 260809-ipz | Fix gitleaks CI still failing after becd367 — replace Docker invocation with direct binary install (dubious-ownership was never the real cause; image already sets safe.directory at build time) | 2026-08-09 | f324da1 | [260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do](./quick/260809-ipz-fix-gitleaks-ci-still-failing-binary-not-do/) |
+| 260809-k3d | Fix gitleaks CI still failing (real root cause) — extend .gitleaks.toml's GSD manifest checksum allowlist to .codex/ paths; 3 genuine generic-api-key false positives in .codex/gsd-file-manifest.json, unmasked only once 260809-ipz let the scan complete | 2026-08-09 | 979f316 | [260809-k3d-fix-gitleaks-codex-manifest-allowlist](./quick/260809-k3d-fix-gitleaks-codex-manifest-allowlist/) |
+| 260809-m2q | Suppress semgrep detect-non-literal-regexp false positive on chat.ts/chat.selfcheck.mjs alias RegExp — alias is hardcoded (CATEGORY_ALIASES), never user input, no ReDoS surface; targeted nosemgrep comment + rationale | 2026-08-09 | 9ae1533 | [260809-m2q-fix-semgrep-redos-false-positive-alias-r](./quick/260809-m2q-fix-semgrep-redos-false-positive-alias-r/) |
+| 260809-n8x | Fix misplaced nosemgrep comment in chat.ts (260809-m2q's comment sat 2 lines above the flagged new RegExp() call, never actually suppressed it); moved directly above the call, verified 0 findings via real local semgrep run | 2026-08-09 | 973b2fb | [260809-n8x-fix-semgrep-nosemgrep-comment-placement](./quick/260809-n8x-fix-semgrep-nosemgrep-comment-placement/) |
+
+| 260809-4d3 | Implement shell files for the same functionality of start-dev.bat and stop-dev.bat files | 2026-08-09 | 2c5e7c6 | [260809-4d3-implement-shell-files-for-the-same-funct](./quick/260809-4d3-implement-shell-files-for-the-same-funct/) |
 
 ## Deferred Items
 
@@ -175,8 +188,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-09T10:10:17.369Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-08-09T10:54:00.000Z
+Stopped at: Completed quick task 260809-n8x (fixed misplaced nosemgrep comment in chat.ts) — gitleaks is confirmed green on live CI (run 31308767427, head fe26590); semgrep fix corrected locally (0 findings, exit 0) but NOT YET PUSHED
 Resume file: None
 
-Next action: /gsd-discuss-phase 5 — gather context for Product Catalog before planning.
+Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
