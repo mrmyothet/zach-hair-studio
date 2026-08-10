@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
+using ZachHairStudio.Shared.Features.Identity;
 
 namespace ZachHairStudio.Api.Controllers;
 
@@ -48,7 +50,8 @@ public class AppointmentsController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var result = await _appointmentsService.CreateAsync(request);
+        TryGetClientUserId(out var clientUserId);
+        var result = await _appointmentsService.CreateAsync(request, clientUserId);
 
         if (result.IsValidationError())
         {
@@ -80,5 +83,34 @@ public class AppointmentsController : ControllerBase
         }
 
         return Created($"/api/appointments/{result.Data.Id}", result.Data);
+    }
+
+    /// <summary>
+    /// Optional Client ownership for public create (D-08). Mirrors
+    /// <c>OrdersController.TryGetClientUserId</c> — Client role + NameIdentifier only;
+    /// Staff/anonymous leave ownership null. Never reads owner ids from the body.
+    /// </summary>
+    private bool TryGetClientUserId(out int? clientUserId)
+    {
+        clientUserId = null;
+
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return false;
+        }
+
+        if (!User.IsInRole(StaffRoles.Client))
+        {
+            return false;
+        }
+
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(raw) || !int.TryParse(raw, out var userId))
+        {
+            return false;
+        }
+
+        clientUserId = userId;
+        return true;
     }
 }
