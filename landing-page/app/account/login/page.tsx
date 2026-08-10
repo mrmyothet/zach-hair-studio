@@ -1,0 +1,160 @@
+"use client";
+
+import Link from "next/link";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import SectionHeading from "@/components/SectionHeading";
+import { AlertIcon } from "@/components/icons";
+import {
+  AuthApiError,
+  getSession,
+  loginClient,
+  setSession,
+} from "@/lib/auth";
+
+const inputClass =
+  "w-full bg-charcoal-light border border-white/10 hover:border-gold/30 focus:border-gold rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors";
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionReason = searchParams.get("reason");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(sessionReason);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (getSession()) {
+      router.replace("/account");
+    }
+  }, [router]);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      const session = await loginClient(email.trim(), password);
+      setSession(session);
+      router.push("/account");
+    } catch (err) {
+      if (err instanceof AuthApiError) {
+        if (err.isUnauthorized) {
+          setError("Invalid email or password.");
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError("Check your details and try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="w-full max-w-md mx-auto bg-charcoal border border-white/5 rounded-2xl p-8">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Field label="Email">
+          <input
+            type="email"
+            name="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={inputClass}
+            disabled={submitting}
+          />
+        </Field>
+
+        <Field label="Password">
+          <input
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={inputClass}
+            disabled={submitting}
+          />
+        </Field>
+
+        {error ? (
+          <div
+            role="alert"
+            className="flex items-start gap-2 text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3"
+          >
+            <AlertIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <span>
+              <strong className="font-semibold">{"Couldn't Sign In"}</strong>
+              <span className="block mt-1">{error}</span>
+            </span>
+          </div>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-gold hover:bg-gold-dark text-charcoal font-semibold text-sm rounded-full px-4 py-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-11"
+        >
+          {submitting ? "Signing in…" : "Log In"}
+        </button>
+
+        <p className="text-center text-sm text-gray-400">
+          Need an account?{" "}
+          <Link href="/account/register" className="text-gold hover:underline">
+            Create one
+          </Link>
+        </p>
+      </form>
+    </div>
+  );
+}
+
+export default function AccountLoginPage() {
+  return (
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-charcoal-light pt-32">
+        <section className="py-16">
+          <div className="max-w-5xl mx-auto px-6">
+            <SectionHeading
+              eyebrow="Welcome Back"
+              title=""
+              highlight="Sign In"
+              subtitle="Access your bookings, orders, and loyalty points."
+            />
+            <Suspense fallback={<p className="text-center text-gray-400 text-sm">Loading…</p>}>
+              <LoginForm />
+            </Suspense>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  );
+}
