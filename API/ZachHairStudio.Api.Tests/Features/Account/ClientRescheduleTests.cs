@@ -166,7 +166,7 @@ public class ClientRescheduleTests : IClassFixture<SqlServerWebApplicationFactor
     {
         var client = _factory.CreateClient();
         var (userId, email, token) = await RegisterClientAsync(client);
-        var appointmentId = await SeedOwnedAppointmentAsync(userId, email, Slot(10), stylistId: 1);
+        var appointmentId = await SeedOwnedAppointmentAsync(userId, email, Slot(9), stylistId: 1);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.PostAsync($"/api/account/bookings/{appointmentId}/cancel", null);
@@ -262,7 +262,7 @@ public class ClientRescheduleTests : IClassFixture<SqlServerWebApplicationFactor
     {
         var client = _factory.CreateClient();
         var (userId, email, _) = await RegisterClientAsync(client);
-        var appointmentId = await SeedOwnedAppointmentAsync(userId, email, Slot(9), stylistId: 4);
+        var appointmentId = await SeedOwnedAppointmentAsync(userId, email, Slot(13), stylistId: 4);
 
         var (_, staffToken) = await SeedStaffAndLoginAsync(client);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", staffToken);
@@ -277,7 +277,7 @@ public class ClientRescheduleTests : IClassFixture<SqlServerWebApplicationFactor
     {
         var client = _factory.CreateClient();
         var (userId, email, _) = await RegisterClientAsync(client);
-        var appointmentId = await SeedOwnedAppointmentAsync(userId, email, Slot(13), stylistId: 2);
+        var appointmentId = await SeedOwnedAppointmentAsync(userId, email, Slot(9), stylistId: 2);
 
         var (_, staffToken) = await SeedStaffAndLoginAsync(client);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", staffToken);
@@ -331,8 +331,10 @@ public class ClientRescheduleTests : IClassFixture<SqlServerWebApplicationFactor
     {
         var client = _factory.CreateClient();
         var (userId, email, token) = await RegisterClientAsync(client);
-        var oldStartsAt = Slot(10);
-        var takenStartsAt = Slot(14);
+        // Distinct cell from Reschedule_Owner (stylist 1 @ 10/14) to avoid unique-index collisions
+        // when tests share the SqlServerWebApplicationFactory database.
+        var oldStartsAt = Slot(11);
+        var takenStartsAt = Slot(15);
         var appointmentId = await SeedOwnedAppointmentAsync(userId, email, oldStartsAt, stylistId: 1);
 
         // Occupying booking on the reschedule target cell (concurrent other booker).

@@ -145,6 +145,7 @@ public class AnyStylistAssignmentTests
         return new AppointmentsService(
             db,
             new AppointmentCreateDtoValidator(),
+            new ClientRescheduleRequestDtoValidator(),
             slotService,
             email ?? new RecordingEmailService(),
             salonOptions);
