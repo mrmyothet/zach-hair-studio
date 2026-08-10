@@ -111,7 +111,7 @@ Each task was committed atomically:
 2. **Task 2: GREEN — Client role, Register API, seeder** - `5b8fc49` (feat)
 3. **Task 3: Landing auth UI + Navbar Account vs Log In** - `fc2986f` (feat)
 
-**Plan metadata:** (pending docs commit)
+**Plan metadata:** `5c27b35` (docs: complete plan)
 
 ## Files Created/Modified
 
