@@ -22,8 +22,8 @@ created: 2026-08-10
 |----------|-------|
 | **Framework** | xUnit 2.9.3 + `Microsoft.AspNetCore.Mvc.Testing` 10.0.9; EF InMemory 10.0.9 for service/unit tests; real SQL via `SqlServerWebApplicationFactory` for stock concurrency (SHOP-04) — mirrors `ConcurrencyTests` `[VERIFIED: repo — ZachHairStudio.Api.Tests.csproj]`
 | **Config file** | `API/ZachHairStudio.Api.Tests/ZachHairStudio.Api.Tests.csproj` (+ factories `CustomWebApplicationFactory.cs`, `SqlServerWebApplicationFactory.cs`)
-| **Quick run command** | `FullyQualifiedName~Checkout"`` |
-| **Full suite command** | ``dotnet test API/ZachHairStudio.slnx`` |
+| **Quick run command** | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~Carts\|FullyQualifiedName~Orders\|FullyQualifiedName~Stripe\|FullyQualifiedName~StockConcurrency\|FullyQualifiedName~Checkout"` |
+| **Full suite command** | `dotnet test API/ZachHairStudio.slnx` |
 | **Estimated runtime** | ~60-180 seconds (SHOP-04 concurrency longer) |
 
 ---
