@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Staff Management (Services & Availability)** - Staff self-serve CRUD for services and stylist availability, conflict-checked against existing bookings (completed 2026-08-09)
 - [x] **Phase 5: Product Catalog** - Clients browse a curated product catalog surfaced as stylist-recommended add-ons (completed 2026-08-09)
 - [ ] **Phase 6: Cart & Checkout** - Clients buy recommended products through a trustworthy, server-authoritative checkout, as a guest or logged in
-- [ ] **Phase 7: Accounts & Retention** - Clients get accounts (shared Identity with staff), booking/order history, self-service cancel/reschedule, and loyalty groundwork
+- [x] **Phase 7: Accounts & Retention** - Clients get accounts (shared Identity with staff), booking/order history, self-service cancel/reschedule, and loyalty groundwork (completed 2026-08-10)
 - [ ] **Phase 8: Polish & Launch Readiness** - Responsive polish, production hardening, and retirement of the legacy Admin scaffold
 
 ## Phase Details
@@ -255,7 +255,7 @@ Plans:
   4. Staff authentication and client accounts share a single ASP.NET Core Identity schema/migration — not two separate auth stores
   5. A client earns a loyalty point for each completed appointment, visible in their account and redeemable as a discount
 
-**Plans:** 5/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -311,5 +311,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
 | 6. Cart & Checkout | 4/5 | In Progress|  |
-| 7. Accounts & Retention | 5/5 | In Progress|  |
+| 7. Accounts & Retention | 5/5 | Complete    | 2026-08-10 |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |
