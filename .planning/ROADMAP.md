@@ -219,11 +219,11 @@ Plans:
   4. An order is marked fulfilled only after a verified payment-provider webhook fires, never from the client's post-payment redirect alone
   5. Stylist-recommended add-ons are surfaced both on the service detail page and again at checkout
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Guest cart API: ConflictError overload, Cart/CartItem, CartsService/Controller, AddCarts migration (SHOP-01)
+- [x] 06-01-PLAN.md — Guest cart API: ConflictError overload, Cart/CartItem, CartsService/Controller, AddCarts migration (SHOP-01)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -288,6 +288,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
-| 6. Cart & Checkout | 0/5 | Planned | - |
+| 6. Cart & Checkout | 1/5 | In Progress|  |
 | 7. Accounts & Retention | 0/TBD | Not started | - |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |

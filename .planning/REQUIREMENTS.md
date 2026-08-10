@@ -49,7 +49,7 @@ Requirements for the current milestone (full services-led platform, specs roadma
 
 ### Cart & Checkout (P6)
 
-- [ ] **SHOP-01**: Client can add products to a cart and review it
+- [x] **SHOP-01**: Client can add products to a cart and review it
 - [ ] **SHOP-02**: Client can check out and pay through an integrated payment provider
 - [ ] **SHOP-03**: Order total is computed server-side from the catalog; client-supplied prices are never trusted
 - [ ] **SHOP-04**: Product stock is decremented atomically on order creation, with no overselling under concurrent checkout
@@ -135,7 +135,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PROD-01 | Phase 5 | Complete |
 | PROD-02 | Phase 5 | Complete |
 | PROD-03 | Phase 5 | Complete |
-| SHOP-01 | Phase 6 | Pending |
+| SHOP-01 | Phase 6 | Complete |
 | SHOP-02 | Phase 6 | Pending |
 | SHOP-03 | Phase 6 | Pending |
 | SHOP-04 | Phase 6 | Pending |
