@@ -29,6 +29,14 @@ export class AccountApiError extends Error {
     return this.status === 403;
   }
 
+  get isConflict(): boolean {
+    return this.status === 409;
+  }
+
+  get isValidation(): boolean {
+    return this.status === 400;
+  }
+
   get isNetwork(): boolean {
     return this.status === null;
   }
@@ -59,11 +67,9 @@ async function extractErrorMessage(res: Response): Promise<string> {
 function authHeaders(extra?: HeadersInit): Headers {
   const headers = new Headers(extra);
   headers.set("Accept", "application/json");
-  attachToken(headers);
-  // Explicit Bearer attachment (D-08) — never ownerId/clientId for scoping.
-  if (!headers.has("Authorization")) {
-    // attachToken already sets Authorization when a session exists; this branch
-    // keeps the contract visible for callers/tests that grep the helper file.
+  const token = getToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
   return headers;
 }
@@ -198,4 +204,32 @@ export async function postClaim(confirm: boolean): Promise<void> {
   if (!response.ok) {
     throw new AccountApiError(await extractErrorMessage(response), response.status);
   }
+}
+
+export async function cancelBooking(id: number): Promise<AccountBooking> {
+  const response = await accountFetch(`/api/account/bookings/${id}/cancel`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new AccountApiError(await extractErrorMessage(response), response.status);
+  }
+  return (await response.json()) as AccountBooking;
+}
+
+export async function rescheduleBooking(
+  id: number,
+  body: { startsAt: string; stylistId?: number | null }
+): Promise<AccountBooking> {
+  const response = await accountFetch(`/api/account/bookings/${id}/reschedule`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      startsAt: body.startsAt,
+      stylistId: body.stylistId ?? undefined,
+    }),
+  });
+  if (!response.ok) {
+    throw new AccountApiError(await extractErrorMessage(response), response.status);
+  }
+  return (await response.json()) as AccountBooking;
 }
