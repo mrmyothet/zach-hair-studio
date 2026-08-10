@@ -23,16 +23,25 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 type ClaimHistoryPanelProps = {
-  /** Called after Confirm or Skip navigates away — parent may also navigate. */
+  /**
+   * `register` (default): empty/error/finish navigate to /account (07-02 UX).
+   * `embedded`: stay on parent page — empty preview renders null; finish calls onFinished only.
+   */
+  variant?: "register" | "embedded";
+  /** Called after Confirm or Skip — parent reloads list in embedded mode. */
   onFinished?: () => void;
 };
 
 /**
  * D-04 claim-by-email confirm UI. Shows only when claim-preview has matches;
- * Skip leaves FKs null; Confirm posts claim then continues to /account.
+ * Skip leaves FKs null; Confirm posts claim then continues.
  */
-export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps) {
+export default function ClaimHistoryPanel({
+  variant = "register",
+  onFinished,
+}: ClaimHistoryPanelProps) {
   const router = useRouter();
+  const embedded = variant === "embedded";
   const [preview, setPreview] = useState<ClaimPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -49,8 +58,10 @@ export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps
         const hasMatches =
           data.appointments.length > 0 || data.orders.length > 0;
         if (!hasMatches) {
-          router.replace("/account");
-          onFinished?.();
+          if (!embedded) {
+            router.replace("/account");
+            onFinished?.();
+          }
           return;
         }
 
@@ -58,9 +69,11 @@ export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps
       } catch (err) {
         if (cancelled) return;
         if (err instanceof AccountApiError && err.isUnauthorized) return;
-        // Preview failure shouldn't trap the user — continue to account.
-        router.replace("/account");
-        onFinished?.();
+        // Preview failure shouldn't trap the user.
+        if (!embedded) {
+          router.replace("/account");
+          onFinished?.();
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -69,7 +82,7 @@ export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps
     return () => {
       cancelled = true;
     };
-  }, [router, onFinished]);
+  }, [router, onFinished, embedded]);
 
   async function finish(confirm: boolean) {
     setError(null);
@@ -80,7 +93,9 @@ export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps
       } else {
         await postClaim(false);
       }
-      router.replace("/account");
+      if (!embedded) {
+        router.replace("/account");
+      }
       onFinished?.();
     } catch (err) {
       if (err instanceof AccountApiError && err.isUnauthorized) return;
@@ -94,7 +109,10 @@ export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps
     }
   }
 
-  if (loading || !preview) {
+  if (loading) {
+    if (embedded) {
+      return null;
+    }
     return (
       <div className="w-full max-w-md mx-auto bg-charcoal border border-white/5 rounded-2xl p-8 animate-pulse">
         <div className="h-6 bg-charcoal-light rounded w-2/3 mb-4" />
@@ -104,8 +122,18 @@ export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps
     );
   }
 
+  if (!preview) {
+    return null;
+  }
+
   return (
-    <div className="w-full max-w-2xl mx-auto bg-charcoal border border-white/5 rounded-2xl p-7 md:p-10 space-y-6">
+    <div
+      className={
+        embedded
+          ? "w-full bg-charcoal border border-white/5 rounded-2xl p-7 md:p-8 space-y-6 mb-6"
+          : "w-full max-w-2xl mx-auto bg-charcoal border border-white/5 rounded-2xl p-7 md:p-10 space-y-6"
+      }
+    >
       <div>
         <h2 className="text-xl font-semibold text-white">We Found Past Visits</h2>
         <p className="text-sm text-gray-400 mt-2">
@@ -172,12 +200,17 @@ export default function ClaimHistoryPanel({ onFinished }: ClaimHistoryPanelProps
         </button>
       </div>
 
-      <p className="text-xs text-gray-500">
-        Prefer to review later?{" "}
-        <Link href="/account" className="text-gray-400 hover:text-gold underline-offset-2 hover:underline">
-          Go to account
-        </Link>
-      </p>
+      {!embedded ? (
+        <p className="text-xs text-gray-500">
+          Prefer to review later?{" "}
+          <Link
+            href="/account"
+            className="text-gray-400 hover:text-gold underline-offset-2 hover:underline"
+          >
+            Go to account
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }

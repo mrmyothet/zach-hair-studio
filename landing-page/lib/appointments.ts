@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getToken } from "./auth";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5236"
@@ -175,7 +176,9 @@ export async function fetchOpenSlots(
 }
 
 /**
- * Creates a guest appointment via POST /api/appointments.
+ * Creates an appointment via POST /api/appointments.
+ * When a Client session token is present, attaches Authorization Bearer so the API
+ * can set Appointment.ClientUserId (register→book owns the row). Guest book unchanged.
  *
  * On 201 returns the parsed {@link AppointmentResponse}. On any failure it THROWS an
  * {@link AppointmentApiError} exposing the HTTP `status`, so the caller can branch:
@@ -187,11 +190,19 @@ export async function fetchOpenSlots(
 export async function createAppointment(
   request: AppointmentCreateRequest
 ): Promise<AppointmentResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const token = getToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/appointments`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(request),
     });
   } catch {

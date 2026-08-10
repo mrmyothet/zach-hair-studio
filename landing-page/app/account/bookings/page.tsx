@@ -9,6 +9,7 @@ import AccountShell from "@/components/AccountShell";
 import AccountBookingActions, {
   isUpcomingConfirmed,
 } from "@/components/AccountBookingActions";
+import ClaimHistoryPanel from "@/components/ClaimHistoryPanel";
 import { AlertIcon } from "@/components/icons";
 import {
   AccountApiError,
@@ -57,6 +58,10 @@ export default function AccountBookingsPage() {
     }
   }, []);
 
+  const handleClaimFinished = useCallback(() => {
+    void load();
+  }, [load]);
+
   useEffect(() => {
     if (!requireAuth()) return;
     setLocalSession(getSession());
@@ -104,6 +109,11 @@ export default function AccountBookingsPage() {
           activeTab="bookings"
           onLogout={() => router.push("/account/login")}
         >
+          <ClaimHistoryPanel
+            variant="embedded"
+            onFinished={() => void load()}
+          />
+
           {loadState === "error" ? (
             <div
               role="alert"
