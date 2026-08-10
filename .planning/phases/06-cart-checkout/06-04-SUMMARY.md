@@ -134,7 +134,7 @@ Each task was committed atomically:
 3. **Task 2: Cart chips + createCheckout helper** - `66c8d10` (feat)
 4. **Task 3: /checkout + success + cancel pages** - `c56ab1f` (feat)
 
-**Plan metadata:** _(pending docs commit)_
+**Plan metadata:** `030f570` (docs: complete plan)
 
 ## Files Created/Modified
 
