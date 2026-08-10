@@ -148,7 +148,8 @@ public class AnyStylistAssignmentTests
             new ClientRescheduleRequestDtoValidator(),
             slotService,
             email ?? new RecordingEmailService(),
-            salonOptions);
+            salonOptions,
+            new ZachHairStudio.Shared.Features.Loyalty.LoyaltyService(db));
     }
 
     private static BookingDbContext BuildSeededContext()

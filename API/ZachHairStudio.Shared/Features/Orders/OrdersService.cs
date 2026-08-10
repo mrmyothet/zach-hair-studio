@@ -1,35 +1,40 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Payments;
 using ZachHairStudio.Shared.Features.Products;
 
 namespace ZachHairStudio.Shared.Features.Orders;
 
 /// <summary>
-/// Guest checkout write path (SHOP-02/03/04/06). Recomputes money from
-/// <see cref="Product.Price"/>, decrements stock with conditional
-/// <c>ExecuteUpdateAsync</c> inside CreateExecutionStrategy + transaction (D-04/D-05),
-/// then creates a payment session. Fulfillment is a separate thin flip (SHOP-05).
+/// Guest/authenticated checkout write path (SHOP-02/03/04/06 + ACCT-07). Recomputes money from
+/// <see cref="Product.Price"/>, optionally applies server loyalty dollars after catalog
+/// recompute (D-15), decrements stock with conditional <c>ExecuteUpdateAsync</c> inside
+/// CreateExecutionStrategy + transaction (D-04/D-05), then creates a payment session.
 /// </summary>
 public class OrdersService
 {
     private readonly BookingDbContext _dbContext;
     private readonly IPaymentProvider _paymentProvider;
     private readonly IValidator<CheckoutRequestDto> _validator;
+    private readonly LoyaltyService _loyaltyService;
 
     public OrdersService(
         BookingDbContext dbContext,
         IPaymentProvider paymentProvider,
-        IValidator<CheckoutRequestDto> validator)
+        IValidator<CheckoutRequestDto> validator,
+        LoyaltyService loyaltyService)
     {
         _dbContext = dbContext;
         _paymentProvider = paymentProvider;
         _validator = validator;
+        _loyaltyService = loyaltyService;
     }
 
     public async Task<Result<CheckoutResponseDto>> CreateCheckoutAsync(
         CheckoutRequestDto request,
+        int? clientUserId = null,
         CancellationToken cancellationToken = default)
     {
         var validation = await _validator.ValidateAsync(request, cancellationToken);
@@ -39,18 +44,37 @@ public class OrdersService
                 string.Join("; ", validation.Errors.Select(error => error.ErrorMessage)));
         }
 
-        var productIds = request.Items.Select(item => item.ProductId).Distinct().ToList();
-        var products = await _dbContext.Products
-            .Where(product => productIds.Contains(product.Id) && product.IsActive)
-            .ToDictionaryAsync(product => product.Id, cancellationToken);
-
-        foreach (var line in request.Items)
+        var redeemPoints = request.RedeemPoints ?? 0;
+        if (redeemPoints > 0 && !clientUserId.HasValue)
         {
-            if (!products.ContainsKey(line.ProductId))
+            return Result<CheckoutResponseDto>.ValidationError(
+                "Sign in to redeem loyalty points.");
+        }
+
+        var catalog = await LoadCatalogLinesAsync(request, cancellationToken);
+        if (!catalog.IsSuccess)
+        {
+            return Result<CheckoutResponseDto>.NotFoundError(catalog.Message);
+        }
+
+        var merchandiseSubtotal = catalog.Data.Sum(line => line.LineTotal);
+        decimal loyaltyDiscount = 0m;
+        var pointsRedeemed = 0;
+
+        if (redeemPoints > 0)
+        {
+            var quote = await _loyaltyService.QuoteRedeemAsync(
+                clientUserId!.Value,
+                redeemPoints,
+                merchandiseSubtotal,
+                cancellationToken);
+            if (!quote.IsSuccess)
             {
-                return Result<CheckoutResponseDto>.NotFoundError(
-                    $"Product {line.ProductId} not found.");
+                return Result<CheckoutResponseDto>.ValidationError(quote.Message);
             }
+
+            loyaltyDiscount = quote.Data.LoyaltyDiscount;
+            pointsRedeemed = quote.Data.PointsRedeemed;
         }
 
         var strategy = _dbContext.Database.CreateExecutionStrategy();
@@ -60,17 +84,15 @@ public class OrdersService
 
             var order = new Order
             {
-                ClientId = null,
+                ClientId = clientUserId,
                 Status = OrderStatus.Pending,
                 Email = request.Email.Trim(),
                 CustomerName = string.IsNullOrWhiteSpace(request.Name) ? null : request.Name.Trim(),
                 PlacedAtUtc = DateTimeOffset.UtcNow,
             };
 
-            foreach (var line in request.Items)
+            foreach (var line in catalog.Data)
             {
-                var product = products[line.ProductId];
-
                 var updated = await _dbContext.Products
                     .Where(p => p.Id == line.ProductId && p.Stock >= line.Quantity)
                     .ExecuteUpdateAsync(
@@ -80,28 +102,47 @@ public class OrdersService
                 if (updated == 0)
                 {
                     await transaction.RollbackAsync(cancellationToken);
-                    // Reload display stock for a helpful message (may still race; message is best-effort).
                     var currentStock = await _dbContext.Products
                         .Where(p => p.Id == line.ProductId)
                         .Select(p => p.Stock)
                         .SingleAsync(cancellationToken);
                     return Result<CheckoutResponseDto>.ConflictError(
-                        $"Sorry, only {currentStock} left of {product.Name}.");
+                        $"Sorry, only {currentStock} left of {line.ProductName}.");
                 }
 
                 order.Items.Add(new OrderItem
                 {
-                    ProductId = product.Id,
-                    ProductName = product.Name,
-                    UnitPrice = product.Price,
+                    ProductId = line.ProductId,
+                    ProductName = line.ProductName,
+                    UnitPrice = line.UnitPrice,
                     Quantity = line.Quantity,
-                    LineTotal = product.Price * line.Quantity,
+                    LineTotal = line.LineTotal,
                 });
             }
 
-            order.TotalAmount = order.Items.Sum(item => item.LineTotal);
+            // Catalog recompute first, then server loyalty dollars (D-15).
+            var subtotal = order.Items.Sum(item => item.LineTotal);
+            order.TotalAmount = subtotal - loyaltyDiscount;
+
             _dbContext.Orders.Add(order);
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            if (pointsRedeemed > 0 && clientUserId.HasValue)
+            {
+                // Re-check balance inside the transaction before appending redeem.
+                var balance = await _dbContext.LoyaltyLedgers
+                    .Where(row => row.ClientUserId == clientUserId.Value)
+                    .SumAsync(row => (int?)row.Delta, cancellationToken) ?? 0;
+                if (pointsRedeemed > balance)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return Result<CheckoutResponseDto>.ValidationError("Insufficient loyalty balance.");
+                }
+
+                _loyaltyService.AppendRedeem(clientUserId.Value, pointsRedeemed, order.Id);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
             await transaction.CommitAsync(cancellationToken);
 
             try
@@ -120,14 +161,64 @@ public class OrdersService
                 order.StripeSessionUrl = session.Url;
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
-                return Result<CheckoutResponseDto>.Success(order.ToCheckoutResponseDto(session.Url));
+                return Result<CheckoutResponseDto>.Success(
+                    order.ToCheckoutResponseDto(session.Url, subtotal, loyaltyDiscount, pointsRedeemed));
             }
             catch (Exception)
             {
-                await CompensateFailedPaymentAsync(order, cancellationToken);
+                await CompensateFailedPaymentAsync(order, pointsRedeemed, clientUserId, cancellationToken);
                 return Result<CheckoutResponseDto>.SystemError(
                     "Checkout could not start payment. Please try again.");
             }
+        });
+    }
+
+    /// <summary>
+    /// Catalog recompute + loyalty quote without stock decrement or Stripe (Apply Points preview).
+    /// </summary>
+    public async Task<Result<LoyaltyQuoteDto>> QuoteCheckoutAsync(
+        CheckoutRequestDto request,
+        int? clientUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var validation = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Result<LoyaltyQuoteDto>.ValidationError(
+                string.Join("; ", validation.Errors.Select(error => error.ErrorMessage)));
+        }
+
+        var redeemPoints = request.RedeemPoints ?? 0;
+        if (redeemPoints > 0 && !clientUserId.HasValue)
+        {
+            return Result<LoyaltyQuoteDto>.ValidationError(
+                "Sign in to redeem loyalty points.");
+        }
+
+        var catalog = await LoadCatalogLinesAsync(request, cancellationToken);
+        if (!catalog.IsSuccess)
+        {
+            return Result<LoyaltyQuoteDto>.NotFoundError(catalog.Message);
+        }
+
+        var merchandiseSubtotal = catalog.Data.Sum(line => line.LineTotal);
+
+        if (clientUserId.HasValue)
+        {
+            return await _loyaltyService.QuoteRedeemAsync(
+                clientUserId.Value,
+                redeemPoints,
+                merchandiseSubtotal,
+                cancellationToken);
+        }
+
+        return Result<LoyaltyQuoteDto>.Success(new LoyaltyQuoteDto
+        {
+            Subtotal = merchandiseSubtotal,
+            LoyaltyDiscount = 0m,
+            TotalAmount = merchandiseSubtotal,
+            PointsRedeemed = 0,
+            Balance = 0,
         });
     }
 
@@ -193,7 +284,44 @@ public class OrdersService
         return Result<OrderResponseDto>.Success(order.ToResponseDto());
     }
 
-    private async Task CompensateFailedPaymentAsync(Order order, CancellationToken cancellationToken)
+    private async Task<Result<List<CatalogLine>>> LoadCatalogLinesAsync(
+        CheckoutRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var productIds = request.Items.Select(item => item.ProductId).Distinct().ToList();
+        var products = await _dbContext.Products
+            .AsNoTracking()
+            .Where(product => productIds.Contains(product.Id) && product.IsActive)
+            .ToDictionaryAsync(product => product.Id, cancellationToken);
+
+        foreach (var line in request.Items)
+        {
+            if (!products.ContainsKey(line.ProductId))
+            {
+                return Result<List<CatalogLine>>.NotFoundError(
+                    $"Product {line.ProductId} not found.");
+            }
+        }
+
+        var lines = request.Items.Select(line =>
+        {
+            var product = products[line.ProductId];
+            return new CatalogLine(
+                product.Id,
+                product.Name,
+                product.Price,
+                line.Quantity,
+                product.Price * line.Quantity);
+        }).ToList();
+
+        return Result<List<CatalogLine>>.Success(lines);
+    }
+
+    private async Task CompensateFailedPaymentAsync(
+        Order order,
+        int pointsRedeemed,
+        int? clientUserId,
+        CancellationToken cancellationToken)
     {
         var strategy = _dbContext.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
@@ -209,7 +337,20 @@ public class OrdersService
                         cancellationToken);
             }
 
-            // Re-attach status update if the instance is still tracked; otherwise reload.
+            if (pointsRedeemed > 0 && clientUserId.HasValue)
+            {
+                // Reverse redeem: append compensating Earn-style positive delta with Redeem reason
+                // is wrong — append a positive offset linked to the failed order instead.
+                _dbContext.LoyaltyLedgers.Add(new LoyaltyLedger
+                {
+                    ClientUserId = clientUserId.Value,
+                    Delta = pointsRedeemed,
+                    Reason = LoyaltyReasons.Redeem,
+                    OrderId = order.Id,
+                    CreatedAtUtc = DateTimeOffset.UtcNow,
+                });
+            }
+
             var tracked = await _dbContext.Orders.FirstAsync(o => o.Id == order.Id, cancellationToken);
             tracked.Status = OrderStatus.Failed;
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -218,4 +359,11 @@ public class OrdersService
             order.Status = OrderStatus.Failed;
         });
     }
+
+    private sealed record CatalogLine(
+        int ProductId,
+        string ProductName,
+        decimal UnitPrice,
+        int Quantity,
+        decimal LineTotal);
 }

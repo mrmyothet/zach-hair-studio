@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Orders;
 using ZachHairStudio.Shared.Features.Payments;
 
@@ -153,7 +154,7 @@ public class OrdersServiceTests
     }
 
     private static OrdersService CreateService(BookingDbContext db, IPaymentProvider paymentProvider)
-        => new OrdersService(db, paymentProvider, new CheckoutRequestDtoValidator());
+        => new OrdersService(db, paymentProvider, new CheckoutRequestDtoValidator(), new LoyaltyService(db));
 
     private static async Task SetCatalogAsync(
         BookingDbContext db,

@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Availability;
+using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Services;
 using ZachHairStudio.Shared.Features.Stylists;
 
@@ -28,6 +29,7 @@ public class AppointmentsService
     private readonly SlotService _slotService;
     private readonly IEmailService _emailService;
     private readonly SalonTimeZone _salonTimeZone;
+    private readonly LoyaltyService _loyaltyService;
 
     // Confirmed -> {Completed, Cancelled, NoShow}; the three terminal statuses have no
     // outbound entries. This map is the ONLY place a status transition is decided
@@ -46,7 +48,8 @@ public class AppointmentsService
         IValidator<ClientRescheduleRequestDto> rescheduleValidator,
         SlotService slotService,
         IEmailService emailService,
-        SalonOptions salonOptions)
+        SalonOptions salonOptions,
+        LoyaltyService loyaltyService)
     {
         _dbContext = dbContext;
         _validator = validator;
@@ -54,6 +57,7 @@ public class AppointmentsService
         _slotService = slotService;
         _emailService = emailService;
         _salonTimeZone = SalonTimeZone.FromOptions(salonOptions);
+        _loyaltyService = loyaltyService;
     }
 
     public async Task<Result<AppointmentResponseDto>> CreateAsync(AppointmentCreateDto request)
@@ -235,6 +239,12 @@ public class AppointmentsService
         appointment.StatusChangedBy = staffDisplayName;
 
         await _dbContext.SaveChangesAsync();
+
+        // D-13: earn +1 when staff marks Completed for an owned appointment (idempotent).
+        if (newStatus == AppointmentStatus.Completed && appointment.ClientUserId is int clientUserId)
+        {
+            await _loyaltyService.EarnForCompletedAsync(appointment.Id, clientUserId);
+        }
 
         return Result<AppointmentResponseDto>.Success(appointment.ToDto(service, stylist));
     }

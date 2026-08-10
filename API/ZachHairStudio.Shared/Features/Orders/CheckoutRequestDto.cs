@@ -15,6 +15,11 @@ public class CheckoutRequestDto
     public string Email { get; set; } = null!;
 
     public string? Name { get; set; }
+
+    /// <summary>
+    /// Optional points to redeem (D-15). Server computes dollars — never send discount $.
+    /// </summary>
+    public int? RedeemPoints { get; set; }
 }
 
 public class CheckoutLineItemDto

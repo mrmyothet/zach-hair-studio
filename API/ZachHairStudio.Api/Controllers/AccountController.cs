@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using ZachHairStudio.Shared.Features.Account;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Orders;
 
 namespace ZachHairStudio.Api.Controllers;
@@ -22,6 +23,7 @@ public class AccountController : ControllerBase
 {
     private readonly AccountService _accountService;
     private readonly AppointmentsService _appointmentsService;
+    private readonly LoyaltyService _loyaltyService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IValidator<ClaimRequestDto> _claimValidator;
     private readonly IValidator<ClientRescheduleRequestDto> _rescheduleValidator;
@@ -29,15 +31,32 @@ public class AccountController : ControllerBase
     public AccountController(
         AccountService accountService,
         AppointmentsService appointmentsService,
+        LoyaltyService loyaltyService,
         UserManager<ApplicationUser> userManager,
         IValidator<ClaimRequestDto> claimValidator,
         IValidator<ClientRescheduleRequestDto> rescheduleValidator)
     {
         _accountService = accountService;
         _appointmentsService = appointmentsService;
+        _loyaltyService = loyaltyService;
         _userManager = userManager;
         _claimValidator = claimValidator;
         _rescheduleValidator = rescheduleValidator;
+    }
+
+    [HttpGet("loyalty")]
+    [ProducesResponseType(typeof(LoyaltyBalanceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<LoyaltyBalanceDto>> GetLoyalty(CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId, out var error))
+        {
+            return error!;
+        }
+
+        var balance = await _loyaltyService.GetBalanceAsync(userId, cancellationToken);
+        return Ok(new LoyaltyBalanceDto { Balance = balance });
     }
 
     [HttpGet("bookings")]
