@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import SectionHeading from "@/components/SectionHeading";
+import ClaimHistoryPanel from "@/components/ClaimHistoryPanel";
 import { AlertIcon } from "@/components/icons";
 import {
   AuthApiError,
@@ -20,9 +21,11 @@ const inputClass =
 function Field({
   label,
   children,
+  helper,
 }: {
   label: string;
   children: React.ReactNode;
+  helper?: string;
 }) {
   return (
     <div>
@@ -30,6 +33,7 @@ function Field({
         {label}
       </label>
       {children}
+      {helper ? <p className="text-xs text-gray-500 mt-2">{helper}</p> : null}
     </div>
   );
 }
@@ -42,12 +46,13 @@ export default function AccountRegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showClaim, setShowClaim] = useState(false);
 
   useEffect(() => {
-    if (getSession()) {
+    if (getSession() && !showClaim) {
       router.replace("/account");
     }
-  }, [router]);
+  }, [router, showClaim]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -61,7 +66,7 @@ export default function AccountRegisterPage() {
         confirmPassword,
       });
       setSession(session);
-      router.push("/account");
+      setShowClaim(true);
     } catch (err) {
       if (err instanceof AuthApiError) {
         setError(err.message);
@@ -86,78 +91,85 @@ export default function AccountRegisterPage() {
               subtitle="Save your history and manage upcoming visits."
             />
 
-            <div className="w-full max-w-md mx-auto bg-charcoal border border-white/5 rounded-2xl p-8">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <Field label="Email">
-                  <input
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputClass}
-                    disabled={submitting}
-                  />
-                </Field>
-
-                <Field label="Password">
-                  <input
-                    type="password"
-                    name="password"
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={inputClass}
-                    disabled={submitting}
-                  />
-                </Field>
-
-                <Field label="Confirm password">
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    autoComplete="new-password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={inputClass}
-                    disabled={submitting}
-                  />
-                </Field>
-
-                {error ? (
-                  <div
-                    role="alert"
-                    className="flex items-start gap-2 text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3"
+            {showClaim ? (
+              <ClaimHistoryPanel />
+            ) : (
+              <div className="w-full max-w-md mx-auto bg-charcoal border border-white/5 rounded-2xl p-8">
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <Field
+                    label="Email"
+                    helper="We'll use this to match any guest bookings or orders."
                   >
-                    <AlertIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <span>
-                      <strong className="font-semibold">
-                        {"Couldn't Create Account"}
-                      </strong>
-                      <span className="block mt-1">{error}</span>
-                    </span>
-                  </div>
-                ) : null}
+                    <input
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={inputClass}
+                      disabled={submitting}
+                    />
+                  </Field>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full bg-gold hover:bg-gold-dark text-charcoal font-semibold text-sm rounded-full px-4 py-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-11"
-                >
-                  {submitting ? "Creating account…" : "Create Account"}
-                </button>
+                  <Field label="Password">
+                    <input
+                      type="password"
+                      name="password"
+                      autoComplete="new-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={inputClass}
+                      disabled={submitting}
+                    />
+                  </Field>
 
-                <p className="text-center text-sm text-gray-400">
-                  Already have an account?{" "}
-                  <Link href="/account/login" className="text-gold hover:underline">
-                    Log in
-                  </Link>
-                </p>
-              </form>
-            </div>
+                  <Field label="Confirm password">
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      autoComplete="new-password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={inputClass}
+                      disabled={submitting}
+                    />
+                  </Field>
+
+                  {error ? (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3"
+                    >
+                      <AlertIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <span>
+                        <strong className="font-semibold">
+                          {"Couldn't Create Account"}
+                        </strong>
+                        <span className="block mt-1">{error}</span>
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full bg-gold hover:bg-gold-dark text-charcoal font-semibold text-sm rounded-full px-4 py-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-11"
+                  >
+                    {submitting ? "Creating account…" : "Create Account"}
+                  </button>
+
+                  <p className="text-center text-sm text-gray-400">
+                    Already have an account?{" "}
+                    <Link href="/account/login" className="text-gold hover:underline">
+                      Log in
+                    </Link>
+                  </p>
+                </form>
+              </div>
+            )}
           </div>
         </section>
       </main>
