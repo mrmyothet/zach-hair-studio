@@ -202,6 +202,12 @@ Items acknowledged and carried forward from previous milestone close:
 | -------- | ---- | ------ | ----------- |
 | _(none)_ |      |        |             |
 
+## Deferred Verification
+
+| Phase | State | Resume |
+|-------|-------|--------|
+| 6 | verification_deferred_human | /gsd-verify-work 6 |
+
 ## Session Continuity
 
 Last session: 2026-08-10T06:47:06.358Z
