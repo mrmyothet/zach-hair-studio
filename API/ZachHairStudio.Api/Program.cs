@@ -54,10 +54,41 @@ builder.Services.AddValidatorsFromAssemblyContaining<ServiceCreateDtoValidator>(
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<CartsService>();
-builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Stripe"));
+
+// Stripe Checkout + webhook (SHOP-02/05, D-01). Secrets via user-secrets/env only (T-06-17).
+// ValidateOnStart in Development so a missing SecretKey/WebhookSecret fails fast locally;
+// Testing keeps FakePaymentProvider and does not require real Stripe keys.
+var stripeOptions = builder.Services.AddOptions<StripeOptions>()
+    .Bind(builder.Configuration.GetSection("Stripe"));
+if (builder.Environment.IsDevelopment())
+{
+    stripeOptions
+        .Validate(
+            options => !string.IsNullOrWhiteSpace(options.SecretKey)
+                && !string.IsNullOrWhiteSpace(options.WebhookSecret),
+            "Stripe:SecretKey and Stripe:WebhookSecret are required in Development. "
+            + "Set them via 'dotnet user-secrets set \"Stripe:SecretKey\" \"sk_test_...\"' and "
+            + "'dotnet user-secrets set \"Stripe:WebhookSecret\" \"whsec_...\"' "
+            + "(or Stripe__SecretKey / Stripe__WebhookSecret env vars) — never tracked appsettings.")
+        .ValidateOnStart();
+}
+
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<StripeOptions>>().Value);
-// Fake until Plan 05 registers StripePaymentProvider (D-01).
-builder.Services.AddScoped<IPaymentProvider, FakePaymentProvider>();
+
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddScoped<IPaymentProvider, FakePaymentProvider>();
+}
+else
+{
+    builder.Services.AddSingleton<Stripe.IStripeClient>(sp =>
+    {
+        var options = sp.GetRequiredService<IOptions<StripeOptions>>().Value;
+        return new Stripe.StripeClient(options.SecretKey);
+    });
+    builder.Services.AddScoped<IPaymentProvider, StripePaymentProvider>();
+}
+
 builder.Services.AddScoped<OrdersService>();
 builder.Services.AddScoped<StylistsService>();
 builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon"));

@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using ZachHairStudio.Api.Tests.Features.Payments;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Payments;
 
@@ -23,6 +25,16 @@ public class SqliteWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            // Synthetic webhook secret for StripeWebhookTests ConstructEvent fixtures.
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Stripe:WebhookSecret"] = StripeWebhookTests.TestWebhookSecret,
+                ["Stripe:SecretKey"] = "sk_test_unused_in_testing_fake_provider",
+            });
+        });
 
         builder.ConfigureTestServices(services =>
         {
