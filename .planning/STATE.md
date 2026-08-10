@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 07
 current_phase_name: Accounts & Retention
-status: executing
-stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-08-10T10:26:15.010Z"
+status: verifying
+stopped_at: Completed 07-04-PLAN.md
+last_updated: "2026-08-10T10:34:35.545Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 07 execution resumed (wave continue)
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 36
-  completed_plans: 35
+  completed_plans: 36
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-09)
 
 Phase: 07 (Accounts & Retention) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-10 — Phase 07 execution resumed (wave continue)
 
-Progress: [██████████] 97%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ _Updated after each plan completion_
 | Phase 07 P01 | 7min | 3 tasks | 12 files |
 | Phase 07 P02 | 8min | 3 tasks | 20 files |
 | Phase 07 P03 | 10min | 3 tasks | 9 files |
+| Phase 07 P04 | 8min | 3 tasks | 28 files |
 
 ## Accumulated Context
 
@@ -165,6 +166,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Reschedule book-new shares TryBookNewAsync with guest CreateAsync; ClientUserId set on new row
 - [Phase ?]: Until-start gate compares StartsAt <= UtcNow (same clock as create validator)
 - [Phase ?]: UI Cancel/Reschedule only for upcoming Confirmed; past/terminal view-only
+- [Phase ?]: LoyaltyReasons Earn/Redeem strings; filtered unique index on AppointmentId where Reason=Earn
+- [Phase ?]: Payment-failure compensation appends positive Redeem delta (append-only; no ledger deletes)
+- [Phase ?]: Optional Client JWT on checkout/quote via NameIdentifier; RedeemPoints-only money authority
 
 ### Pending Todos
 
@@ -220,8 +224,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-10T10:26:14.998Z
-Stopped at: Completed 07-03-PLAN.md
+Last session: 2026-08-10T10:34:35.534Z
+Stopped at: Completed 07-04-PLAN.md
 Resume file: None
 
 Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
