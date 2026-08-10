@@ -134,7 +134,7 @@ Each task was committed atomically:
 2. **Task 2: GREEN — ClientUserId, AccountService, AccountController, claim** - `e768100` (feat)
 3. **Task 3: Landing Bookings|Orders tabs + claim panel** - `52df7b6` (feat)
 
-**Plan metadata:** _(pending docs commit)_
+**Plan metadata:** `b24aa4d` (docs: complete plan)
 
 ## Files Created/Modified
 
