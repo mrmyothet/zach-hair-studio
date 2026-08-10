@@ -132,7 +132,7 @@ Each task was committed atomically:
 1. **Task 1: ConflictError overload + Cart domain + RED Carts tests** - `e7ab451` (test)
 2. **Task 2: GREEN — CartsService, CartsController, DbContext, AddCarts migration** - `07bdf21` (feat)
 
-**Plan metadata:** _(pending docs commit)_
+**Plan metadata:** `bec602a` (docs: complete plan)
 
 ## Files Created/Modified
 
