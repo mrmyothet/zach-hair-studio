@@ -13,6 +13,8 @@ using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Carts;
 using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Orders;
+using ZachHairStudio.Shared.Features.Payments;
 using ZachHairStudio.Shared.Features.Products;
 using ZachHairStudio.Shared.Features.Services;
 using ZachHairStudio.Shared.Features.Stylists;
@@ -52,6 +54,11 @@ builder.Services.AddValidatorsFromAssemblyContaining<ServiceCreateDtoValidator>(
 builder.Services.AddScoped<ServicesService>();
 builder.Services.AddScoped<ProductsService>();
 builder.Services.AddScoped<CartsService>();
+builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Stripe"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<StripeOptions>>().Value);
+// Fake until Plan 05 registers StripePaymentProvider (D-01).
+builder.Services.AddScoped<IPaymentProvider, FakePaymentProvider>();
+builder.Services.AddScoped<OrdersService>();
 builder.Services.AddScoped<StylistsService>();
 builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon"));
 // Bridge IOptions<SalonOptions> -> plain SalonOptions so Shared-project services

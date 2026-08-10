@@ -5,6 +5,7 @@ using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Carts;
 using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Orders;
 using ZachHairStudio.Shared.Features.Products;
 using ZachHairStudio.Shared.Features.Services;
 using ZachHairStudio.Shared.Features.Stylists;
@@ -37,6 +38,10 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
     public DbSet<Cart> Carts => Set<Cart>();
 
     public DbSet<CartItem> CartItems => Set<CartItem>();
+
+    public DbSet<Order> Orders => Set<Order>();
+
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -369,6 +374,41 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
         modelBuilder.Entity<CartItem>(entity =>
         {
             entity.HasIndex(i => new { i.CartId, i.ProductId }).IsUnique();
+        });
+
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.Property(e => e.Status)
+                  .HasConversion<string>()
+                  .HasMaxLength(50);
+
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.Property(e => e.Email).HasMaxLength(150);
+            entity.Property(e => e.CustomerName).HasMaxLength(200);
+            entity.Property(e => e.StripeSessionId).HasMaxLength(200);
+            entity.Property(e => e.StripeSessionUrl).HasMaxLength(500);
+
+            // Filtered unique index for webhook idempotency (Pattern 8). AppointmentSlot
+            // unique index must remain unfiltered — do not copy HasFilter there.
+            // Provider-aware filter: SQL Server uses bracketed identifiers; Sqlite tests use quotes.
+            var isSqlite = Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+            entity.HasIndex(e => e.StripeSessionId)
+                  .IsUnique()
+                  .HasFilter(isSqlite
+                      ? "\"StripeSessionId\" IS NOT NULL"
+                      : "[StripeSessionId] IS NOT NULL");
+
+            entity.HasMany(o => o.Items)
+                  .WithOne(i => i.Order)
+                  .HasForeignKey(i => i.OrderId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.Property(e => e.ProductName).HasMaxLength(150);
+            entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
+            entity.Property(e => e.LineTotal).HasPrecision(18, 2);
         });
     }
 }

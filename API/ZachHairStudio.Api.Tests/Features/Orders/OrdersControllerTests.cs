@@ -7,13 +7,13 @@ using ZachHairStudio.Shared.Features.Orders;
 
 namespace ZachHairStudio.Api.Tests.Features.Orders;
 
-public class OrdersControllerTests : IClassFixture<CustomWebApplicationFactory>
+public class OrdersControllerTests : IClassFixture<SqliteWebApplicationFactory>
 {
     private const string SessionHeaderName = "X-Cart-Session-Id";
 
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly SqliteWebApplicationFactory _factory;
 
-    public OrdersControllerTests(CustomWebApplicationFactory factory)
+    public OrdersControllerTests(SqliteWebApplicationFactory factory)
     {
         _factory = factory;
     }

@@ -5,7 +5,6 @@ using ZachHairStudio.Shared;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Orders;
 using ZachHairStudio.Shared.Features.Payments;
-using ZachHairStudio.Shared.Features.Products;
 
 namespace ZachHairStudio.Api.Tests.Features.Orders;
 
@@ -15,8 +14,7 @@ public class OrdersServiceTests
     public async Task PriceAuthority_CreateCheckoutAsync_UsesCatalogPriceIgnoringClientMoneyAbsence()
     {
         await using var harness = await CreateSqliteHarnessAsync();
-        harness.Db.Products.Add(CreateProduct(id: 1, slug: "serum", name: "Serum", price: 25.00m, stock: 10));
-        await harness.Db.SaveChangesAsync();
+        await SetCatalogAsync(harness.Db, productId: 1, price: 25.00m, stock: 10, name: "Serum");
 
         var service = CreateService(harness.Db, new FakePaymentProvider());
         var result = await service.CreateCheckoutAsync(new CheckoutRequestDto
@@ -25,7 +23,7 @@ public class OrdersServiceTests
             Items = [new CheckoutLineItemDto { ProductId = 1, Quantity = 2 }],
         });
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, result.Message);
         var order = await harness.Db.Orders.Include(o => o.Items).SingleAsync();
         Assert.Equal(50.00m, order.TotalAmount);
         var line = Assert.Single(order.Items);
@@ -38,8 +36,7 @@ public class OrdersServiceTests
     public async Task GuestCheckout_CreateCheckoutAsync_SetsClientIdNullAndStatusPending()
     {
         await using var harness = await CreateSqliteHarnessAsync();
-        harness.Db.Products.Add(CreateProduct(id: 1, slug: "serum", name: "Serum", price: 25.00m, stock: 10));
-        await harness.Db.SaveChangesAsync();
+        await SetCatalogAsync(harness.Db, productId: 1, price: 25.00m, stock: 10, name: "Serum");
 
         var service = CreateService(harness.Db, new FakePaymentProvider());
         var result = await service.CreateCheckoutAsync(new CheckoutRequestDto
@@ -49,7 +46,7 @@ public class OrdersServiceTests
             Items = [new CheckoutLineItemDto { ProductId = 1, Quantity = 1 }],
         });
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, result.Message);
         var order = await harness.Db.Orders.SingleAsync();
         Assert.Null(order.ClientId);
         Assert.Equal(OrderStatus.Pending, order.Status);
@@ -61,8 +58,7 @@ public class OrdersServiceTests
     public async Task CreateCheckoutAsync_InsufficientStock_IsConflictAndStockUnchanged()
     {
         await using var harness = await CreateSqliteHarnessAsync();
-        harness.Db.Products.Add(CreateProduct(id: 1, slug: "serum", name: "Serum", price: 25.00m, stock: 1));
-        await harness.Db.SaveChangesAsync();
+        await SetCatalogAsync(harness.Db, productId: 1, price: 25.00m, stock: 1, name: "Serum");
 
         var service = CreateService(harness.Db, new FakePaymentProvider());
         var result = await service.CreateCheckoutAsync(new CheckoutRequestDto
@@ -80,8 +76,7 @@ public class OrdersServiceTests
     public async Task CreateCheckoutAsync_PaymentProviderFailure_RestoresStockAndMarksFailed()
     {
         await using var harness = await CreateSqliteHarnessAsync();
-        harness.Db.Products.Add(CreateProduct(id: 1, slug: "serum", name: "Serum", price: 25.00m, stock: 5));
-        await harness.Db.SaveChangesAsync();
+        await SetCatalogAsync(harness.Db, productId: 1, price: 25.00m, stock: 5, name: "Serum");
 
         var service = CreateService(harness.Db, new ThrowingPaymentProvider());
         var result = await service.CreateCheckoutAsync(new CheckoutRequestDto
@@ -160,6 +155,21 @@ public class OrdersServiceTests
     private static OrdersService CreateService(BookingDbContext db, IPaymentProvider paymentProvider)
         => new OrdersService(db, paymentProvider, new CheckoutRequestDtoValidator());
 
+    private static async Task SetCatalogAsync(
+        BookingDbContext db,
+        int productId,
+        decimal price,
+        int stock,
+        string name)
+    {
+        var product = await db.Products.SingleAsync(p => p.Id == productId);
+        product.Price = price;
+        product.Stock = stock;
+        product.Name = name;
+        product.IsActive = true;
+        await db.SaveChangesAsync();
+    }
+
     private static async Task<SqliteHarness> CreateSqliteHarnessAsync()
     {
         var connection = new SqliteConnection("DataSource=:memory:");
@@ -173,20 +183,6 @@ public class OrdersServiceTests
         await db.Database.EnsureCreatedAsync();
         return new SqliteHarness(connection, db);
     }
-
-    private static Product CreateProduct(int id, string slug, string name, decimal price, int stock)
-        => new Product
-        {
-            Id = id,
-            Slug = slug,
-            Name = name,
-            ShortDescription = "A stylist-recommended hair care product.",
-            LongDescription = "A stylist-recommended hair care product for testing checkout.",
-            Category = "Hair Care",
-            Price = price,
-            Stock = stock,
-            IsActive = true,
-        };
 
     private sealed class ThrowingPaymentProvider : IPaymentProvider
     {
