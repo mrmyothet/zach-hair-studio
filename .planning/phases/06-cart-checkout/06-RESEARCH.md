@@ -1,32 +1,8 @@
 # Phase 6: Cart & Checkout - Research
 
-**Researched:** 2026-08-09
-**Domain:** Guest cart + server-authoritative checkout, Stripe direct integration (Checkout Session + webhook-verified fulfillment), atomic stock decrement, EF Core entity design
+**Researched:** 2026-08-10 (force-refresh; prior 2026-08-09 draft was truncated before Validation Architecture)
+**Domain:** Guest cart + server-authoritative checkout, Stripe.net (Checkout Session + webhook-verified fulfillment), atomic stock decrement, EF Core entity design
 **Confidence:** MEDIUM
-
-## Summary
-
-Phase 6 is the highest external-integration-risk phase after Phase 2: it introduces the payment provider (Stripe), the second read-then-write race (stock), and the price-authority boundary. The good news is that every *internal* pattern this phase needs already exists and shipped: the Phase 2 booking path proves the "single implicit transaction / unique-index guarantee / best-effort-after-commit email" shape; Phase 4 proves the `Database.CreateExecutionStrategy().ExecuteAsync` + explicit transaction wrapper that the atomic stock decrement needs under `EnableRetryOnFailure`; the `Result<T>` + FluentValidation + controller-mapping shape is identical across every feature. What is genuinely new is the Stripe wire contract: `SessionCreateOptions` → `Session.Url` redirect, `EventUtility.ConstructEvent` signature verification, and idempotent webhook fulfillment keyed on the `checkout.session.completed` event.
-
-The design is fully constrained by CONTEXT.md's locked decisions and the ROADMAP research flag: Cart/CartItem and Order/OrderItem are two separate tables (ephemeral vs immutable snapshot); the stock guarantee is the atomic conditional UPDATE (`UPDATE Products SET Stock = Stock - @qty WHERE Id = @id AND Stock >= @qty`) in the same transaction as order creation, returning 0 affected rows → 409; totals are recomputed server-side from the catalog by ProductId, never trusted from the client; fulfillment only ever happens from a signature-verified Stripe webhook, never the client redirect; `Order.ClientId` is nullable; recommended add-ons surface on the cart page. The three genuine open research calls are: the guest cart session-key mechanism (header vs cookie — this repo's `AllowAnyOrigin` CORS rules out the cookie path), the `IPaymentProvider` seam shape, and which Stripe session parameter carries the order linkage back to the webhook (`client_reference_id`/`metadata`).
-
-**Primary recommendation:** Implement `Features/Orders/` and `Features/Carts/` (or a single `Features/Checkout/` feature — see Open Questions) mirroring the `Features/Bookings/` service-layer shape; add `Cart`, `CartItem`, `Order`, `OrderItem` to `BookingDbContext` with the immutable-snapshot pattern (OrderItem copies price/name at checkout); decrement stock via `ExecuteUpdateAsync` with a `WHERE Stock >= qty` guard inside `Database.CreateExecutionStrategy().ExecuteAsync` + explicit transaction, all in the same transaction as order creation; add `Stripe.net` behind a small `IPaymentProvider` interface; create the Checkout Session server-side with `price_data` (never client prices), redirect the client to `Session.Url`; handle `checkout.session.completed` in a raw-body webhook endpoint using `EventUtility.ConstructEvent`, check `payment_status == "paid"`, and flip the order Pending→Fulfilled idempotently.
-
-**Highest-risk items the plan must treat as first-class tasks:** (1) the transaction + retry-strategy wrapper for the atomic decrement (Phase 4 precedent, not Phase 2's single-`SaveChanges` shape), (2) raw-body webhook reading (model binding silently breaks signature verification), (3) webhook idempotency (Stripe retries non-2xx for up to 3 days; a unique index on `Order.StripeSessionId` is the duplicate guard), and (4) Stripe test-mode local development via the Stripe CLI (`stripe listen`), which the environment does not yet have installed.
-
-## Architectural Responsibility Map
-
-| Capability | Primary Tier | Secondary Tier | Rationale |
-|------------|-------------|----------------|-----------|
-| Cart/CartItem persistence (ephemeral, session-keyed) | Database / Storage | API / Backend | DB tables keyed by a client session identifier per CONTEXT.md decision; `CartsService` owns all `BookingDbContext` access (PLAT-01) |
-| Order/OrderItem immutable snapshot creation | API / Backend | Database / Storage | `OrdersService.CreateAsync` recomputes totals server-side from the catalog (SHOP-03) and writes the snapshot in one transaction |
-| Atomic stock decrement | Database / Storage | — | The conditional `UPDATE ... WHERE Stock >= @qty` is a single SQL statement — only the DB can make the exactly-one-winner guarantee (SHOP-04) |
-| Checkout Session creation | API / Backend | — | Server-side only, via `IPaymentProvider` → Stripe.net; prices come from `price_data` derived from the DB catalog, never the client |
-| Webhook signature verification + fulfillment | API / Backend | — | `EventUtility.ConstructEvent` in a raw-body endpoint; only a verified `checkout.session.completed` flips the order to Fulfilled (SHOP-05) |
-| Guest cart session-key issuance/validation | API / Backend | — | Server generates and accepts the session id; client stores it (header mechanism — see Pattern 4) |
-| Cart page / checkout UX + add-on chips | Frontend Server (SSR) | — | RSC pages + a client cart-state layer; add-ons render as suggestion chips per SHOP-07 |
-| Recommended-add-on lookup at checkout | API / Backend | Database / Storage | Reuses `ServiceRecommendedProduct` join (PROD-03) — surfaced again at checkout (SHOP-07) |
-| Stripe CLI local webhook forwarding | Developer tooling | — | `stripe listen --forward-to` is the only way to receive real `checkout.session.completed` events locally |
 
 <user_constraints>
 ## User Constraints (from CONTEXT.md)
@@ -69,14 +45,52 @@ The design is fully constrained by CONTEXT.md's locked decisions and the ROADMAP
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| SHOP-01 | Client can add products to a cart and review it | Cart/CartItem entity shape (Pattern 1), session-key mechanism (Pattern 4), cart page (Pattern 5) |
-| SHOP-02 | Client can check out and pay through an integrated payment provider | `IPaymentProvider` seam (Pattern 2), Stripe.net Checkout Session creation (Pattern 3), Stripe CLI local flow (Pattern 6) |
-| SHOP-03 | Order total is computed server-side from the catalog; client-supplied prices are never trusted | `OrdersService.CreateAsync` recomputes totals by ProductId (Pattern 1); `price_data` from catalog prices; OrderItem snapshot stores the authoritative amounts |
-| SHOP-04 | Product stock is decremented atomically on order creation, with no overselling under concurrent checkout | Atomic conditional `ExecuteUpdateAsync` with `WHERE Stock >= qty` in the same transaction (Pattern 1 + Pattern 7) |
-| SHOP-05 | Order fulfillment is confirmed only via a verified payment webhook, not the client redirect | Raw-body webhook endpoint + `EventUtility.ConstructEvent` (Pattern 3), `payment_status == "paid"` check, idempotent flip via unique `StripeSessionId` index (Pattern 8) |
-| SHOP-06 | Guest checkout works without an account (`Order.ClientId` nullable) | `Order.ClientId` nullable int, no auth requirement on cart/checkout endpoints |
-| SHOP-07 | Stylist-recommended add-ons are surfaced at checkout | Reuses the Phase 5 `ServiceRecommendedProduct` join; cart page renders suggestion chips (Pattern 5) |
+| SHOP-01 | Client can add products to a cart and review it | Cart/CartItem entity shape (Pattern 1), session-key mechanism (Pattern 4), cart page (Pattern 5); Validation: CartsController/CartsService tests |
+| SHOP-02 | Client can check out and pay through an integrated payment provider | `IPaymentProvider` seam (Pattern 2), Stripe.net Checkout Session creation (Pattern 3), Stripe CLI local flow (Pattern 6); Validation: fake provider + manual Stripe CLI UAT |
+| SHOP-03 | Order total is computed server-side from the catalog; client-supplied prices are never trusted | `OrdersService.CreateCheckoutAsync` recomputes totals by ProductId (Pattern 1); `price_data` from catalog; OrderItem snapshot; Validation: price-authority tests |
+| SHOP-04 | Product stock is decremented atomically on order creation, with no overselling under concurrent checkout | Atomic conditional `ExecuteUpdateAsync` with `WHERE Stock >= qty` in the same transaction (Pattern 1 + Pattern 7); Validation: SqlServer concurrency proof mirroring `ConcurrencyTests` |
+| SHOP-05 | Order fulfillment is confirmed only via a verified payment webhook, not the client redirect | Raw-body webhook + `EventUtility.ConstructEvent` (Pattern 3), `payment_status` check, idempotent flip via unique `StripeSessionId` (Pattern 8); Validation: webhook signature tests |
+| SHOP-06 | Guest checkout works without an account (`Order.ClientId` nullable) | `Order.ClientId` nullable int; no auth on cart/checkout endpoints; Validation: create-order asserts null ClientId |
+| SHOP-07 | Stylist-recommended add-ons are surfaced at checkout | Reuses Phase 5 `ServiceRecommendedProduct` join; cart chips (Pattern 5 / UI-SPEC); Validation: recommended-for-checkout service/API test |
 </phase_requirements>
+
+## Project Constraints (from CLAUDE.md)
+
+Actionable directives the planner must honor:
+
+- **Stack:** Next.js 15 App Router + React 19 + Tailwind 4 (`landing-page/`, `dashboard/`); .NET 10 / ASP.NET Core + EF Core 10 / SQL Server API.
+- **Architecture:** Feature folders (`Features/<Name>/`); TypeScript on frontend; OpenAPI source of truth for typed clients (landing-page currently hand-writes `lib/` fetches).
+- **Dev simplicity:** LocalDB + `next dev` + `dotnet run` baseline; secrets via `dotnet user-secrets` / env only (never tracked files) — same D-13 discipline as `RESEND_API_KEY` / `Jwt:SigningKey`.
+- **Booking invariant (do not break):** `AppointmentSlot` unique index on `(StylistId, SlotStart)` must remain **unfiltered**.
+- **Service layer:** Controllers never inject `BookingDbContext` (PLAT-01); FluentValidation for DTOs (PLAT-02).
+- **Tests:** `dotnet test API/ZachHairStudio.slnx`; concurrency proofs use `SqlServerWebApplicationFactory`, not InMemory.
+- **EF migrations:** `dotnet-ef` v10.x; Shared project + Api startup; skill `ef-migrations`.
+- **Skills to follow:** `feature-scaffold`, `ef-migrations`, `openapi-client` (optional for landing-page this phase — hand-written `lib/cart.ts` matches Phase 5 `lib/products.ts`), `dev`.
+- **GSD:** Do not make direct repo edits outside a GSD workflow unless explicitly asked to bypass.
+
+## Summary
+
+Phase 6 is the highest external-integration-risk phase after Phase 2: it introduces Stripe, the second read-then-write race (stock), and the price-authority boundary. Internal patterns already shipped: Phase 2 proves exactly-one-winner under concurrency; Phase 4 proves `Database.CreateExecutionStrategy().ExecuteAsync` + explicit transaction (required because `ExecuteUpdateAsync` does not participate in `SaveChanges`’s implicit transaction and the repo enables `EnableRetryOnFailure`); `Result<T>` + FluentValidation + feature folders are stable. What is new is the Stripe wire contract: `SessionCreateOptions` → `Session.Url` redirect, `EventUtility.ConstructEvent` on a raw body, and idempotent webhook fulfillment keyed on the Checkout Session.
+
+Design is fully constrained by CONTEXT.md: Cart/CartItem vs Order/OrderItem as separate tables; atomic conditional stock UPDATE in the same transaction as Pending order creation; server-recomputed totals; fulfillment only from a signature-verified webhook; nullable `Order.ClientId`; add-on chips on the cart page. Discretion resolutions recommended below: header session key (not cookie), test-mode Stripe, `/api/stripe/webhook`, filtered unique index on `Order.StripeSessionId`.
+
+**Primary recommendation:** Implement `Features/Carts/`, `Features/Orders/`, and `Features/Payments/` mirroring Bookings’ service-layer shape; decrement stock via `ExecuteUpdateAsync` with `WHERE Stock >= qty` inside `CreateExecutionStrategy` + explicit transaction; add `Stripe.net` 52.2.0 behind `IPaymentProvider`; create Checkout Sessions with `price_data` from catalog prices; handle `checkout.session.completed` in a raw-body webhook; prove SHOP-03/04/05 with automated tests before UAT.
+
+**Highest-risk plan items:** (1) transaction + retry-strategy wrapper for atomic decrement, (2) raw-body webhook reading, (3) webhook idempotency + unique `StripeSessionId`, (4) compensating path if Stripe session creation fails after stock decrement, (5) Stripe CLI install for SHOP-05 UAT, (6) `Result.ConflictError` currently requires `AvailabilityConflictDto` — stock 409 needs a message-only overload or `DuplicateRecordError`→409 mapping like Appointments.
+
+## Architectural Responsibility Map
+
+| Capability | Primary Tier | Secondary Tier | Rationale |
+|------------|-------------|----------------|-----------|
+| Cart/CartItem persistence (ephemeral, session-keyed) | Database / Storage | API / Backend | DB tables keyed by client session id; `CartsService` owns DbContext (PLAT-01) |
+| Order/OrderItem immutable snapshot | API / Backend | Database / Storage | `OrdersService` recomputes totals (SHOP-03) and writes snapshot in one transaction |
+| Atomic stock decrement | Database / Storage | — | Conditional `UPDATE ... WHERE Stock >= @qty` is the exactly-one-winner guarantee (SHOP-04) |
+| Checkout Session creation | API / Backend | — | Server-only via `IPaymentProvider` → Stripe.net; `price_data` from DB catalog |
+| Webhook signature verification + fulfillment | API / Backend | — | Raw-body + `EventUtility.ConstructEvent`; only verified paid session flips Fulfilled (SHOP-05) |
+| Guest cart session-key | API / Backend | Browser / Client | Server issues/accepts id; client stores in `localStorage` and sends header |
+| Cart / checkout UX + add-on chips | Browser / Client | Frontend Server (SSR) | `"use client"` cart/checkout per UI-SPEC; suggestion chips SHOP-07 |
+| Recommended-add-on lookup | API / Backend | Database / Storage | Reuses `ServiceRecommendedProduct` join (PROD-03) |
+| Stripe CLI local forwarding | Developer tooling | — | Required for SHOP-05 manual/e2e verification locally |
 
 ## Standard Stack
 
@@ -84,53 +98,61 @@ The design is fully constrained by CONTEXT.md's locked decisions and the ROADMAP
 
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
-| Stripe.net | 52.2.0 (2026-07-29) | Checkout Session creation + webhook signature verification | Official Stripe .NET SDK; owner `stripe`, 95.5M downloads, repo github.com/stripe/stripe-dotnet. This is the locked decision from CONTEXT.md. `[VERIFIED: nuget.org — Stripe.net package page, owner stripe, version 52.2.0, released 2026-07-29]` |
-| Microsoft.EntityFrameworkCore.SqlServer | 10.0.9 | `ExecuteUpdateAsync` atomic stock decrement + transactional order creation | Already pinned in repo `[VERIFIED: repo file — ZachHairStudio.Shared.csproj]` |
-| FluentValidation | 12.1.1 | Cart/checkout DTO validators | Existing PLAT-02 layer, auto-registered by the existing assembly scan — no `Program.cs` change needed `[VERIFIED: repo file — Program.cs line 49]` |
-| Microsoft.EntityFrameworkCore.InMemory | 10.0.9 | Unit tests for services (NOT for the atomic decrement — InMemory does not execute SQL) | Already pinned in the test project `[VERIFIED: repo file — ZachHairStudio.Api.Tests.csproj]` |
-| zod | 4.4.3 | Response validation in the landing-page cart/checkout fetch layer | Already the frontend convention `[VERIFIED: repo file — landing-page/package.json]` |
+| Stripe.net | 52.2.0 (latest stable on nuget.org as of 2026-08-10; 52.3.0-beta.1 exists — do not use) | Checkout Session + webhook signature verification | Official Stripe .NET SDK; locked by CONTEXT.md. `[VERIFIED: nuget.org flat container — latest stable 52.2.0]` |
+| Microsoft.EntityFrameworkCore.SqlServer | 10.0.9 | `ExecuteUpdateAsync` + transactional order creation | Already pinned `[VERIFIED: repo — ZachHairStudio.Shared.csproj / Api.Tests.csproj]` |
+| FluentValidation | (existing assembly scan) | Cart/checkout DTO validators | PLAT-02; auto-registered — no Program.cs scan change `[VERIFIED: repo — Program.cs AddValidatorsFromAssemblyContaining]` |
+| Microsoft.EntityFrameworkCore.InMemory | 10.0.9 | Unit tests for services (**not** atomic decrement) | Already pinned `[VERIFIED: repo — Api.Tests.csproj]` |
+| xUnit | 2.9.3 | Test runner | Already pinned `[VERIFIED: repo — Api.Tests.csproj]` |
+| zod | 4.4.3 | Landing-page cart/checkout response validation | Existing frontend convention `[VERIFIED: repo — landing-page/package.json]` |
 
-**Target-framework note (critical):** Stripe.net 52.2.0 ships `netstandard2.0`, `net6.0`, `net8.0`, `net9.0`, `net462` targets — **no `net10.0` target**. This is safe: .NET 10 apps can reference libraries targeting older runtimes (official .NET versioning doc: "An app that's upgraded to a newer major .NET Runtime version can reference libraries and NuGet packages that target older .NET Runtime versions"). A `net10.0` consumer resolves the package's `net8.0` or `net9.0` target. Verify at `dotnet add package` time that NuGet resolves cleanly on net10.0 (it will pick the nearest compatible TFM), and let the first `dotnet build API/ZachHairStudio.slnx` be the proof. `[VERIFIED: nuget.org Stripe.net page — TFM list; CITED: learn.microsoft.com/en-us/dotnet/core/versions — runtime compatibility]`
+**Target-framework note:** Stripe.net 52.2.0 ships older TFMs (no `net10.0`); .NET 10 apps may reference older-runtime libraries. Confirm clean restore/build after `dotnet add package`. `[CITED: learn.microsoft.com/dotnet/core/versions — runtime compatibility; ASSUMED TFM list matches prior nuget page inspection]`
 
 ### Supporting
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| Stripe CLI | latest (not installed) | Local webhook forwarding: `stripe listen --forward-to localhost:5236/...`; test events via `stripe trigger checkout.session.completed`; prints the `whsec_...` signing secret | Required for any manual/end-to-end verification of SHOP-05 fulfillment in dev — a human-verify checkpoint should include installing it `[CITED: docs.stripe.com/cli/listen]` |
+| Stripe CLI | latest (not installed in this environment) | `stripe listen --forward-to localhost:5236/api/stripe/webhook`; `stripe trigger`; prints `whsec_...` | SHOP-05 local UAT / human-verify checkpoint `[CITED: docs.stripe.com/cli/listen]` |
 
 ### Alternatives Considered
 
 | Instead of | Could Use | Tradeoff |
 |------------|-----------|----------|
-| Stripe.net (direct) | Paddle / Lemon Squeezy (merchant-of-record) | MoR providers charge more and add a middleman; the project research (research/SUMMARY.md) already locked Stripe direct — not a live alternative this phase |
-| `IPaymentProvider` interface | Direct `StripeClient` in `OrdersService` | CONTEXT.md locks the interface; it also makes the Stripe session-creation call unit-testable with a fake (no live Stripe API in tests — the test suite has no Stripe keys) |
-| Header `X-Cart-Session-Id` for guest cart | Server-set HttpOnly cookie | The cookie path requires `AllowCredentials()` + a specific CORS origin; this repo's `AllowAnyOrigin` default (Phase 8 tightens it) is incompatible with credentialed cookies. The header keeps `AllowAnyOrigin` working and the session id is a non-sensitive random value (Pattern 4) |
-| `ExecuteUpdateAsync` for the stock decrement | Raw `ExecuteSqlInterpolated($"UPDATE Products SET Stock = Stock - {qty} WHERE Id = {id} AND Stock >= {qty}")` | Both emit one atomic SQL statement. `ExecuteUpdateAsync` is the typed EF Core API (no string SQL, no provider-escape risk) and returns affected-row count; prefer it. `ExecuteSqlInterpolated` is the fallback if the plan needs to prove the exact `@qty` parameter shape |
-| `price_data` on Session line items | Pre-created Stripe Price objects (`price_...`) | `price_data` prices from the external DB catalog directly — exactly this project's "server recomputes from catalog" model (SHOP-03); Stripe Price objects would require syncing the catalog to Stripe, an extra moving part with zero benefit for a small catalog |
-| `Order.ClientId` nullable int | No client column at all | CONTEXT.md locks nullable for Phase 7 account linkage; keep it |
+| Stripe.net (direct) | Paddle / Lemon Squeezy (MoR) | Locked out by CONTEXT.md |
+| `IPaymentProvider` | Direct `StripeClient` in OrdersService | Locked interface; also enables fake provider in tests (no Stripe keys in CI) |
+| Header `X-Cart-Session-Id` | HttpOnly cookie | Cookie needs `AllowCredentials` + specific origin; repo uses `AllowAnyOrigin()` until Phase 8 `[VERIFIED: repo — Program.cs]` |
+| `ExecuteUpdateAsync` | Raw `ExecuteSqlInterpolated` | Prefer typed EF API; same atomic SQL semantics |
+| `price_data` | Pre-created Stripe Price objects | Would force catalog sync to Stripe; zero benefit for small catalog `[CITED: docs.stripe.com/checkout/quickstart — price_data vs predefined prices]` |
 
 **Installation:**
 ```bash
 cd API/ZachHairStudio.Api
-dotnet add package Stripe.net   # resolves latest stable 52.2.0 on net10.0
+dotnet add package Stripe.net --version 52.2.0
+# Pin Version in the csproj that owns the Payments feature (Shared or Api — prefer Shared if StripePaymentProvider lives there, else Api)
 ```
 
-**Version verification:** Verified against nuget.org (2026-08-09): `Stripe.net` 52.2.0, released 2026-07-29, owner `stripe`. Stripe.net releases monthly — re-check the latest stable at plan-execution time, but pin to a specific version in the `.csproj` (e.g. `Version="52.2.0"`) to keep the lockfile honest.
+If `StripePaymentProvider` lives in `ZachHairStudio.Shared`, add the package to **Shared** (keep Api free of payment SDK if possible). Shared already holds feature services.
+
+**Discretion resolutions (Claude's Discretion → recommended locks for planner):**
+
+| Topic | Recommendation |
+|-------|----------------|
+| Stripe mode | **Test mode** for MVP implementation + UAT; live keys only at launch (Phase 8) |
+| Webhook path | `POST /api/stripe/webhook` (`StripeWebhookController`) |
+| Cart session key | Client-generated or server-issued UUID stored in `localStorage`, sent as `X-Cart-Session-Id` on every cart/checkout call |
+| Idempotency | Filtered unique index on `Order.StripeSessionId` WHERE NOT NULL; `MarkFulfilledAsync` no-ops if already Fulfilled; optional Stripe `Idempotency-Key` header on Session create = `order-{orderId}` |
 
 ## Package Legitimacy Audit
 
-> NuGet is not one of the seam's supported ecosystems (npm/pypi/crates), so the automated seam check could not run for `Stripe.net`. Manual verification performed against nuget.org instead.
+> NuGet is not a supported ecosystem for `gsd-tools query package-legitimacy check` (npm/pypi/crates only). Manual verification against nuget.org + official Stripe quickstart (`dotnet add package Stripe.net`).
 
 | Package | Registry | Age | Downloads | Source Repo | Verdict | Disposition |
 |---------|----------|-----|-----------|-------------|---------|-------------|
-| Stripe.net | NuGet | 11+ yrs (first published 2014) | 95.5M total / 1.2M per day | github.com/stripe/stripe-dotnet (owner `stripe`) | OK | Approved |
+| Stripe.net | NuGet | 11+ yrs (2014+) | High (official Stripe SDK) | github.com/stripe/stripe-dotnet (owner stripe) | OK | Approved — pin 52.2.0 |
 
-**Verification method:** nuget.org package page (owner `stripe`, version 52.2.0, released 2026-07-29, license link to GitHub stripe/stripe-dotnet, 95.5M downloads). This is the same package the official Stripe quickstart documents (`dotnet add package Stripe.net`), so it is the authoritative package, not a slopsquat. `[VERIFIED: nuget.org]`
+**Packages removed due to [SLOP] verdict:** none  
+**Packages flagged as suspicious [SUS]:** none for NuGet Stripe.net
 
-**Packages removed due to [SLOP] verdict:** none
-**Packages flagged as suspicious [SUS]:** none
-
-*Note: the seam's `package-legitimacy check --ecosystem npm stripe` returned `SUS` ("too-new") for the npm `stripe` package — this is a false positive of the age heuristic on Stripe's monthly-republished official Node SDK (17.5M weekly downloads, repo stripe/stripe-node) and is not used this phase (this is a server-side Stripe.net integration; no client-side `@stripe/stripe-js` is needed for the hosted Checkout flow).*
+*Note: `package-legitimacy check --ecosystem npm stripe` returned `SUS` ("too-new") — false positive on monthly-republished official Node SDK; **not used this phase** (hosted Checkout needs no `@stripe/stripe-js`).*
 
 ## Architecture Patterns
 
@@ -139,169 +161,135 @@ dotnet add package Stripe.net   # resolves latest stable 52.2.0 on net10.0
 ```text
 Client browser (landing-page)
    │
-   ├── POST /api/carts/{sessionId}/items  ───────────► CartsController ──► CartsService (Cart/CartItem upsert, PLAT-01)
-   │                                                    ▲ server reads product price/stock from catalog, ignores client price
-   │ GET /api/carts/{sessionId} ────────────────────────┘
+   ├── POST/GET/DELETE /api/carts/{sessionKey}/... ──► CartsController ──► CartsService
+   │         header X-Cart-Session-Id (or path key)     ▲ reads catalog price/stock; CartItem stores ProductId+qty only
    │
-   ├── GET /api/products/recommended-for-checkout (or reuse service detail join) ──► ProductsService / ServicesService
-   │                                                    │  ServiceRecommendedProduct join → active products (SHOP-07 chips)
-   │                                                    ▼
-   │                                    BookingDbContext.ServiceRecommendedProducts / Products
+   ├── GET recommended-for-checkout ──► ProductsService / ServicesService (ServiceRecommendedProduct join)
    │
-   ├── POST /api/orders/checkout  { sessionId, lineItems[], email? } ──► OrdersController ──► OrdersService.CreateCheckoutSessionAsync
-   │                                                    │  1. Load Products by ProductId; recompute totals server-side (SHOP-03)
-   │                                                    │  2. Transaction (CreateExecutionStrategy + BeginTransaction):
-   │                                                    │       a. conditional UPDATE Products SET Stock = Stock - qty
-   │                                                    │            WHERE Id = @id AND Stock >= @qty   ← atomic, SHOP-04
-   │                                                    │         0 rows → rollback → 409 Conflict
-   │                                                    │       b. INSERT Order (Pending) + OrderItem snapshot rows
-   │                                                    │       c. SaveChanges + commit
-   │                                                    │  3. Stripe Checkout Session via IPaymentProvider (Pattern 2/3):
-   │                                                    │       price_data from catalog prices, client_reference_id = orderId
-   │                                                    │  4. Return { checkoutUrl: Session.Url } → client 303-redirects
-   │                                                    ▼
-   │                                          Stripe Checkout (hosted payment page)
-   │                                                    │
-   │  success_url redirect (NEVER fulfills) ◄───────────┤  customer pays → Stripe fires checkout.session.completed
-   │                                                    ▼
-   │                                    Stripe → POST /api/stripe/webhook (raw body + Stripe-Signature)
-   │                                                    │  EventUtility.ConstructEvent → 400 on signature failure
-   │                                                    │  type == checkout.session.completed && payment_status == "paid"
-   │                                                    ▼
-   │                                    OrdersService.MarkFulfilledAsync(sessionId)
-   │                                                    │  unique index on Order.StripeSessionId = idempotency guard
-   │                                                    │  Order: Pending → Fulfilled (SHOP-05) — stock already decremented
-   │                                                    ▼
-   │                                          BookingDbContext.Orders
+   ├── POST /api/orders/checkout { sessionKey, items[{productId,qty}], email? }
+   │         ──► OrdersController ──► OrdersService.CreateCheckoutAsync
+   │                1. Load Products; recompute totals (SHOP-03) — ignore any client price
+   │                2. CreateExecutionStrategy + BeginTransaction:
+   │                     a. ExecuteUpdateAsync Stock -= qty WHERE Stock >= qty  (SHOP-04)
+   │                        0 rows → rollback → 409
+   │                     b. INSERT Order(Pending, ClientId=null) + OrderItem snapshots
+   │                     c. SaveChanges + commit
+   │                3. IPaymentProvider.CreateCheckoutSession (price_data from snapshots)
+   │                     on Stripe failure → compensate (restore stock, Order Failed)
+   │                4. Return { checkoutUrl }
+   │         ──► client window.location = checkoutUrl
+   │
+   │                    Stripe hosted Checkout
+   │                         │
+   │  success_url (display only — NEVER Fulfilled) ◄──┤
+   │                         │ checkout.session.completed
+   │                         ▼
+   │         POST /api/stripe/webhook (raw body + Stripe-Signature)
+   │              EventUtility.ConstructEvent → 400 on bad sig
+   │              type completed && payment_status paid
+   │              OrdersService.MarkFulfilledAsync (idempotent)  (SHOP-05)
 ```
-
-**File-to-implementation mapping** (diagram shows data flow only):
-
-| Diagram element | Implementation |
-|-----------------|----------------|
-| CartsService | `API/ZachHairStudio.Shared/Features/Carts/CartsService.cs` |
-| OrdersService | `API/ZachHairStudio.Shared/Features/Orders/OrdersService.cs` |
-| IPaymentProvider / StripePaymentProvider | `API/ZachHairStudio.Shared/Features/Payments/IPaymentProvider.cs`, `StripePaymentProvider.cs` |
-| Webhook endpoint | `API/ZachHairStudio.Api/Controllers/StripeWebhookController.cs` |
-| Stripe session creation options | Pattern 3 below |
 
 ### Recommended Project Structure
 
 ```
 API/ZachHairStudio.Shared/Features/Carts/
-├── Cart.cs                    # ephemeral cart: Id, SessionKey (unique index), CreatedAtUtc
-├── CartItem.cs                # CartId FK, ProductId, Quantity (1..stock, no price stored)
-├── CartResponseDto.cs / CartItemResponseDto.cs
-├── CartItemCreateDto.cs + Validator.cs   # productId + quantity only — NO price/total field
-├── CartExtensions.cs          # entity ⇄ DTO
-└── CartsService.cs            # all Cart/CartItem DbContext access (PLAT-01)
+├── Cart.cs / CartItem.cs
+├── Cart*Dto.cs + CartItemCreateDtoValidator.cs   # productId + quantity only — NO price
+├── CartExtensions.cs
+└── CartsService.cs
 
 API/ZachHairStudio.Shared/Features/Orders/
-├── Order.cs                   # immutable snapshot header: ClientId (nullable), Status, StripeSessionId, StripeSessionUrl,
-│                              #   TotalAmount (server-recomputed), CustomerEmail?, PlacedAtUtc, FulfilledAtUtc?
-├── OrderItem.cs               # immutable snapshot line: OrderId, ProductId, ProductName (copied), UnitPrice (copied),
-│                              #   Quantity, LineTotal (= UnitPrice * Quantity, server-computed)
-├── OrderStatus.cs             # enum { Pending, Fulfilled, Failed } — string-converted like Appointment.Status
-├── OrderResponseDto.cs / OrderItemResponseDto.cs
-├── CheckoutRequestDto.cs + Validator.cs   # sessionId + line items (productId, quantity) + optional email
+├── Order.cs / OrderItem.cs / OrderStatus.cs
+├── CheckoutRequestDto.cs + Validator.cs          # productId + quantity + optional email
 ├── OrderExtensions.cs
-└── OrdersService.cs           # CreateCheckoutSessionAsync + MarkFulfilledAsync (all Order/OrderItem/Stock access)
+└── OrdersService.cs                              # CreateCheckoutAsync + MarkFulfilledAsync
 
 API/ZachHairStudio.Shared/Features/Payments/
-├── IPaymentProvider.cs        # CreateCheckoutSessionAsync(CheckoutSessionRequest) → CheckoutSessionResult (Url, Id)
-└── StripePaymentProvider.cs   # Stripe.net SessionCreateOptions; reads StripeOptions
+├── IPaymentProvider.cs
+├── StripePaymentProvider.cs
+└── StripeOptions.cs                              # SecretKey, WebhookSecret, SuccessUrl, CancelUrl
 
 API/ZachHairStudio.Api/Controllers/
-├── CartsController.cs         # GET /api/carts/{sessionKey}, POST /api/carts/{sessionKey}/items, DELETE item
-├── CheckoutController.cs      # POST /api/orders/checkout → 303 redirect URL (or 200 { checkoutUrl })
-└── StripeWebhookController.cs # POST /api/stripe/webhook — raw body, no [FromBody]
+├── CartsController.cs
+├── CheckoutController.cs                         # or OrdersController
+└── StripeWebhookController.cs                    # raw body, [AllowAnonymous]
 
-API/ZachHairStudio.Api/Options/  (or alongside)
-└── StripeOptions.cs           # SecretKey, WebhookSecret, SuccessUrl, CancelUrl — bound from config, never a tracked file
-
-landing-page/lib/
-├── cart.ts                    # Zod schemas + fetch helpers: getCart, addToCart, removeItem, createCheckout
-├── checkout.ts                # (optional) thin wrapper returning the Stripe redirect URL
-└── cartSession.ts             # session-id generation + localStorage persistence + header attach
-
-landing-page/app/cart/
-└── page.tsx                   # cart review page + add-on chips (SHOP-07) + Checkout button (client-side redirect)
+landing-page/lib/cart.ts + cartSession.ts
+landing-page/app/cart/page.tsx
+landing-page/app/checkout/page.tsx
+landing-page/app/checkout/success/page.tsx
+landing-page/app/checkout/cancel/page.tsx
 ```
 
-### Pattern 1: Immutable-snapshot Order/OrderItem + server-recomputed totals (SHOP-03, SHOP-04, SHOP-06)
+### Pattern 1: Immutable-snapshot Order + atomic stock (SHOP-03/04/06)
 
-**What:** `Order` is the immutable header created at checkout; `OrderItem` snapshots the product name and unit price *as they were at purchase time* (a later catalog price edit must not rewrite history). `Cart`/`CartItem` never hold prices — only `ProductId` + quantity. The authoritative total is recomputed by loading `Product` rows from the catalog and multiplying `Price × Quantity`, so a tampered client payload (a forged price or a forged total) is ignored because the client payload carries no price at all.
+**What:** Cart holds only `ProductId` + quantity. At checkout, load catalog rows, recompute `LineTotal = Price * Quantity`, snapshot name/price onto `OrderItem`, decrement stock with conditional UPDATE, insert `Order` with `ClientId = null` and `Status = Pending`.
 
-**When to use:** Every checkout path. This is the one place in the system where money moves — never derive the amount from anything the client sent.
+**Critical API note:** `Result<T>.ConflictError` today **requires** `IReadOnlyList<AvailabilityConflictDto>` `[VERIFIED: repo — Result.cs]`. For stock 409, planner must either:
+1. Add overload `ConflictError(string message, T? data = default)` (preferred — keeps `IsConflict()` mapping), or
+2. Map via `DuplicateRecordError` → controller `Conflict(...)` like `AppointmentsController` `[VERIFIED: repo — AppointmentsController.cs]`.
 
-**Example — the checkout transaction (the heart of SHOP-03/SHOP-04):**
+**Example — checkout transaction:**
 ```csharp
-// Source: pattern synthesized from learn.microsoft.com/en-us/ef/core/saving/execute-insert-update-delete
-// and the repo's Phase 4 AvailabilityService transaction precedent
-public async Task<Result<CheckoutResponseDto>> CreateCheckoutAsync(CheckoutRequestDto request)
+// Source: learn.microsoft.com/ef/core/saving/execute-insert-update-delete
+// + repo AvailabilityService CreateExecutionStrategy pattern (Phase 4)
+var strategy = _dbContext.Database.CreateExecutionStrategy();
+return await strategy.ExecuteAsync(async () =>
 {
-    var validation = await _validator.ValidateAsync(request);
-    if (!validation.IsValid) return Result<CheckoutResponseDto>.ValidationError(...);
+    await using var tx = await _dbContext.Database.BeginTransactionAsync();
 
-    var strategy = _dbContext.Database.CreateExecutionStrategy();  // EnableRetryOnFailure-safe
-    return await strategy.ExecuteAsync(async () =>
+    var order = new Order { Status = OrderStatus.Pending, ClientId = null, PlacedAtUtc = DateTimeOffset.UtcNow };
+    foreach (var line in request.Items)
     {
-        await using var tx = await _dbContext.Database.BeginTransactionAsync();
+        var product = await _dbContext.Products.FindAsync(line.ProductId);
+        if (product is null || !product.IsActive)
+            return Result<CheckoutResponseDto>.NotFoundError($"Product {line.ProductId} not found.");
 
-        // 1. Atomic stock decrement — one SQL UPDATE per line, guarded by Stock >= qty.
-        //    0 rows affected = sold out/insufficient stock → rollback + 409.
-        var order = new Order { Status = OrderStatus.Pending, ClientId = null, PlacedAtUtc = DateTimeOffset.UtcNow };
-        foreach (var line in request.Items)
+        var updated = await _dbContext.Products
+            .Where(p => p.Id == line.ProductId && p.Stock >= line.Quantity)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => p.Stock - line.Quantity));
+        if (updated == 0)
+            return Result<CheckoutResponseDto>.ConflictError(
+                $"Sorry, only {product.Stock} left of {product.Name}.",
+                Array.Empty<AvailabilityConflictDto>()); // replace with message-only overload when added
+
+        order.Items.Add(new OrderItem
         {
-            var product = await _dbContext.Products.FindAsync(line.ProductId);
-            if (product is null || !product.IsActive)
-                return Result<CheckoutResponseDto>.NotFoundError($"Product {line.ProductId} not found.");
+            ProductId = product.Id,
+            ProductName = product.Name,
+            UnitPrice = product.Price,
+            Quantity = line.Quantity,
+            LineTotal = product.Price * line.Quantity,
+        });
+    }
 
-            var updated = await _dbContext.Products
-                .Where(p => p.Id == line.ProductId && p.Stock >= line.Quantity)
-                .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => p.Stock - line.Quantity));
-            if (updated == 0)
-                return Result<CheckoutResponseDto>.ConflictError(
-                    $"Sorry, only {product.Stock} left of {product.Name}.");
+    order.TotalAmount = order.Items.Sum(i => i.LineTotal);
+    _dbContext.Orders.Add(order);
+    await _dbContext.SaveChangesAsync();
+    await tx.CommitAsync();
 
-            order.Items.Add(new OrderItem
-            {
-                ProductId = product.Id,
-                ProductName = product.Name,   // snapshot — catalog edits won't rewrite history
-                UnitPrice = product.Price,    // snapshot of the authoritative server price
-                Quantity = line.Quantity,
-                LineTotal = product.Price * line.Quantity,
-            });
-        }
-
-        order.TotalAmount = order.Items.Sum(i => i.LineTotal);  // server-recomputed (SHOP-03)
-        _dbContext.Orders.Add(order);
+    try
+    {
+        var session = await _paymentProvider.CreateCheckoutSessionAsync(...);
+        order.StripeSessionId = session.SessionId;
+        order.StripeSessionUrl = session.Url;
         await _dbContext.SaveChangesAsync();
-        await tx.CommitAsync();
-
-        // 2. After commit: create the Stripe Checkout Session (Pattern 2/3) and return its URL.
-        //    Order already exists with Pending status; webhook flips it to Fulfilled (SHOP-05).
-        var session = await _paymentProvider.CreateCheckoutSessionAsync(
-            new CheckoutSessionRequest(order.Id, order.TotalAmount, request.CustomerEmail,
-                order.Items.Select(i => new CheckoutLine(i.ProductName, i.UnitPrice, i.Quantity))));
-        return Result<CheckoutResponseDto>.Success(new CheckoutResponseDto { CheckoutUrl = session.Url });
-    });
-}
+        return Result<CheckoutResponseDto>.Success(new() { CheckoutUrl = session.Url, OrderId = order.Id });
+    }
+    catch
+    {
+        // Compensate: restore stock + mark Failed (same strategy/tx pattern)
+        throw; // planner: implement restore loop with ExecuteUpdateAsync Stock += qty
+    }
+});
 ```
-Key invariants to keep:
-- **Stock never goes negative** — the `WHERE Stock >= qty` guard makes the decrement atomic; two concurrent checkouts of the last unit produce exactly one row-update of 1 and one of 0 (SHOP-04). The Phase 2 `AppointmentSlot` unique-index precedent already proved this "exactly-one-winner" shape on real SQL Server.
-- **Client payload carries no prices** — `CheckoutRequestDto` has `productId`/`quantity` only. A tampered price/total in the request is structurally impossible (SHOP-03). The Stripe `price_data` derives from the DB prices, not the request.
-- **`Order.ClientId` is nullable** (SHOP-06) — no account required; Phase 7 backfills it.
-- **Relational-only decrement** — `ExecuteUpdateAsync` does not work on the InMemory provider; the concurrency proof must run against `SqlServerWebApplicationFactory` (real LocalDB), exactly like `ConcurrencyTests`.
+
+`ExecuteUpdateAsync` runs immediately, ignores the change tracker, and does **not** auto-start a transaction — wrap with explicit transaction. Returns rows affected — `0` means concurrency/insufficient stock. Relational providers only. `[CITED: learn.microsoft.com/ef/core/saving/execute-insert-update-delete]`
 
 ### Pattern 2: `IPaymentProvider` seam
 
-**What:** A small interface (locked by CONTEXT.md) that the Stripe implementation sits behind. The seam's value here is twofold: it keeps Stripe.net importable only where it is used, and it lets `OrdersService` be tested with a fake provider (no Stripe keys in CI).
-
-**Example:**
 ```csharp
-namespace ZachHairStudio.Shared.Features.Payments;
-
 public record CheckoutSessionRequest(int OrderId, decimal TotalAmount, string? CustomerEmail,
     IReadOnlyList<CheckoutLine> Lines);
 public record CheckoutLine(string ProductName, decimal UnitPrice, int Quantity);
@@ -312,144 +300,335 @@ public interface IPaymentProvider
     Task<CheckoutSessionResult> CreateCheckoutSessionAsync(CheckoutSessionRequest request, CancellationToken ct = default);
 }
 ```
-The Stripe implementation reads `StripeOptions` (secret key, webhook secret, success/cancel URLs) from config — secrets via `dotnet user-secrets`/env, never a tracked file (same D-13 discipline as `RESEND_API_KEY`/`Jwt:SigningKey`). Register in `Program.cs`: `builder.Services.AddSingleton(sp => new StripeClient(config["Stripe:SecretKey"]))` + `AddScoped<IPaymentProvider, StripePaymentProvider>()` (the Stripe sample registers `new StripeClient(...)` as a singleton; the provider can be scoped like every other service).
 
-### Pattern 3: Stripe Checkout Session creation + webhook verification
+Register `StripeClient` singleton from `Stripe:SecretKey` (user-secrets/env); `AddScoped<IPaymentProvider, StripePaymentProvider>()`. Tests inject a fake that returns a deterministic URL without network I/O.
 
-**What:** The two Stripe wire contracts. Create the session with `SessionCreateOptions`; verify inbound webhooks with `EventUtility.ConstructEvent` against the raw body.
+### Pattern 3: Stripe Checkout Session + webhook
 
-**When to use:** Every order checkout (session creation) and every fulfillment (webhook).
-
-**Example — server-side session creation (official Stripe.net shape, adapted):**
 ```csharp
-// Source: docs.stripe.com/checkout/quickstart (C# / .NET sample shape)
-using Stripe;
-using Stripe.Checkout;
-
+// Source: docs.stripe.com/checkout/quickstart + docs.stripe.com/webhooks?lang=dotnet
 var options = new SessionCreateOptions
 {
     Mode = "payment",
     SuccessUrl = _options.SuccessUrl + "?session_id={CHECKOUT_SESSION_ID}",
     CancelUrl = _options.CancelUrl,
-    ClientReferenceId = request.OrderId.ToString(),   // ← order linkage back from the webhook
+    ClientReferenceId = request.OrderId.ToString(),
     Metadata = new Dictionary<string, string> { ["order_id"] = request.OrderId.ToString() },
-    CustomerEmail = request.CustomerEmail,            // guest prefill (SHOP-06)
+    CustomerEmail = request.CustomerEmail,
     LineItems = request.Lines.Select(line => new SessionLineItemOptions
     {
         Quantity = line.Quantity,
         PriceData = new SessionLineItemPriceDataOptions
         {
             Currency = "usd",
-            UnitAmountDecimal = line.UnitPrice * 100m,   // minor units, from the server-recomputed price
+            UnitAmount = (long)(line.UnitPrice * 100m), // minor units; prefer long UnitAmount for whole-dollar catalog
             ProductData = new SessionLineItemPriceDataProductDataOptions { Name = line.ProductName },
         },
     }).ToList(),
 };
-
-var session = await _client.Checkout.Sessions.CreateAsync(options);  // or client.V1.Checkout.Sessions.Create
-// → return new CheckoutSessionResult(session.Id, session.Url);  client 303-redirects to session.Url
 ```
-- `price_data` (not `Price = "price_..."`) because the catalog lives in our DB, not Stripe (SHOP-03).
-- `UnitAmountDecimal` is in **minor units** (`price * 100`) for `usd`.
-- `ClientReferenceId` + `Metadata["order_id"]` both carry the order id so the webhook can find the order without trusting the client.
 
-**Example — webhook endpoint (raw body; must NOT bind a body model):**
+Webhook (no `[FromBody]`):
 ```csharp
-// Source: docs.stripe.com/webhooks/quickstart (C# shape) + docs.stripe.com/webhooks/signature
-[ApiController]
-[AllowAnonymous]                     // auth = signature verification, not [Authorize]
-[Route("api/stripe/webhook")]
-public class StripeWebhookController : ControllerBase
+// Source: docs.stripe.com/webhooks?lang=dotnet
+var json = await new StreamReader(Request.Body).ReadToEndAsync();
+var stripeEvent = EventUtility.ConstructEvent(json, Request.Headers["Stripe-Signature"], _options.WebhookSecret);
+if (stripeEvent.Type == EventTypes.CheckoutSessionCompleted)
 {
-    [HttpPost]
-    public async Task<IActionResult> HandleWebhook()
-    {
-        string json;
-        using (var reader = new StreamReader(Request.Body))      // raw body — model binding would
-            json = await reader.ReadToEndAsync();                // re-serialize JSON and break the signature
-
-        var signatureHeader = Request.Headers["Stripe-Signature"];
-        try
-        {
-            var stripeEvent = EventUtility.ConstructEvent(json, signatureHeader, _options.WebhookSecret);
-
-            if (stripeEvent.Type == EventTypes.CheckoutSessionCompleted)
-            {
-                var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-                if (session?.PaymentStatus == "paid")            // delayed methods can fire completed while unpaid
-                {
-                    await _ordersService.MarkFulfilledAsync(session.ClientReferenceId, session.Id);
-                }
-            }
-
-            return Ok();                                          // 200 fast; Stripe retries non-2xx
-        }
-        catch (StripeException)
-        {
-            return BadRequest();                                  // invalid signature/payload → 400
-        }
-    }
+    var session = stripeEvent.Data.Object as Session;
+    if (session?.PaymentStatus == "paid")
+        await _ordersService.MarkFulfilledAsync(session.ClientReferenceId, session.Id);
 }
+return Ok();
 ```
-- **Never `[FromBody]`** — ASP.NET model binding reconstructs the JSON (whitespace/key order), and `ConstructEvent` hashes the exact bytes; any mutation breaks verification `[CITED: docs.stripe.com/webhooks/signature — framework body-mutation list]`.
-- **Check `payment_status == "paid"`** before fulfilling — `checkout.session.completed` can fire while payment is still `unpaid` for delayed methods `[CITED: docs.stripe.com/checkout/fulfillment]`.
-- The Stripe event `id` itself is NOT persisted as the fulfillment guard; the **order's `StripeSessionId` unique index** is (Pattern 8), because a retry of the same event is idempotent via the index, and a different event for the same session is also blocked.
 
-### Pattern 4: Guest cart session-key mechanism — header, not cookie
+- Raw body required — framework mutation breaks HMAC. `[CITED: docs.stripe.com/webhooks/signature]`
+- Webhooks required for reliable fulfillment; success_url alone is insufficient. `[CITED: docs.stripe.com/checkout/fulfillment]`
+- SHOP-05 is stricter than Stripe’s “also fulfill from landing page” tip: **do not** flip Fulfilled from success page; page may poll/display Pending→Fulfilled.
+- For card MVP, require `payment_status == "paid"`. Delayed methods need `checkout.session.async_payment_succeeded` — out of MVP scope unless accepting ACH. `[CITED: docs.stripe.com/checkout/fulfillment]`
 
-**What:** The client's anonymous cart identity. CONTEXT.md leaves cookie-vs-header to Claude's discretion; research rules out the cookie.
+### Pattern 4: Guest cart session — header, not cookie
 
-**Why header:** A server-set cookie must be read/written with credentials, which requires `Access-Control-Allow-Credentials: true` and a specific CORS origin. This repo's `Program.cs` uses `AllowAnyOrigin()` today (production lockdown is Phase 8, LAUNCH-02). `AllowAnyOrigin` + credentials is a browser error, so the cookie path would force a CORS change this phase for no functional gain. Instead: the server generates a random session id on first cart touch, the client stores it in `localStorage`, and sends it as an `X-Cart-Session-Id` request header on every cart/checkout call. Plain headers work fine under `AllowAnyOrigin`. The id is a random nonce (e.g. `Guid.NewGuid()` or a crypto-random 32-hex), not a personal identifier, so it carries no sensitive data if leaked. The DB enforces `Cart.SessionKey` uniqueness (unique index), mirroring how the system already treats `Slug`/`(StylistId, SlotStart)` unique keys.
-
-**When to use:** All cart/checkout endpoints. Add the header client-side in `landing-page/lib/cartSession.ts` and have the fetch helpers attach it.
+`AllowAnyOrigin()` + credentialed cookies is invalid. Use `X-Cart-Session-Id` + `localStorage`. Unique index on `Cart.SessionKey`. Session id is a nonce, not auth — IDOR hardening deferred (CONTEXT).
 
 ### Pattern 5: Cart page + add-on chips (SHOP-01, SHOP-07)
 
-**What:** The cart review page is an RSC that reads `GET /api/carts/{sessionKey}` (fresh, no ISR caching — like `lib/appointments.ts`'s `cache: "no-store"`), renders line items with quantities and unit prices from the server DTO, and shows a "Checkout" button. The Checkout button is a client action: `POST /api/orders/checkout` returns `{ checkoutUrl }`, and the client does `window.location.assign(checkoutUrl)` (Stripe 303s from the server, or the client navigates directly).
+Follow `06-UI-SPEC.md`: `/cart` client page, Order Summary CTA, suggestion chips “Complete Your Routine”. Data: `ProductsService.GetRecommendedForCheckoutAsync(cartProductIds)` reusing `ServiceRecommendedProduct`, excluding items already in cart, limit ~4, omit section when empty. Fallback if join yields nothing: same-category in-stock (UI-SPEC open question — prefer join reuse first).
 
-**SHOP-07 add-on chips:** The cart page fetches the recommended add-ons for the services whose products are in the cart (or a curated subset — simplest correct version: reuse the Phase 5 `ServiceRecommendedProduct` join and fetch recommended products for services linked to the products already in the cart), renders them as "add to cart" chips alongside the line items. Keep it server-fetched (RSC) so the data is fresh and the recommendation logic stays on the backend. The Phase 5 decision to keep recommendations inside `ServicesService.GetBySlugAsync` was service-detail-scoped; checkout is a different surface, so a small read-only `ProductsService.GetRecommendedForCheckoutAsync(cartProductIds)` (reusing the join table) is the clean seam.
-
-### Pattern 6: Local webhook development with the Stripe CLI
-
-**What:** The only realistic way to receive real `checkout.session.completed` events locally (an endpoint must be publicly reachable for Stripe to deliver; the CLI forwards from Stripe's servers to localhost).
-
-**When to use:** Every manual/end-to-end verification of SHOP-05 in dev (the phase's UAT). This is a **new external dependency** — the environment does not currently have the Stripe CLI installed (checked 2026-08-09). The plan should include a human-verify checkpoint to install it.
+### Pattern 6: Stripe CLI local development
 
 ```bash
-stripe login                                  # one-time, links a Stripe account (test mode)
+stripe login
 stripe listen --forward-to localhost:5236/api/stripe/webhook
-# → Ready! Your webhook signing secret is whsec_...   (put it in user-secrets as Stripe:WebhookSecret)
-stripe trigger checkout.session.completed     # in another terminal — sends a signed test event
+# whsec_... → dotnet user-secrets set "Stripe:WebhookSecret" "whsec_..."
+stripe trigger checkout.session.completed
 ```
-Test card for the manual checkout flow: `4242 4242 4242 4242` (any future expiry, any 3-digit CVC). The CLI's `whsec_...` secret differs from a Dashboard-registered endpoint's secret — don't mix them. `[CITED: docs.stripe.com/cli/listen, docs.stripe.com/checkout/fulfillment]`
 
-### Pattern 7: Transaction + retry strategy (the one place this repo needs an explicit transaction)
+Test card `4242 4242 4242 4242`. CLI `whsec_` ≠ Dashboard endpoint secret. `[CITED: docs.stripe.com/cli/listen, docs.stripe.com/checkout/fulfillment]`
 
-**What:** The atomic decrement and order creation must commit or roll back together. Two subtle EF Core facts make this different from Phase 2's "single `SaveChangesAsync`" shape:
-1. `ExecuteUpdateAsync` executes immediately and does **not** participate in the change tracker or in `SaveChangesAsync`'s implicit transaction.
-2. The repo enables `EnableRetryOnFailure` on the SQL Server options, which is incompatible with manually-started transactions unless the transaction is created inside `Database.CreateExecutionStrategy().ExecuteAsync(...)` (retry re-executes the whole delegate on a transient failure, including re-opening the transaction).
+### Pattern 7: Transaction + retry strategy
 
-**When to use:** Exactly one place — `OrdersService.CreateCheckoutAsync`. The repo has one existing precedent: Phase 4's `AvailabilityService` conflict-scan + persist path wraps a manual `BeginTransactionAsync` inside `CreateExecutionStrategy().ExecuteAsync` — reuse that exact shape (STATE.md Phase 4 Plan 05).
+`ExecuteUpdateAsync` + `EnableRetryOnFailure` ⇒ wrap in `CreateExecutionStrategy().ExecuteAsync` + `BeginTransactionAsync`. Precedent: `AvailabilityService` (Phase 4 Plan 05) `[VERIFIED: repo — AvailabilityService.cs; STATE.md]`.
 
-### Pattern 8: Idempotent fulfillment — unique index on `Order.StripeSessionId`
+### Pattern 8: Idempotent fulfillment
 
-**What:** Stripe retries webhook deliveries on non-2xx for up to **3 days** with exponential backoff, and duplicate deliveries are documented. The fulfillment must therefore be idempotent: if the order is already Fulfilled, the handler is a no-op, and two concurrent deliveries cannot double-process.
-
-**When to use:** `MarkFulfilledAsync`. Two guards:
-- A **unique index** on `Order.StripeSessionId` (nullable for orders that never reached Stripe — use a *filtered* unique index `WHERE StripeSessionId IS NOT NULL`, or a `HasFilter()`; unlike the `AppointmentSlot` index, this one *should* be filtered). This means the DB itself rejects a second order row for the same Stripe session — the strongest duplicate guard.
-- The `MarkFulfilledAsync` method reads the current status and transitions `Pending → Fulfilled` only (mirroring the Phase 3 `AllowedTransitions`-map precedent), so a second call sees `Fulfilled` and no-ops.
-
-Note the contrast with the Phase 2 invariant: the `AppointmentSlot` unique index must be **unfiltered** (it is the double-booking guarantee); the `StripeSessionId` index should be **filtered** because many orders will legitimately have no session yet (Pending, never reached Stripe, failed). Also set `StripeSessionUrl` on the order at session-creation time so the success page and any staff view can link back to Stripe.
+Filtered unique index on `Order.StripeSessionId` WHERE NOT NULL (contrast: AppointmentSlot index must stay **unfiltered**). `MarkFulfilledAsync`: Pending→Fulfilled only; already Fulfilled → no-op 200. Stripe retries non-2xx for days. `[CITED: docs.stripe.com/checkout/fulfillment — fulfill only once]`
 
 ### Anti-Patterns to Avoid
 
-- **[FromBody] on the webhook action** — model binding re-serializes the JSON body and breaks Stripe signature verification. Read `Request.Body` raw (Pattern 3). This is the #1 Stripe integration bug in the wild `[CITED: docs.stripe.com/webhooks/signature]`.
-- **Fulfilling from the success_url redirect** — the client may never reach the success page (dropped connection); Stripe's docs are explicit that webhooks are required for guaranteed fulfillment. The success page may *show* the order state and even trigger a best-effort poll, but the order must not be marked Fulfilled there (SHOP-05). `[CITED: docs.stripe.com/checkout/fulfillment]`
-- **Two-step check-then-decrement for stock** — reading `Stock`, comparing in app code, then updating is the exact race the phase forbids. The conditional UPDATE is one atomic statement (SHOP-04).
-- **Trusting any price/total from the client** — `CheckoutRequestDto` structurally omits prices (Pattern 1), so there is nothing to trust. Do not add a `total` or `unitPrice` field to it "for convenience."
-- **Trusting the client's cart session key blindly for order retrieval** — a session key is not an authorization boundary (anyone could guess/steal another's key and read their cart). Keep the guest cart surface read-only-for-its-key and non-sensitive (no PII, no prices stored in the cart), matching the deferred-IDOR decision in CONTEXT.md; real ownership enforcement is Phase 7.
-- **The InMemory provider for the concurrency proof** — `ExecuteUpdateAsync` and the unique index are relational/SQL-Server behaviors; the SHOP-04 proof must run on `SqlServerWebApplicationFactory` (real LocalDB), exactly like `ConcurrencyTests` does for BOOK-04.
-- **Storing client prices in CartItem** — the cart must stay price-less (server reads catalog price at cart-read time and checkout time); storing a price in the cart re-introduces a client-influenced value into the money path.
+- **`[FromBody]` on webhook** — breaks signature verification.
+- **Fulfilling from success_url** — violates SHOP-05.
+- **Check-then-decrement stock in app code** — race; use conditional UPDATE.
+- **Price/total fields on cart/checkout DTOs** — structural SHOP-03 violation.
+- **InMemory for SHOP-04 proof** — `ExecuteUpdateAsync` is relational-only.
+- **Storing prices on CartItem** — reintroduces client-influenced money path.
+- **Calling `ConflictError` with one string arg without adding an overload** — will not compile against current `Result.cs`.
 
-<!-- gsd:write-continue -->
+## Don't Hand-Roll
 
+| Problem | Don't Build | Use Instead | Why |
+|---------|-------------|-------------|-----|
+| Card/PCI payment UI | Custom card form + tokenization | Stripe Checkout (hosted) | PCI scope collapse; locked decision |
+| Webhook HMAC verification | Custom HMAC SHA-256 | `EventUtility.ConstructEvent` | Timestamp tolerance, scheme handling, secret rotation `[CITED: docs.stripe.com/webhooks]` |
+| Stock race control | App-level read-modify-write | Conditional `ExecuteUpdateAsync` | Exactly-one-winner needs single SQL statement |
+| Retry-safe transactions | Manual retry loops | `CreateExecutionStrategy().ExecuteAsync` | Required with `EnableRetryOnFailure` |
+| Money formatting | Ad-hoc string concat | Existing `Intl.NumberFormat` `priceFormatter` | UI-SPEC parity with catalog |
+| Feature scaffolding | Novel folder layout | `feature-scaffold` / Bookings mirror | Repo convention |
+
+**Key insight:** The hard problems (PCI, webhook crypto, SQL races under retry) already have official solutions; inventing them is how money bugs ship.
+
+## Runtime State Inventory
+
+> Not a rename/refactor phase — omitted categories answered briefly for planner awareness.
+
+| Category | Items Found | Action Required |
+|----------|-------------|------------------|
+| Stored data | None for cart/order yet; Products.Stock will be mutated at checkout | Code writes new tables + stock updates; no migration of old cart data |
+| Live service config | Stripe Dashboard webhook endpoint (post-local) not in git | Human configures Dashboard endpoint at deploy time; local uses CLI |
+| OS-registered state | None — verified no stripe systemd/pm2 units | none |
+| Secrets/env vars | New: `Stripe:SecretKey`, `Stripe:WebhookSecret` (user-secrets/env, never tracked) | Add alongside existing RESEND/Jwt secrets; ValidateOnStart recommended |
+| Build artifacts | Stripe.net not yet in any csproj | Package add during execution |
+
+## Common Pitfalls
+
+### Pitfall 1: Model-bound webhook body
+**What goes wrong:** Signature verification always fails.  
+**Why:** JSON re-serialization changes bytes.  
+**How to avoid:** Raw `Request.Body` only; integration test with signed payload.  
+**Warning signs:** 400s from Stripe CLI despite correct `whsec_`.
+
+### Pitfall 2: Stock decrement without compensating Stripe failure
+**What goes wrong:** Pending order holds stock forever after Stripe API error.  
+**Why:** Pattern commits DB before Stripe call.  
+**How to avoid:** On Stripe failure, restore stock via `Stock += qty` conditional updates and set `Order.Status = Failed`.  
+**Warning signs:** Stock drops without a corresponding Fulfilled/Pending-with-session order.
+
+### Pitfall 3: InMemory concurrency “proof”
+**What goes wrong:** Green tests that don't prove SHOP-04.  
+**Why:** `ExecuteUpdateAsync` / real row locking need SQL Server.  
+**How to avoid:** `SqlServerWebApplicationFactory` like `ConcurrencyTests`.  
+**Warning signs:** Test project only references InMemory for Orders.
+
+### Pitfall 4: Fulfilling on redirect
+**What goes wrong:** Unpaid/abandoned sessions marked Fulfilled; or paid orders never Fulfilled if user closes tab.  
+**Why:** success_url is not reliable.  
+**How to avoid:** Webhook-only status flip; success page reads order status.  
+**Warning signs:** Controller action on `/checkout/success` that writes Fulfilled.
+
+### Pitfall 5: Mixing CLI and Dashboard webhook secrets
+**What goes wrong:** Local verification fails.  
+**How to avoid:** Document which secret is in user-secrets for which environment.
+
+### Pitfall 6: Abandoned Pending orders hold stock
+**What goes wrong:** Users who never pay permanently reduce catalog stock (CONTEXT locks decrement-at-order-creation).  
+**How to avoid:** Accept as MVP limitation; optional later job to expire Pending > N hours and restore stock (not in phase scope unless planner adds thin TTL).  
+**Warning signs:** Support reports “in stock but checkout 409s” with many Pending rows.
+
+### Pitfall 7: `Result.ConflictError` signature mismatch
+**What goes wrong:** Compile error or wrong 409 mapping.  
+**How to avoid:** Add message-only overload early (Wave 0 / Plan 01).
+
+## Code Examples
+
+### Webhook signature verification (.NET)
+```csharp
+// Source: docs.stripe.com/webhooks?lang=dotnet
+var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+try
+{
+    var stripeEvent = EventUtility.ConstructEvent(
+        json,
+        Request.Headers["Stripe-Signature"],
+        endpointSecret);
+    // handle EventTypes.CheckoutSessionCompleted
+    return Ok();
+}
+catch (StripeException)
+{
+    return BadRequest();
+}
+```
+
+### Conditional stock update (EF Core)
+```csharp
+// Source: learn.microsoft.com/ef/core/saving/execute-insert-update-delete
+var numUpdated = await context.Products
+    .Where(p => p.Id == id && p.Stock >= qty)
+    .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => p.Stock - qty));
+if (numUpdated == 0) { /* insufficient / raced → 409 */ }
+```
+
+### Concurrent checkout proof shape (mirror Phase 2)
+```csharp
+// Source: repo ConcurrencyTests.cs pattern
+public class StockConcurrencyTests : IClassFixture<SqlServerWebApplicationFactory>
+{
+    [Fact]
+    public async Task TwoSimultaneousCheckouts_LastUnit_ExactlyOneSuccessAndOne409()
+    {
+        // Seed product Stock = 1; fire two parallel POST /api/orders/checkout qty=1
+        // Assert status codes {200|201|302-ish success, 409} and final Stock == 0
+    }
+}
+```
+
+## State of the Art
+
+| Old Approach | Current Approach | When Changed | Impact |
+|--------------|------------------|--------------|--------|
+| Trust client totals | Server recomputes from catalog + Stripe `price_data` | PCI/fraud baseline | SHOP-03 |
+| Fulfill on redirect | Webhook-first fulfillment | Stripe Checkout guidance | SHOP-05 |
+| Check-then-update stock | Single conditional UPDATE | SQL concurrency practice | SHOP-04 |
+| Custom card fields | Hosted Checkout Session | Stripe Checkout | SHOP-02 |
+
+**Deprecated/outdated:**
+- Relying solely on success_url for fulfillment — Stripe documents this as unreliable.
+- Stripe.net major versions move monthly — pin exact version in csproj.
+
+## Assumptions Log
+
+| # | Claim | Section | Risk if Wrong |
+|---|-------|---------|---------------|
+| A1 | Stripe.net 52.x TFM resolution on net10.0 is seamless | Standard Stack | Package restore/build failure — verify at first plan task |
+| A2 | Whole-dollar catalog prices → `(long)(price * 100)` is safe (no fractional cents) | Pattern 3 | Rounding bugs if catalog later allows decimals |
+| A3 | MVP accepts only immediate card payments (`payment_status == paid`) | Pattern 3 | Delayed methods would need async_payment_succeeded |
+| A4 | Linux codespaces without LocalDB can still run SHOP-04 against Azure SQL / Docker SQL with connection override | Environment / Validation | Concurrency tests skipped or red in this environment |
+| A5 | Abandoned Pending stock hold is acceptable MVP tradeoff | Pitfall 6 | Inventory leakage until Phase 8 cleanup |
+
+**If empty:** N/A — table above lists assumptions needing confirmation.
+
+## Open Questions
+
+1. **Stock restore on Stripe session failure / abandoned Pending**
+   - What we know: CONTEXT locks decrement at order creation.
+   - What's unclear: whether planner must ship compensating restore + optional Pending TTL.
+   - Recommendation: **Must** compensate on Stripe create failure; TTL cleanup optional/deferred with explicit note in PLAN risks.
+
+2. **Feature folder split vs single Checkout feature**
+   - Recommendation: `Carts` + `Orders` + `Payments` (three folders) — clearest PLAT-01 boundaries.
+
+3. **SHOP-07 recommendation source when join is empty**
+   - UI-SPEC allows same-category fallback; prefer `ServiceRecommendedProduct` first.
+   - Recommendation: join-based endpoint; omit chips when empty (UI-SPEC).
+
+4. **Email capture**
+   - UI-SPEC: Email on `/checkout` prefill Stripe `customer_email`, or collect only on Stripe.
+   - Recommendation: collect Email on `/checkout` (required) so Order has contact even before webhook.
+
+5. **Where to add Stripe.net package (Shared vs Api)**
+   - Recommendation: Shared if `StripePaymentProvider` lives there; keep webhook controller in Api.
+
+## Environment Availability
+
+| Dependency | Required By | Available | Version | Fallback |
+|------------|------------|-----------|---------|----------|
+| .NET SDK | Build/test | ✓ | 10.0.200 | — |
+| Node / npm | landing-page | ✓ | Node 24.14 / npm 11.9 | — |
+| Stripe.net package | SHOP-02/05 | ✓ on nuget.org | 52.2.0 stable | — |
+| Stripe CLI | SHOP-05 local UAT | ✗ | — | Human-verify install; webhook unit tests use synthetic signed payloads without CLI |
+| SQL Server LocalDB | SHOP-04 concurrency / SqlServerWebApplicationFactory | ✗ in this Linux codespace (`sqllocaldb`/`sqlcmd` missing) | — | Azure SQL via `ConnectionStrings__DefaultConnection` **or** Docker SQL Server; factory currently hardcodes LocalDB — planner may need test factory connection override for Linux |
+| RESEND_API_KEY / Jwt:SigningKey | `dotnet test` host boot (D-12) | env-dependent | — | Required for full suite / SqlServer factory like existing tests |
+| Root CI `dotnet test` | Continuous verification | ✗ CI workflow has no dotnet job | — | Local/full-suite sampling; Phase 8 may add CI — not blocking Phase 6 if local Nyquist holds |
+
+**Missing dependencies with no fallback:**
+- None that block coding; SHOP-04 automated proof needs *some* real SQL Server reachable by tests.
+
+**Missing dependencies with fallback:**
+- Stripe CLI → synthetic webhook signature unit tests + human UAT when CLI available
+- LocalDB on Linux → Azure SQL / Docker SQL + factory override
+
+## Validation Architecture
+
+> Nyquist validation enabled (`workflow.nyquist_validation: true` in `.planning/config.json`).
+
+### Test Framework
+
+| Property | Value |
+|----------|-------|
+| Framework | xUnit 2.9.3 + `Microsoft.AspNetCore.Mvc.Testing` 10.0.9; EF InMemory 10.0.9 for service/unit tests; real SQL via `SqlServerWebApplicationFactory` for stock concurrency (SHOP-04) — mirrors `ConcurrencyTests` `[VERIFIED: repo — ZachHairStudio.Api.Tests.csproj]` |
+| Config file | `API/ZachHairStudio.Api.Tests/ZachHairStudio.Api.Tests.csproj` (+ factories `CustomWebApplicationFactory.cs`, `SqlServerWebApplicationFactory.cs`) |
+| Quick run command | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~Carts\|FullyQualifiedName~Orders\|FullyQualifiedName~Stripe\|FullyQualifiedName~StockConcurrency\|FullyQualifiedName~Checkout"` |
+| Full suite command | `dotnet test API/ZachHairStudio.slnx` |
+
+**Environment note (Linux codespace):** `SqlServerWebApplicationFactory` currently hardcodes LocalDB (`Server=(localdb)\\MSSQLLocalDB;...`). LocalDB / `sqllocaldb` / `sqlcmd` are unavailable here — SHOP-04 automation needs Azure SQL or Docker SQL Server plus a connection-string override on the factory (see Environment Availability). InMemory must never be used for the SHOP-04 proof (`ExecuteUpdateAsync` is relational-only).
+
+### Phase Requirements → Test Map
+
+| Req ID | Behavior | Test Type | Automated Command | File Exists? |
+|--------|----------|-----------|-------------------|-------------|
+| SHOP-01 | Add/review cart lines keyed by session (`X-Cart-Session-Id`); cart DTOs carry ProductId+qty only | unit + integration | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~Carts"` | ❌ Wave 0 |
+| SHOP-02 | Checkout creates Pending order + returns Stripe Checkout URL via `IPaymentProvider` (fake in CI) | integration | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~Orders\|FullyQualifiedName~Checkout"` | ❌ Wave 0 |
+| SHOP-03 | Server recomputes line/total from catalog by ProductId; client-submitted price/total ignored | unit (+ integration assert charged total) | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~PriceAuthority\|FullyQualifiedName~OrdersService"` | ❌ Wave 0 |
+| SHOP-04 | Concurrent checkout on last unit → exactly one success and one 409; final Stock == 0; uses `ExecuteUpdateAsync` on real SQL | integration (**SqlServerWebApplicationFactory**, not InMemory) | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~StockConcurrencyTests"` | ❌ Wave 0 |
+| SHOP-05 | Bad/missing Stripe-Signature → 400; verified `checkout.session.completed` + `payment_status=paid` → Fulfilled; success_url path never fulfills; idempotent re-delivery | unit + integration (synthetic signed payload; CLI optional for UAT) | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~StripeWebhook\|FullyQualifiedName~MarkFulfilled"` | ❌ Wave 0 |
+| SHOP-06 | Guest checkout: `Order.ClientId` is null; no auth required on cart/checkout | unit + integration | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~GuestCheckout\|FullyQualifiedName~OrdersService"` | ❌ Wave 0 |
+| SHOP-07 | Recommended add-ons for checkout reuse `ServiceRecommendedProduct`; excludes in-cart products; empty → omit | unit (+ optional API) | `dotnet test API/ZachHairStudio.Api.Tests --filter "FullyQualifiedName~RecommendedForCheckout\|FullyQualifiedName~GetRecommendedForCheckout"` | ❌ Wave 0 |
+
+### Sampling Rate
+
+- **Per task commit:** Quick filter above (Carts/Orders/Stripe/StockConcurrency/Checkout subset) — prefer InMemory-backed tests when iterating; run `StockConcurrencyTests` only when touching the decrement transaction
+- **Per wave merge:** `dotnet test API/ZachHairStudio.slnx` (includes SqlServer-backed concurrency when SQL is reachable)
+- **Phase gate:** Full suite green before `/gsd-verify-work`; SHOP-05 also needs human Stripe CLI UAT when CLI is available (`stripe listen` + test card) — synthetic signature tests cover the automated gate
+
+### Wave 0 Gaps
+
+- [ ] `API/ZachHairStudio.Api.Tests/Features/Carts/CartsServiceTests.cs` (+ controller tests as needed) — SHOP-01 session-keyed cart CRUD
+- [ ] `API/ZachHairStudio.Api.Tests/Features/Orders/OrdersServiceTests.cs` — SHOP-02/03/06 (fake `IPaymentProvider`, price-authority cases, null `ClientId`)
+- [ ] `API/ZachHairStudio.Api.Tests/Features/Orders/StockConcurrencyTests.cs` — SHOP-04; `IClassFixture<SqlServerWebApplicationFactory>`; mirror `ConcurrencyTests` two-parallel-POST shape
+- [ ] `API/ZachHairStudio.Api.Tests/Features/Payments/StripeWebhookTests.cs` (or `Orders/MarkFulfilledTests.cs`) — SHOP-05 signature reject + fulfill-once + no fulfill from redirect helper
+- [ ] Recommended-for-checkout tests under Products/Services — SHOP-07 join reuse
+- [ ] Message-only `Result<T>.ConflictError` overload (or DuplicateRecord→409 mapping) so stock 409 compiles — Pitfall 7
+- [ ] Linux/CI: `SqlServerWebApplicationFactory` connection override (Azure SQL / Docker) — LocalDB unavailable in this codespace; without it SHOP-04 cannot run here
+- [ ] Secrets for host boot: `RESEND_API_KEY`, `Jwt:SigningKey`, plus test `Stripe:WebhookSecret` for ConstructEvent cases (user-secrets/env — never tracked)
+- [ ] No new test framework install — xUnit + Mvc.Testing + SqlServer/InMemory already present
+- [ ] No frontend Wave 0 gap — `landing-page` has no test script (prior-phase precedent); cart/checkout UX via UAT / UI-SPEC
+
+## Security Domain
+
+> ASVS Level 1 (`workflow.security_enforcement: true`, `security_asvs_level: 1`).
+
+### Applicable ASVS Categories
+
+| ASVS Category | Applies | Standard Control |
+|---------------|---------|------------------|
+| V2 Authentication | No | Guest cart/checkout intentionally unauthenticated (SHOP-06); staff JWT not on these endpoints |
+| V3 Session Management | Partial | Cart session is a nonce (`X-Cart-Session-Id` + `localStorage`), **not** an auth session — no cookie/credentials; IDOR hardening deferred to Phase 7 (CONTEXT) |
+| V4 Access Control | Partial | No account ownership boundary this phase; webhook endpoint `[AllowAnonymous]` but gated by Stripe signature (SHOP-05); success_url must not mutate order status |
+| V5 Input Validation | Yes | FluentValidation on cart/checkout DTOs (ProductId + quantity bounds only — **no price/total fields**); PLAT-02 assembly scan |
+| V6 Cryptography | Yes (verify, don't invent) | Stripe webhook HMAC via `EventUtility.ConstructEvent` only — never hand-rolled HMAC; secrets `Stripe:SecretKey` / `Stripe:WebhookSecret` via user-secrets/env (D-13), never tracked files; gitleaks already wired |
+| V7 Error Handling & Logging | Yes | Map insufficient stock → clean 409 ProblemDetails (no SQL/stack leak); Stripe failures → compensate + safe client error |
+| V12 API/WebService | Yes | Server price authority (SHOP-03); atomic stock UPDATE (SHOP-04); raw-body webhook; fulfill only on verified paid webhook (SHOP-05) |
+
+### Known Threat Patterns for cart / checkout / Stripe webhook
+
+| Pattern | STRIDE | Standard Mitigation |
+|---------|--------|---------------------|
+| Client tampers unit price / order total in JSON | Tampering | Ignore client money fields; recompute from `Products.Price` by ProductId; Stripe `price_data` from server snapshots (SHOP-03) |
+| Concurrent checkout oversells last unit | Tampering / Elevation | Conditional `ExecuteUpdateAsync` `WHERE Stock >= qty` in same transaction; prove with SqlServer concurrency test (SHOP-04) |
+| Spoofed webhook marks unpaid order Fulfilled | Spoofing / Tampering | Raw body + `EventUtility.ConstructEvent` + `WebhookSecret`; reject bad sig with 400; require `payment_status == paid` (SHOP-05) |
+| Fulfillment from success_url / client poll write | Spoofing | Webhook-only `MarkFulfilledAsync`; success page is display/poll only |
+| Replay / duplicate Stripe events double-fulfill | Tampering | Idempotent Pending→Fulfilled; filtered unique index on `Order.StripeSessionId` |
+| Secret leakage (Stripe keys in repo/appsettings) | Information Disclosure | user-secrets/env only + gitleaks; ValidateOnStart recommended for Stripe options |
+| Cart session IDOR (guess another `SessionKey`) | Information Disclosure | Accept as Phase 6 MVP (nonce obscurity); harden with accounts in Phase 7 — do not block guest checkout |
+| Mass assignment of `ClientId` / `Status` / `StripeSessionId` on create DTOs | Tampering | Server-owned fields only on entities; checkout DTO excludes status/session/client id |
+| SQL injection via product/cart filters | Tampering | EF parameterized queries / LINQ only — no raw string SQL for user input |
