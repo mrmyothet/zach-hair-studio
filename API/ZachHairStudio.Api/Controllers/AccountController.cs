@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ZachHairStudio.Shared.Features.Account;
 using ZachHairStudio.Shared.Features.Appointments;
@@ -10,8 +11,9 @@ using ZachHairStudio.Shared.Features.Orders;
 namespace ZachHairStudio.Api.Controllers;
 
 /// <summary>
-/// Client-role account history + claim (ACCT-02/03/06, D-04, D-08).
-/// Owner scope is resolved solely from <see cref="ClaimTypes.NameIdentifier"/>.
+/// Client-role account history + claim + self-service cancel/reschedule
+/// (ACCT-02/03/04/06, D-04, D-08–D-12). Owner scope is resolved solely from
+/// <see cref="ClaimTypes.NameIdentifier"/>.
 /// </summary>
 [ApiController]
 [Route("api/account")]
@@ -19,12 +21,23 @@ namespace ZachHairStudio.Api.Controllers;
 public class AccountController : ControllerBase
 {
     private readonly AccountService _accountService;
+    private readonly AppointmentsService _appointmentsService;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IValidator<ClaimRequestDto> _claimValidator;
+    private readonly IValidator<ClientRescheduleRequestDto> _rescheduleValidator;
 
-    public AccountController(AccountService accountService, IValidator<ClaimRequestDto> claimValidator)
+    public AccountController(
+        AccountService accountService,
+        AppointmentsService appointmentsService,
+        UserManager<ApplicationUser> userManager,
+        IValidator<ClaimRequestDto> claimValidator,
+        IValidator<ClientRescheduleRequestDto> rescheduleValidator)
     {
         _accountService = accountService;
+        _appointmentsService = appointmentsService;
+        _userManager = userManager;
         _claimValidator = claimValidator;
+        _rescheduleValidator = rescheduleValidator;
     }
 
     [HttpGet("bookings")]
@@ -87,6 +100,52 @@ public class AccountController : ControllerBase
         }
 
         return Ok(result.Data);
+    }
+
+    [HttpPost("bookings/{id:int}/cancel")]
+    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AppointmentResponseDto>> CancelBooking(int id)
+    {
+        if (!TryGetUserId(out var userId, out var error))
+        {
+            return error!;
+        }
+
+        var actor = await ResolveActorDisplayNameAsync(userId);
+        var result = await _appointmentsService.CancelForClientAsync(id, userId, actor);
+        return MapAppointmentMutation(result, notFoundTitle: "Appointment not found");
+    }
+
+    [HttpPost("bookings/{id:int}/reschedule")]
+    [ProducesResponseType(typeof(AppointmentResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AppointmentResponseDto>> RescheduleBooking(
+        int id,
+        [FromBody] ClientRescheduleRequestDto request)
+    {
+        if (!TryGetUserId(out var userId, out var error))
+        {
+            return error!;
+        }
+
+        var validation = await _rescheduleValidator.ValidateAsync(request);
+        if (!validation.IsValid)
+        {
+            foreach (var failure in validation.Errors)
+            {
+                ModelState.AddModelError(failure.PropertyName, failure.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        var actor = await ResolveActorDisplayNameAsync(userId);
+        var result = await _appointmentsService.RescheduleForClientAsync(id, userId, request, actor);
+        return MapAppointmentMutation(result, notFoundTitle: "Appointment not found");
     }
 
     [HttpGet("orders")]
@@ -187,6 +246,60 @@ public class AccountController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    private ActionResult<AppointmentResponseDto> MapAppointmentMutation(
+        Shared.Result<AppointmentResponseDto> result,
+        string notFoundTitle)
+    {
+        if (result.IsValidationError())
+        {
+            ModelState.AddModelError(string.Empty, result.Message);
+            return ValidationProblem(ModelState);
+        }
+
+        if (result.IsNotFound())
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = notFoundTitle,
+                Detail = result.Message,
+                Status = StatusCodes.Status404NotFound,
+            });
+        }
+
+        if (result.IsDuplicateRecord())
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Slot taken",
+                Detail = result.Message,
+                Status = StatusCodes.Status409Conflict,
+            });
+        }
+
+        if (result.IsSystemError())
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Couldn't update booking",
+                Detail = result.Message,
+                Status = StatusCodes.Status500InternalServerError,
+            });
+        }
+
+        return Ok(result.Data);
+    }
+
+    private async Task<string> ResolveActorDisplayNameAsync(int userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is not null && !string.IsNullOrWhiteSpace(user.DisplayName))
+        {
+            return user.DisplayName;
+        }
+
+        return "Client";
     }
 
     private bool TryGetUserId(out int userId, out ActionResult? error)

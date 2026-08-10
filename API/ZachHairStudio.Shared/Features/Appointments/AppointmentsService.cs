@@ -24,6 +24,7 @@ public class AppointmentsService
 
     private readonly BookingDbContext _dbContext;
     private readonly IValidator<AppointmentCreateDto> _validator;
+    private readonly IValidator<ClientRescheduleRequestDto> _rescheduleValidator;
     private readonly SlotService _slotService;
     private readonly IEmailService _emailService;
     private readonly SalonTimeZone _salonTimeZone;
@@ -42,12 +43,14 @@ public class AppointmentsService
     public AppointmentsService(
         BookingDbContext dbContext,
         IValidator<AppointmentCreateDto> validator,
+        IValidator<ClientRescheduleRequestDto> rescheduleValidator,
         SlotService slotService,
         IEmailService emailService,
         SalonOptions salonOptions)
     {
         _dbContext = dbContext;
         _validator = validator;
+        _rescheduleValidator = rescheduleValidator;
         _slotService = slotService;
         _emailService = emailService;
         _salonTimeZone = SalonTimeZone.FromOptions(salonOptions);
@@ -62,96 +65,43 @@ public class AppointmentsService
                 string.Join("; ", validation.Errors.Select(error => error.ErrorMessage)));
         }
 
-        var service = await _dbContext.Services.FindAsync(request.ServiceId);
-        if (service is null || !service.IsActive)
+        var bookResult = await TryBookNewAsync(request, clientUserId: null);
+        if (!bookResult.IsSuccess)
         {
-            return Result<AppointmentResponseDto>.NotFoundError("Service not found.");
+            if (bookResult.IsValidationError())
+            {
+                return Result<AppointmentResponseDto>.ValidationError(bookResult.Message);
+            }
+
+            if (bookResult.IsNotFound())
+            {
+                return Result<AppointmentResponseDto>.NotFoundError(bookResult.Message);
+            }
+
+            if (bookResult.IsDuplicateRecord())
+            {
+                return Result<AppointmentResponseDto>.DuplicateRecordError(bookResult.Message);
+            }
+
+            return Result<AppointmentResponseDto>.SystemError(bookResult.Message);
         }
 
-        // Salon-local date of the requested instant. The echoed offset only selects the
-        // query day; the authoritative trust anchor is instant-equality against the
-        // server-recomputed open-slot grid below — a wrong/forged offset fails closed.
-        var date = DateOnly.FromDateTime(request.StartsAt.DateTime);
+        var (appointment, service, stylist) = bookResult.Data;
+        var dto = appointment.ToDto(service, stylist);
 
-        // Candidate stylists, deterministically ordered by Id (D-07). A specific
-        // requested stylist restricts the set to just that one.
-        var activeStylists = await _dbContext.Stylists
-            .Where(stylist => stylist.IsActive && (request.StylistId == null || stylist.Id == request.StylistId))
-            .OrderBy(stylist => stylist.Id)
-            .ToListAsync();
-
-        var requestedInstantUtc = request.StartsAt.ToUniversalTime();
-
-        var freeCandidates = new List<(Stylist Stylist, DateTimeOffset Instant)>();
-        foreach (var stylist in activeStylists)
+        // Best-effort confirmation AFTER commit (D-11). Guarded so no IEmailService
+        // implementation — including a Resend outage — can cost the client their slot.
+        try
         {
-            var openSlots = await _slotService.GetOpenSlotsAsync(request.ServiceId, stylist.Id, date);
-            var match = openSlots.FirstOrDefault(slot => slot.StartsAt.ToUniversalTime() == requestedInstantUtc);
-            if (match is not null)
-            {
-                freeCandidates.Add((stylist, match.StartsAt));
-            }
+            await _emailService.SendConfirmationAsync(appointment, service.ToDto(), stylist.Name);
+        }
+        catch
+        {
+            // Swallow: the booking is already committed and the email is best-effort.
+            // ResendEmailService logs its own failures; a throwing double must not roll back.
         }
 
-        if (freeCandidates.Count == 0)
-        {
-            // Distinguish "already booked" (a real grid slot someone else took → 409-worthy)
-            // from "never an open slot" (off working hours / invalid time → 404).
-            var candidateStylistIds = activeStylists.Select(stylist => stylist.Id).ToList();
-            var alreadyBooked = await _dbContext.AppointmentSlots
-                .AnyAsync(slot => candidateStylistIds.Contains(slot.StylistId)
-                                  && slot.SlotStart == request.StartsAt);
-
-            return alreadyBooked
-                ? Result<AppointmentResponseDto>.DuplicateRecordError(
-                    "This slot was just booked by someone else. Please choose another time.")
-                : Result<AppointmentResponseDto>.NotFoundError("That time is not an available slot.");
-        }
-
-        var cellsNeeded = (int)Math.Ceiling(service.DurationMinutes / (double)GridMinutes);
-
-        foreach (var (stylist, instant) in freeCandidates)
-        {
-            var appointment = BuildAppointment(request, stylist.Id, instant, cellsNeeded);
-            _dbContext.Appointments.Add(appointment);
-
-            try
-            {
-                // Single implicit transaction — all rows commit or none do. No manual
-                // BeginTransaction (Pitfall 2).
-                await _dbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex) when (IsDuplicateKeyViolation(ex))
-            {
-                // Lost the race for this stylist's cell — detach and try the next candidate.
-                _dbContext.Entry(appointment).State = EntityState.Detached;
-                foreach (var slot in appointment.Slots)
-                {
-                    _dbContext.Entry(slot).State = EntityState.Detached;
-                }
-
-                continue;
-            }
-
-            var dto = appointment.ToDto(service, stylist);
-
-            // Best-effort confirmation AFTER commit (D-11). Guarded so no IEmailService
-            // implementation — including a Resend outage — can cost the client their slot.
-            try
-            {
-                await _emailService.SendConfirmationAsync(appointment, service.ToDto(), stylist.Name);
-            }
-            catch
-            {
-                // Swallow: the booking is already committed and the email is best-effort.
-                // ResendEmailService logs its own failures; a throwing double must not roll back.
-            }
-
-            return Result<AppointmentResponseDto>.Success(dto);
-        }
-
-        return Result<AppointmentResponseDto>.DuplicateRecordError(
-            "This slot was just booked by someone else. Please choose another time.");
+        return Result<AppointmentResponseDto>.Success(dto);
     }
 
     /// <summary>
@@ -287,6 +237,262 @@ public class AppointmentsService
         await _dbContext.SaveChangesAsync();
 
         return Result<AppointmentResponseDto>.Success(appointment.ToDto(service, stylist));
+    }
+
+    /// <summary>
+    /// Client self-service cancel (ACCT-04 / D-09 / D-11 / D-12). Ownership from
+    /// <paramref name="clientUserId"/> only; Confirmed→Cancelled via the shared
+    /// <see cref="AllowedTransitions"/> map + AppointmentSlots RemoveRange path.
+    /// </summary>
+    public async Task<Result<AppointmentResponseDto>> CancelForClientAsync(
+        int appointmentId, int clientUserId, string actorDisplayName)
+    {
+        var appointment = await _dbContext.Appointments
+            .Include(a => a.Slots)
+            .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
+        if (appointment is null || appointment.ClientUserId != clientUserId)
+        {
+            return Result<AppointmentResponseDto>.NotFoundError("Appointment not found.");
+        }
+
+        if (appointment.Status != AppointmentStatus.Confirmed)
+        {
+            return Result<AppointmentResponseDto>.ValidationError(
+                $"Cannot cancel an appointment with status {appointment.Status}.");
+        }
+
+        if (HasAppointmentStarted(appointment.StartsAt))
+        {
+            return Result<AppointmentResponseDto>.ValidationError(
+                "This appointment has already started and can no longer be cancelled online.");
+        }
+
+        if (!IsAllowedTransition(appointment.Status, AppointmentStatus.Cancelled))
+        {
+            return Result<AppointmentResponseDto>.ValidationError(
+                $"Cannot move an appointment from {appointment.Status} to {AppointmentStatus.Cancelled}.");
+        }
+
+        var service = await _dbContext.Services.FindAsync(appointment.ServiceId);
+        var stylist = await _dbContext.Stylists.FindAsync(appointment.StylistId);
+        if (service is null || stylist is null)
+        {
+            return Result<AppointmentResponseDto>.SystemError(
+                $"Appointment {appointment.Id} references a missing service or stylist.");
+        }
+
+        _dbContext.AppointmentSlots.RemoveRange(appointment.Slots);
+        appointment.Status = AppointmentStatus.Cancelled;
+        appointment.StatusChangedAt = DateTimeOffset.UtcNow;
+        appointment.StatusChangedBy = actorDisplayName;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Result<AppointmentResponseDto>.Success(appointment.ToDto(service, stylist));
+    }
+
+    /// <summary>
+    /// Client self-service reschedule (ACCT-04 / D-10 / D-11 / D-12). Book-new then
+    /// cancel-old inside CreateExecutionStrategy + BeginTransactionAsync so a
+    /// unique-index failure rolls back and the old booking stays Confirmed (Pitfall 4).
+    /// Never cancel-first.
+    /// </summary>
+    public async Task<Result<AppointmentResponseDto>> RescheduleForClientAsync(
+        int appointmentId,
+        int clientUserId,
+        ClientRescheduleRequestDto request,
+        string actorDisplayName)
+    {
+        var validation = await _rescheduleValidator.ValidateAsync(request);
+        if (!validation.IsValid)
+        {
+            return Result<AppointmentResponseDto>.ValidationError(
+                string.Join("; ", validation.Errors.Select(error => error.ErrorMessage)));
+        }
+
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            var oldAppointment = await _dbContext.Appointments
+                .Include(a => a.Slots)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
+            if (oldAppointment is null || oldAppointment.ClientUserId != clientUserId)
+            {
+                return Result<AppointmentResponseDto>.NotFoundError("Appointment not found.");
+            }
+
+            if (oldAppointment.Status != AppointmentStatus.Confirmed)
+            {
+                return Result<AppointmentResponseDto>.ValidationError(
+                    $"Cannot reschedule an appointment with status {oldAppointment.Status}.");
+            }
+
+            if (HasAppointmentStarted(oldAppointment.StartsAt))
+            {
+                return Result<AppointmentResponseDto>.ValidationError(
+                    "This appointment has already started and can no longer be rescheduled online.");
+            }
+
+            if (!IsAllowedTransition(oldAppointment.Status, AppointmentStatus.Cancelled))
+            {
+                return Result<AppointmentResponseDto>.ValidationError(
+                    $"Cannot move an appointment from {oldAppointment.Status} to {AppointmentStatus.Cancelled}.");
+            }
+
+            var createRequest = new AppointmentCreateDto
+            {
+                ServiceId = oldAppointment.ServiceId,
+                StylistId = request.StylistId ?? oldAppointment.StylistId,
+                StartsAt = request.StartsAt,
+                FirstName = oldAppointment.FirstName,
+                LastName = oldAppointment.LastName,
+                Email = oldAppointment.Email,
+                Phone = oldAppointment.Phone,
+            };
+
+            var bookResult = await TryBookNewAsync(createRequest, clientUserId);
+            if (!bookResult.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                if (bookResult.IsDuplicateRecord())
+                {
+                    return Result<AppointmentResponseDto>.DuplicateRecordError(bookResult.Message);
+                }
+
+                if (bookResult.IsNotFound())
+                {
+                    return Result<AppointmentResponseDto>.NotFoundError(bookResult.Message);
+                }
+
+                if (bookResult.IsValidationError())
+                {
+                    return Result<AppointmentResponseDto>.ValidationError(bookResult.Message);
+                }
+
+                return Result<AppointmentResponseDto>.SystemError(bookResult.Message);
+            }
+
+            var (newAppointment, service, stylist) = bookResult.Data;
+
+            _dbContext.AppointmentSlots.RemoveRange(oldAppointment.Slots);
+            oldAppointment.Status = AppointmentStatus.Cancelled;
+            oldAppointment.StatusChangedAt = DateTimeOffset.UtcNow;
+            oldAppointment.StatusChangedBy = actorDisplayName;
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (DbUpdateException ex) when (IsDuplicateKeyViolation(ex))
+            {
+                await transaction.RollbackAsync();
+                return Result<AppointmentResponseDto>.DuplicateRecordError(
+                    "This slot was just booked by someone else. Please choose another time.");
+            }
+
+            var dto = newAppointment.ToDto(service, stylist);
+
+            try
+            {
+                await _emailService.SendConfirmationAsync(newAppointment, service.ToDto(), stylist.Name);
+            }
+            catch
+            {
+                // Best-effort AFTER commit — never roll back for email (mirror CreateAsync).
+            }
+
+            return Result<AppointmentResponseDto>.Success(dto);
+        });
+    }
+
+    private static bool HasAppointmentStarted(DateTimeOffset startsAt)
+        => startsAt <= DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Shared open-slot + unique-index insert used by guest create and client reschedule.
+    /// Caller owns the ambient transaction (reschedule) or relies on the single SaveChanges
+    /// implicit transaction (create). Does not send email.
+    /// </summary>
+    private async Task<Result<(Appointment Appointment, Service Service, Stylist Stylist)>> TryBookNewAsync(
+        AppointmentCreateDto request,
+        int? clientUserId)
+    {
+        var service = await _dbContext.Services.FindAsync(request.ServiceId);
+        if (service is null || !service.IsActive)
+        {
+            return Result<(Appointment, Service, Stylist)>.NotFoundError("Service not found.");
+        }
+
+        var date = DateOnly.FromDateTime(request.StartsAt.DateTime);
+
+        var activeStylists = await _dbContext.Stylists
+            .Where(stylist => stylist.IsActive && (request.StylistId == null || stylist.Id == request.StylistId))
+            .OrderBy(stylist => stylist.Id)
+            .ToListAsync();
+
+        var requestedInstantUtc = request.StartsAt.ToUniversalTime();
+
+        var freeCandidates = new List<(Stylist Stylist, DateTimeOffset Instant)>();
+        foreach (var stylist in activeStylists)
+        {
+            var openSlots = await _slotService.GetOpenSlotsAsync(request.ServiceId, stylist.Id, date);
+            var match = openSlots.FirstOrDefault(slot => slot.StartsAt.ToUniversalTime() == requestedInstantUtc);
+            if (match is not null)
+            {
+                freeCandidates.Add((stylist, match.StartsAt));
+            }
+        }
+
+        if (freeCandidates.Count == 0)
+        {
+            var candidateStylistIds = activeStylists.Select(stylist => stylist.Id).ToList();
+            var alreadyBooked = await _dbContext.AppointmentSlots
+                .AnyAsync(slot => candidateStylistIds.Contains(slot.StylistId)
+                                  && slot.SlotStart == request.StartsAt);
+
+            return alreadyBooked
+                ? Result<(Appointment, Service, Stylist)>.DuplicateRecordError(
+                    "This slot was just booked by someone else. Please choose another time.")
+                : Result<(Appointment, Service, Stylist)>.NotFoundError("That time is not an available slot.");
+        }
+
+        var cellsNeeded = (int)Math.Ceiling(service.DurationMinutes / (double)GridMinutes);
+
+        foreach (var (stylist, instant) in freeCandidates)
+        {
+            var appointment = BuildAppointment(request, stylist.Id, instant, cellsNeeded);
+            if (clientUserId.HasValue)
+            {
+                appointment.ClientUserId = clientUserId.Value;
+            }
+
+            _dbContext.Appointments.Add(appointment);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsDuplicateKeyViolation(ex))
+            {
+                _dbContext.Entry(appointment).State = EntityState.Detached;
+                foreach (var slot in appointment.Slots)
+                {
+                    _dbContext.Entry(slot).State = EntityState.Detached;
+                }
+
+                continue;
+            }
+
+            return Result<(Appointment, Service, Stylist)>.Success((appointment, service, stylist));
+        }
+
+        return Result<(Appointment, Service, Stylist)>.DuplicateRecordError(
+            "This slot was just booked by someone else. Please choose another time.");
     }
 
     private static bool IsAllowedTransition(AppointmentStatus current, AppointmentStatus next)
