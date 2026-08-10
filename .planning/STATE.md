@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: Cart & Checkout
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-08-10T06:20:23.980Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-08-10T06:24:43.659Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 32
-  completed_plans: 28
+  completed_plans: 29
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-09)
 ## Current Position
 
 Phase: 06 (Cart & Checkout) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-10 — Phase 06 execution started
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ _Updated after each plan completion_
 | Phase 05 P01 | 27min    | 3 tasks | 14 files |
 | Phase 05 P02 | 6min     | 3 tasks | 6 files  |
 | Phase 06 P01 | 6min | 2 tasks | 17 files |
+| Phase 06 P02 | 3min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -143,6 +144,9 @@ Recent decisions affecting current work:
 - [Phase 06]: Cart upsert sets absolute Quantity clamped to Products.Stock; unknown session GET returns empty items
 - [Phase 06]: Guest cart session via X-Cart-Session-Id header (max 64) because AllowAnyOrigin blocks credentialed cookies
 - [Phase 06]: Message-only Result.ConflictError overload added for stock 409 (Pitfall 7)
+- [Phase ?]: Add-to-cart is additive (current qty + selected) clamped to stock, then absolute upsert
+- [Phase ?]: Suggestion chips omitted until Plan 04 — no fake chip data for SHOP-07
+- [Phase ?]: Proceed to Checkout links to /checkout (acceptable interim until checkout plan)
 
 ### Pending Todos
 
@@ -192,8 +196,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-10T06:20:23.962Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-08-10T06:24:43.647Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
