@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: Cart & Checkout
 status: executing
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-08-10T06:31:44.444Z"
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-08-10T06:38:16.493Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 32
-  completed_plans: 30
+  completed_plans: 31
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-09)
 ## Current Position
 
 Phase: 06 (Cart & Checkout) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-10 — Phase 06 execution started
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ _Updated after each plan completion_
 | Phase 06 P01 | 6min | 2 tasks | 17 files |
 | Phase 06 P02 | 3min | 3 tasks | 9 files |
 | Phase 06 P03 | 5min | 2 tasks | 25 files |
+| Phase 06 P04 | 5min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Checkout money recomputed only from Products.Price; CheckoutRequestDto has no price/total fields (D-05)
 - [Phase ?]: Order.ClientId nullable for guest checkout; Status starts Pending and is never Fulfilled from checkout POST
 - [Phase ?]: SqliteWebApplicationFactory for checkout tests because ExecuteUpdateAsync is relational-only
+- [Phase ?]: GET /api/products/recommended-for-checkout uses repeated productIds query params
+- [Phase ?]: Reuse Plan 03 GET /api/orders/{id} for success display; no new fulfillment writer
+- [Phase ?]: Success accepts orderId/order or trailing digits from session_id (fake-{id})
 
 ### Pending Todos
 
@@ -200,8 +204,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-10T06:31:44.431Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-08-10T06:38:16.478Z
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None
 
 Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.

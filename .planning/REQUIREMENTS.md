@@ -53,9 +53,9 @@ Requirements for the current milestone (full services-led platform, specs roadma
 - [x] **SHOP-02**: Client can check out and pay through an integrated payment provider
 - [x] **SHOP-03**: Order total is computed server-side from the catalog; client-supplied prices are never trusted
 - [x] **SHOP-04**: Product stock is decremented atomically on order creation, with no overselling under concurrent checkout
-- [ ] **SHOP-05**: Order fulfillment is confirmed only via a verified payment webhook, not the client redirect
+- [x] **SHOP-05**: Order fulfillment is confirmed only via a verified payment webhook, not the client redirect
 - [x] **SHOP-06**: Guest checkout works without an account (`Order.ClientId` nullable)
-- [ ] **SHOP-07**: Stylist-recommended add-ons are surfaced at checkout
+- [x] **SHOP-07**: Stylist-recommended add-ons are surfaced at checkout
 
 ### Accounts & Retention (P7)
 
@@ -139,9 +139,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | SHOP-02 | Phase 6 | Complete |
 | SHOP-03 | Phase 6 | Complete |
 | SHOP-04 | Phase 6 | Complete |
-| SHOP-05 | Phase 6 | Pending |
+| SHOP-05 | Phase 6 | Complete |
 | SHOP-06 | Phase 6 | Complete |
-| SHOP-07 | Phase 6 | Pending |
+| SHOP-07 | Phase 6 | Complete |
 | ACCT-01 | Phase 7 | Pending |
 | ACCT-02 | Phase 7 | Pending |
 | ACCT-03 | Phase 7 | Pending |
