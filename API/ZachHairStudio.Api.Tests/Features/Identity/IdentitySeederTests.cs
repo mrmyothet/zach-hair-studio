@@ -37,9 +37,13 @@ public class IdentitySeederTests : IClassFixture<SqlServerWebApplicationFactory>
 
         Assert.True(await roleManager.RoleExistsAsync(StaffRoles.Owner));
         Assert.True(await roleManager.RoleExistsAsync(StaffRoles.Staff));
+        Assert.True(await roleManager.RoleExistsAsync(StaffRoles.Client));
 
         var ownersInRole = await userManager.GetUsersInRoleAsync(StaffRoles.Owner);
         Assert.Single(ownersInRole);
+
+        var clientsInRole = await userManager.GetUsersInRoleAsync(StaffRoles.Client);
+        Assert.Empty(clientsInRole);
 
         var owner = ownersInRole[0];
         Assert.Equal("owner@seeder-test.local", owner.Email);
@@ -63,6 +67,7 @@ public class IdentitySeederTests : IClassFixture<SqlServerWebApplicationFactory>
         var allRoles = roleManager.Roles.ToList();
         Assert.Single(allRoles, r => r.Name == StaffRoles.Owner);
         Assert.Single(allRoles, r => r.Name == StaffRoles.Staff);
+        Assert.Single(allRoles, r => r.Name == StaffRoles.Client);
     }
 
     [Fact]
