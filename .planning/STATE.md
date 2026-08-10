@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: Cart & Checkout
 status: executing
-stopped_at: Completed 06-04-PLAN.md
-last_updated: "2026-08-10T06:38:16.493Z"
+stopped_at: Checkpoint Task 3 human-verify Stripe CLI UAT (06-05)
+last_updated: "2026-08-10T06:47:06.425Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 32
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -204,8 +204,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-10T06:38:16.478Z
-Stopped at: Completed 06-04-PLAN.md
-Resume file: None
+Last session: 2026-08-10T06:47:06.358Z
+Stopped at: Checkpoint Task 3 human-verify Stripe CLI UAT (06-05)
+Resume file: .planning/phases/06-cart-checkout/06-05-PLAN.md
 
 Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
