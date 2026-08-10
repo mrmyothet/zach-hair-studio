@@ -15,16 +15,15 @@ using ZachHairStudio.Shared.Features.Identity;
 namespace ZachHairStudio.Api.Tests.Features.Account;
 
 /// <summary>
-/// Gap closure (ACCT-02 / ACCT-04 / D-08) — Client JWT on public POST /api/appointments
-/// must set Appointment.ClientUserId so the row appears in account history and cancel works.
-/// Guest and Staff Bearer must leave ClientUserId null. SqlServer only (RESEARCH Pitfall 1).
+/// Gap closure (ACCT-02 / ACCT-04 / D-08 / D-12) — Client JWT on public POST
+/// /api/appointments must set Appointment.ClientUserId so account list/cancel work.
+/// SqlServer only (RESEARCH Pitfall 1 — no InMemory).
 /// </summary>
 public class ClientOwnedBookingCreateTests : IClassFixture<SqlServerWebApplicationFactory>
 {
     private const string TestSigningKey = "ClientOwnedBookingCreateTests-signing-key-32b-hmac!";
-    private const string TestPassword = "ClientOwnedCreateTest!2026Pw";
+    private const string TestPassword = "ClientOwnedBookCreate!2026Pw";
 
-    private readonly SqlServerWebApplicationFactory _rawFactory;
     private readonly WebApplicationFactory<Program> _factory;
 
     private static DateTimeOffset Slot(int hour, int minute = 0)
@@ -32,7 +31,8 @@ public class ClientOwnedBookingCreateTests : IClassFixture<SqlServerWebApplicati
 
     public ClientOwnedBookingCreateTests(SqlServerWebApplicationFactory factory)
     {
-        _rawFactory = factory;
+        // Use only the JWT-configured factory for HTTP and DB scopes — accessing the
+        // raw fixture Services starts a host without Jwt:SigningKey and fails ValidateOnStart.
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureAppConfiguration((_, config) =>
@@ -64,7 +64,7 @@ public class ClientOwnedBookingCreateTests : IClassFixture<SqlServerWebApplicati
         HttpClient client, string? email = null)
     {
         await EnsureRolesAsync();
-        email ??= $"client-{Guid.NewGuid():N}@example.com";
+        email ??= $"owned-create-{Guid.NewGuid():N}@example.com";
 
         var response = await client.PostAsJsonAsync("/api/auth/register", new
         {
@@ -88,7 +88,7 @@ public class ClientOwnedBookingCreateTests : IClassFixture<SqlServerWebApplicati
     private async Task<(string Email, string Token)> SeedStaffAndLoginAsync(HttpClient client)
     {
         await EnsureRolesAsync();
-        var email = $"staff-{Guid.NewGuid():N}@example.com";
+        var email = $"staff-owned-create-{Guid.NewGuid():N}@example.com";
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -140,77 +140,79 @@ public class ClientOwnedBookingCreateTests : IClassFixture<SqlServerWebApplicati
     private static int ReadId(JsonElement root)
         => root.TryGetProperty("id", out var id) ? id.GetInt32() : root.GetProperty("Id").GetInt32();
 
-    private async Task AssertDbClientUserIdAsync(int appointmentId, int? expected)
+    private async Task<int?> LoadDbClientUserIdAsync(int appointmentId)
     {
-        using var scope = _rawFactory.Services.CreateScope();
+        using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
         var appointment = await db.Appointments.AsNoTracking().FirstAsync(a => a.Id == appointmentId);
-        Assert.Equal(expected, appointment.ClientUserId);
+        return appointment.ClientUserId;
     }
 
     [Fact]
-    public async Task ClientJwt_PostAppointments_OwnsRow_ListAndCancelSucceed()
+    public async Task ClientJwt_PostAppointments_OwnsRow_AppearsInAccountBookings_AndCancelSucceeds()
     {
         var client = _factory.CreateClient();
         var (userId, email, token) = await RegisterClientAsync(client);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var startsAt = Slot(9);
-        var create = await client.PostAsJsonAsync("/api/appointments", BookingRequest(startsAt, email, stylistId: 1));
-        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var startsAt = Slot(9, 15);
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/appointments",
+            BookingRequest(startsAt, email, stylistId: 1));
 
-        using var createJson = JsonDocument.Parse(await create.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        using var createJson = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync());
         var appointmentId = ReadId(createJson.RootElement);
         Assert.Equal(userId, ReadClientUserId(createJson.RootElement));
-        await AssertDbClientUserIdAsync(appointmentId, userId);
+        Assert.Equal(userId, await LoadDbClientUserIdAsync(appointmentId));
 
-        var list = await client.GetAsync("/api/account/bookings");
-        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
-        using var listJson = JsonDocument.Parse(await list.Content.ReadAsStringAsync());
-        var ids = listJson.RootElement.EnumerateArray().Select(ReadId).ToHashSet();
-        Assert.Contains(appointmentId, ids);
+        var listResponse = await client.GetAsync("/api/account/bookings");
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        using var listJson = JsonDocument.Parse(await listResponse.Content.ReadAsStringAsync());
+        var listedIds = listJson.RootElement.EnumerateArray().Select(ReadId).ToHashSet();
+        Assert.Contains(appointmentId, listedIds);
 
-        var cancel = await client.PostAsync($"/api/account/bookings/{appointmentId}/cancel", null);
-        Assert.Equal(HttpStatusCode.OK, cancel.StatusCode);
+        var cancelResponse = await client.PostAsync($"/api/account/bookings/{appointmentId}/cancel", null);
+        Assert.Equal(HttpStatusCode.OK, cancelResponse.StatusCode);
 
-        using var scope = _rawFactory.Services.CreateScope();
+        using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
         var appointment = await db.Appointments.AsNoTracking().FirstAsync(a => a.Id == appointmentId);
         Assert.Equal(AppointmentStatus.Cancelled, appointment.Status);
     }
 
     [Fact]
-    public async Task Anonymous_PostAppointments_ClientUserIdRemainsNull_GuestPath()
+    public async Task Anonymous_PostAppointments_ClientUserIdRemainsNull()
     {
         var client = _factory.CreateClient();
-        var email = $"guest-{Guid.NewGuid():N}@example.com";
+        var email = $"guest-create-{Guid.NewGuid():N}@example.com";
+        var startsAt = Slot(10, 30);
 
-        var create = await client.PostAsJsonAsync(
+        var response = await client.PostAsJsonAsync(
             "/api/appointments",
-            BookingRequest(Slot(10), email, stylistId: 2));
-        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+            BookingRequest(startsAt, email, stylistId: 2));
 
-        using var createJson = JsonDocument.Parse(await create.Content.ReadAsStringAsync());
-        var appointmentId = ReadId(createJson.RootElement);
-        Assert.Null(ReadClientUserId(createJson.RootElement));
-        await AssertDbClientUserIdAsync(appointmentId, expected: null);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Null(ReadClientUserId(json.RootElement));
+        Assert.Null(await LoadDbClientUserIdAsync(ReadId(json.RootElement)));
     }
 
     [Fact]
-    public async Task StaffJwt_PostAppointments_DoesNotAttachOwnership()
+    public async Task StaffJwt_PostAppointments_DoesNotAttachClientUserId()
     {
         var client = _factory.CreateClient();
         var (staffEmail, token) = await SeedStaffAndLoginAsync(client);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var create = await client.PostAsJsonAsync(
+        var startsAt = Slot(11, 45);
+        var response = await client.PostAsJsonAsync(
             "/api/appointments",
-            BookingRequest(Slot(11), staffEmail, stylistId: 3));
-        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+            BookingRequest(startsAt, staffEmail, stylistId: 3));
 
-        using var createJson = JsonDocument.Parse(await create.Content.ReadAsStringAsync());
-        var appointmentId = ReadId(createJson.RootElement);
-        Assert.Null(ReadClientUserId(createJson.RootElement));
-        await AssertDbClientUserIdAsync(appointmentId, expected: null);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Null(ReadClientUserId(json.RootElement));
+        Assert.Null(await LoadDbClientUserIdAsync(ReadId(json.RootElement)));
     }
 }
