@@ -5,6 +5,7 @@ using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Carts;
 using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Orders;
 using ZachHairStudio.Shared.Features.Products;
 using ZachHairStudio.Shared.Features.Services;
@@ -42,6 +43,8 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
+    public DbSet<LoyaltyLedger> LoyaltyLedgers => Set<LoyaltyLedger>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -416,6 +419,27 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
             entity.Property(e => e.ProductName).HasMaxLength(150);
             entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
             entity.Property(e => e.LineTotal).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<LoyaltyLedger>(entity =>
+        {
+            entity.Property(e => e.Reason).HasMaxLength(40);
+
+            entity.HasOne<ApplicationUser>()
+                  .WithMany()
+                  .HasForeignKey(e => e.ClientUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Pitfall 3: at most one Earn row per AppointmentId (filtered unique).
+            var isSqlite = Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+            entity.HasIndex(e => e.AppointmentId)
+                  .IsUnique()
+                  .HasFilter(isSqlite
+                      ? "\"AppointmentId\" IS NOT NULL AND \"Reason\" = 'Earn'"
+                      : "[AppointmentId] IS NOT NULL AND [Reason] = N'Earn'");
+
+            entity.HasIndex(e => e.ClientUserId);
+            entity.HasIndex(e => e.OrderId);
         });
     }
 }

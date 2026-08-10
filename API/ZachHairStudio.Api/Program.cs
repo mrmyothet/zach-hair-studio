@@ -14,6 +14,7 @@ using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Carts;
 using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Orders;
 using ZachHairStudio.Shared.Features.Payments;
 using ZachHairStudio.Shared.Features.Products;
@@ -90,6 +91,7 @@ else
     builder.Services.AddScoped<IPaymentProvider, StripePaymentProvider>();
 }
 
+builder.Services.AddScoped<LoyaltyService>();
 builder.Services.AddScoped<OrdersService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<StylistsService>();

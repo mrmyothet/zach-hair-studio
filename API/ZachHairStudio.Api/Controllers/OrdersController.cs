@@ -1,5 +1,8 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using ZachHairStudio.Shared.Features.Identity;
+using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Orders;
 
 namespace ZachHairStudio.Api.Controllers;
@@ -55,7 +58,9 @@ public class OrdersController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var result = await _ordersService.CreateCheckoutAsync(request, cancellationToken);
+        TryGetClientUserId(out var clientUserId);
+
+        var result = await _ordersService.CreateCheckoutAsync(request, clientUserId, cancellationToken);
 
         if (result.IsValidationError())
         {
@@ -96,6 +101,51 @@ public class OrdersController : ControllerBase
         return Created($"/api/orders/{result.Data.OrderId}", result.Data);
     }
 
+    /// <summary>
+    /// Apply Points preview — catalog recompute + server loyalty dollars, no stock/Stripe (D-15).
+    /// </summary>
+    [HttpPost("checkout/quote")]
+    [ProducesResponseType(typeof(LoyaltyQuoteDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<LoyaltyQuoteDto>> QuoteCheckout(
+        [FromBody] CheckoutRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        // Quote does not require cart session (preview-only); SessionKey optional.
+        var validation = await _checkoutValidator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            foreach (var failure in validation.Errors)
+            {
+                ModelState.AddModelError(failure.PropertyName, failure.ErrorMessage);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
+        TryGetClientUserId(out var clientUserId);
+
+        var result = await _ordersService.QuoteCheckoutAsync(request, clientUserId, cancellationToken);
+
+        if (result.IsValidationError())
+        {
+            ModelState.AddModelError(string.Empty, result.Message);
+            return ValidationProblem(ModelState);
+        }
+
+        if (result.IsNotFound())
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = "Product not found",
+                Detail = result.Message,
+                Status = StatusCodes.Status404NotFound,
+            });
+        }
+
+        return Ok(result.Data);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<OrderResponseDto>> GetById(int id, CancellationToken cancellationToken)
     {
@@ -111,6 +161,34 @@ public class OrdersController : ControllerBase
         }
 
         return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Resolve optional Client JWT NameIdentifier. Staff/anonymous → null (guest path).
+    /// Never trust body owner ids (T-07-20 / D-08).
+    /// </summary>
+    private bool TryGetClientUserId(out int? clientUserId)
+    {
+        clientUserId = null;
+
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return false;
+        }
+
+        if (!User.IsInRole(StaffRoles.Client))
+        {
+            return false;
+        }
+
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(raw) || !int.TryParse(raw, out var userId))
+        {
+            return false;
+        }
+
+        clientUserId = userId;
+        return true;
     }
 
     private bool TryGetSessionKey(out string sessionKey, out ActionResult? error)

@@ -44,7 +44,11 @@ public class MarkFulfilledTests
             .Select(p => p.Stock)
             .SingleAsync();
 
-        var service = new OrdersService(harness.Db, new FakePaymentProvider(), new CheckoutRequestDtoValidator());
+        var service = new OrdersService(
+            harness.Db,
+            new FakePaymentProvider(),
+            new CheckoutRequestDtoValidator(),
+            new ZachHairStudio.Shared.Features.Loyalty.LoyaltyService(harness.Db));
         var result = await service.MarkFulfilledAsync(order.Id.ToString(), "cs_already_fulfilled");
 
         Assert.True(result.IsSuccess, result.Message);
@@ -81,7 +85,11 @@ public class MarkFulfilledTests
         harness.Db.Orders.Add(order);
         await harness.Db.SaveChangesAsync();
 
-        var service = new OrdersService(harness.Db, new FakePaymentProvider(), new CheckoutRequestDtoValidator());
+        var service = new OrdersService(
+            harness.Db,
+            new FakePaymentProvider(),
+            new CheckoutRequestDtoValidator(),
+            new ZachHairStudio.Shared.Features.Loyalty.LoyaltyService(harness.Db));
         var result = await service.MarkFulfilledAsync(order.Id.ToString(), "cs_pending_flip");
 
         Assert.True(result.IsSuccess, result.Message);

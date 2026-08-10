@@ -2,11 +2,20 @@ namespace ZachHairStudio.Shared.Features.Orders;
 
 public static class OrderExtensions
 {
-    public static CheckoutResponseDto ToCheckoutResponseDto(this Order order, string checkoutUrl)
+    public static CheckoutResponseDto ToCheckoutResponseDto(
+        this Order order,
+        string checkoutUrl,
+        decimal subtotal,
+        decimal loyaltyDiscount,
+        int pointsRedeemed)
         => new CheckoutResponseDto
         {
             OrderId = order.Id,
             CheckoutUrl = checkoutUrl,
+            Subtotal = subtotal,
+            LoyaltyDiscount = loyaltyDiscount,
+            TotalAmount = order.TotalAmount,
+            PointsRedeemed = pointsRedeemed,
         };
 
     public static OrderResponseDto ToResponseDto(this Order order)

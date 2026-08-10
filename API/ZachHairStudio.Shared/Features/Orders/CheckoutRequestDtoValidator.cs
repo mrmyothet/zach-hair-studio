@@ -27,5 +27,11 @@ public class CheckoutRequestDtoValidator : AbstractValidator<CheckoutRequestDto>
             item.RuleFor(x => x.ProductId).GreaterThan(0);
             item.RuleFor(x => x.Quantity).GreaterThanOrEqualTo(1);
         });
+
+        RuleFor(x => x.RedeemPoints)
+            .GreaterThanOrEqualTo(0)
+            .Must(points => points!.Value % 10 == 0)
+            .WithMessage("RedeemPoints must be a multiple of 10.")
+            .When(x => x.RedeemPoints.HasValue);
     }
 }
