@@ -255,7 +255,7 @@ Plans:
   4. Staff authentication and client accounts share a single ASP.NET Core Identity schema/migration — not two separate auth stores
   5. A client earns a loyalty point for each completed appointment, visible in their account and redeemable as a discount
 
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 **Wave 1**
@@ -268,7 +268,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 07-03-PLAN.md — Self-service cancel + transactional cancel-and-rebook reschedule
+- [x] 07-03-PLAN.md — Self-service cancel + transactional cancel-and-rebook reschedule
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -307,5 +307,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
 | 6. Cart & Checkout | 4/5 | In Progress|  |
-| 7. Accounts & Retention | 2/4 | In Progress|  |
+| 7. Accounts & Retention | 3/4 | In Progress|  |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |
