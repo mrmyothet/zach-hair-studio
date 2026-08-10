@@ -1,0 +1,1 @@
+{"content":"Auth.js wrapping external .NET JWT adds a second session layer; Identity+JWT on API already shipped for staff. Extending same pattern to landing-page satisfies ACCT-05 without dual auth stores.","source":"web","provider":"websearch","confidence":"MEDIUM","fetched_at":"2026-08-10T07:44:07.078Z","ttl":86400000,"kind":"web"}

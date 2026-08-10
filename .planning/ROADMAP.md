@@ -311,5 +311,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
 | 6. Cart & Checkout | 4/5 | In Progress|  |
-| 7. Accounts & Retention | 4/4 | In Progress|  |
+| 7. Accounts & Retention | 4/5 | Gap closure planned |  |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |
