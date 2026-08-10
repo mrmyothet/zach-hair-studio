@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07
 current_phase_name: Accounts & Retention
 status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-08-10T10:06:16.726Z"
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-08-10T10:15:20.479Z"
 last_activity: 2026-08-10
 last_activity_desc: Phase 07 execution resumed (wave continue)
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 36
-  completed_plans: 33
+  completed_plans: 34
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-09)
 ## Current Position
 
 Phase: 07 (Accounts & Retention) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-08-10 — Phase 07 execution resumed (wave continue)
 
-Progress: [█████████░] 92%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ _Updated after each plan completion_
 | Phase 06 P03 | 5min | 2 tasks | 25 files |
 | Phase 06 P04 | 5min | 3 tasks | 10 files |
 | Phase 07 P01 | 7min | 3 tasks | 12 files |
+| Phase 07 P02 | 8min | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -158,6 +159,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Success accepts orderId/order or trailing digits from session_id (fake-{id})
 - [Phase ?]: Phase 07 Plan 01: DisplayName defaults to email local-part when omitted on client register
 - [Phase ?]: Phase 07 Plan 01: landing getSession/setSession reject non-Client roles; AUTH_UPDATED_EVENT refreshes Navbar same-tab
+- [Phase ?]: Phase 07 Plan 02: Appointment.ClientUserId FK OnDelete Restrict (no cascade-delete appointments)
+- [Phase ?]: Phase 07 Plan 02: /account redirects to /account/bookings; claim skip posts confirm=false
 
 ### Pending Todos
 
@@ -213,8 +216,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-10T10:06:16.716Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-08-10T10:15:20.468Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
 
 Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
