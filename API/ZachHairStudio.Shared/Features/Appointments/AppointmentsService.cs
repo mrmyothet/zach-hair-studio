@@ -60,7 +60,9 @@ public class AppointmentsService
         _loyaltyService = loyaltyService;
     }
 
-    public async Task<Result<AppointmentResponseDto>> CreateAsync(AppointmentCreateDto request)
+    public async Task<Result<AppointmentResponseDto>> CreateAsync(
+        AppointmentCreateDto request,
+        int? clientUserId = null)
     {
         var validation = await _validator.ValidateAsync(request);
         if (!validation.IsValid)
@@ -69,7 +71,7 @@ public class AppointmentsService
                 string.Join("; ", validation.Errors.Select(error => error.ErrorMessage)));
         }
 
-        var bookResult = await TryBookNewAsync(request, clientUserId: null);
+        var bookResult = await TryBookNewAsync(request, clientUserId);
         if (!bookResult.IsSuccess)
         {
             if (bookResult.IsValidationError())
