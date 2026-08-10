@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import AccountShell from "@/components/AccountShell";
+import AccountBookingActions, {
+  isUpcomingConfirmed,
+} from "@/components/AccountBookingActions";
 import { AlertIcon } from "@/components/icons";
 import {
   AccountApiError,
@@ -60,6 +63,26 @@ export default function AccountBookingsPage() {
     setReady(true);
     void load();
   }, [load]);
+
+  function handleCancelled(updated: AccountBooking) {
+    setBookings((prev) =>
+      prev
+        .map((b) => (b.id === updated.id ? updated : b))
+        .sort(
+          (a, b) =>
+            new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()
+        )
+    );
+  }
+
+  function handleRescheduled(oldId: number, updated: AccountBooking) {
+    setBookings((prev) =>
+      [...prev.filter((b) => b.id !== oldId), updated].sort(
+        (a, b) =>
+          new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()
+      )
+    );
+  }
 
   if (!ready || !session) {
     return (
@@ -157,6 +180,13 @@ export default function AccountBookingsPage() {
                         {booking.status}
                       </span>
                     </div>
+                    {isUpcomingConfirmed(booking) ? (
+                      <AccountBookingActions
+                        booking={booking}
+                        onCancelled={handleCancelled}
+                        onRescheduled={handleRescheduled}
+                      />
+                    ) : null}
                   </article>
                 </li>
               ))}
