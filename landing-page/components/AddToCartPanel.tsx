@@ -121,9 +121,9 @@ export default function AddToCartPanel({ productId, stock }: Props) {
         >
           <AlertIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <span>
-            <strong className="font-semibold">Couldn&apos;t Add to Cart</strong>
+            <strong className="font-semibold">{"Couldn't Add to Cart"}</strong>
             <span className="block mt-1">
-              We couldn&apos;t update your cart. Please try again.
+              {"We couldn't update your cart. Please try again."}
             </span>
           </span>
         </div>
