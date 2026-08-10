@@ -50,11 +50,11 @@ Requirements for the current milestone (full services-led platform, specs roadma
 ### Cart & Checkout (P6)
 
 - [x] **SHOP-01**: Client can add products to a cart and review it
-- [ ] **SHOP-02**: Client can check out and pay through an integrated payment provider
-- [ ] **SHOP-03**: Order total is computed server-side from the catalog; client-supplied prices are never trusted
-- [ ] **SHOP-04**: Product stock is decremented atomically on order creation, with no overselling under concurrent checkout
+- [x] **SHOP-02**: Client can check out and pay through an integrated payment provider
+- [x] **SHOP-03**: Order total is computed server-side from the catalog; client-supplied prices are never trusted
+- [x] **SHOP-04**: Product stock is decremented atomically on order creation, with no overselling under concurrent checkout
 - [ ] **SHOP-05**: Order fulfillment is confirmed only via a verified payment webhook, not the client redirect
-- [ ] **SHOP-06**: Guest checkout works without an account (`Order.ClientId` nullable)
+- [x] **SHOP-06**: Guest checkout works without an account (`Order.ClientId` nullable)
 - [ ] **SHOP-07**: Stylist-recommended add-ons are surfaced at checkout
 
 ### Accounts & Retention (P7)
@@ -136,11 +136,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | PROD-02 | Phase 5 | Complete |
 | PROD-03 | Phase 5 | Complete |
 | SHOP-01 | Phase 6 | Complete |
-| SHOP-02 | Phase 6 | Pending |
-| SHOP-03 | Phase 6 | Pending |
-| SHOP-04 | Phase 6 | Pending |
+| SHOP-02 | Phase 6 | Complete |
+| SHOP-03 | Phase 6 | Complete |
+| SHOP-04 | Phase 6 | Complete |
 | SHOP-05 | Phase 6 | Pending |
-| SHOP-06 | Phase 6 | Pending |
+| SHOP-06 | Phase 6 | Complete |
 | SHOP-07 | Phase 6 | Pending |
 | ACCT-01 | Phase 7 | Pending |
 | ACCT-02 | Phase 7 | Pending |
