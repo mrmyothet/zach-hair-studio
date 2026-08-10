@@ -9,7 +9,7 @@ created: 2026-08-10
 
 # Phase 7 — Validation Strategy
 
-> Seeded from RESEARCH.md ## Validation Architecture. Task IDs refined when PLAN.md exists.
+> Seeded from RESEARCH.md ## Validation Architecture. Task→plan mapping refreshed for 07-01..07-04 PLAN.md.
 
 ---
 
@@ -38,13 +38,13 @@ created: 2026-08-10
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 07-00-01 | TBD | TBD | ACCT-01 | — | Register Client + login JWT with Client role | integration | `dotnet test --filter FullyQualifiedName~ClientAuthTests` | ❌ W0 | ⬜ pending |
-| 07-00-02 | TBD | TBD | ACCT-02 | — | Client lists only own appointments | integration | `dotnet test --filter FullyQualifiedName~AccountBookingsTests` | ❌ W0 | ⬜ pending |
-| 07-00-03 | TBD | TBD | ACCT-03 | — | Client lists only own orders | integration | `dotnet test --filter FullyQualifiedName~AccountOrdersTests` | ❌ W0 | ⬜ pending |
-| 07-00-04 | TBD | TBD | ACCT-04 | — | Owner cancel/reschedule; non-owner 404 | integration | `dotnet test --filter FullyQualifiedName~ClientRescheduleTests` | ❌ W0 | ⬜ pending |
-| 07-00-05 | TBD | TBD | ACCT-05 | — | Client role same AspNet schema | integration | IdentitySeeder / role seed assert | ⚠️ extend | ⬜ pending |
-| 07-00-06 | TBD | TBD | ACCT-06 | — | Cross-client id access rejected | integration | IDOR cases in Account*Tests | ❌ W0 | ⬜ pending |
-| 07-00-07 | TBD | TBD | ACCT-07 | — | Ledger earn + server checkout discount | integration | `dotnet test --filter FullyQualifiedName~LoyaltyTests` | ❌ W0 | ⬜ pending |
+| 07-01-01 | 07-01 | 1 | ACCT-01 | T-07-01 | Register Client + login JWT with Client role | integration | `dotnet test --filter FullyQualifiedName~ClientAuthTests` | ❌ W0 | ⬜ pending |
+| 07-01-02 | 07-01 | 1 | ACCT-05 | T-07-02 | Client role same AspNet schema; seeder asserts Client | integration | `dotnet test --filter FullyQualifiedName~IdentitySeederTests` | ⚠️ extend | ⬜ pending |
+| 07-02-01 | 07-02 | 2 | ACCT-02 | T-07-08 | Client lists only own appointments | integration | `dotnet test --filter FullyQualifiedName~AccountBookingsTests` | ❌ W0 | ⬜ pending |
+| 07-02-02 | 07-02 | 2 | ACCT-03 | T-07-08 | Client lists only own orders | integration | `dotnet test --filter FullyQualifiedName~AccountOrdersTests` | ❌ W0 | ⬜ pending |
+| 07-02-03 | 07-02 | 2 | ACCT-06 | T-07-06 | Cross-client id access rejected (IDOR → 404) | integration | IDOR cases in AccountBookingsTests + AccountOrdersTests | ❌ W0 | ⬜ pending |
+| 07-03-01 | 07-03 | 3 | ACCT-04 | T-07-12 | Owner cancel/reschedule; non-owner 404; txn book-new→cancel-old | integration | `dotnet test --filter FullyQualifiedName~ClientRescheduleTests` | ❌ W0 | ⬜ pending |
+| 07-04-01 | 07-04 | 4 | ACCT-07 | T-07-20 | Ledger earn + server checkout discount; no client $ trust | integration | `dotnet test --filter FullyQualifiedName~LoyaltyTests` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,12 +52,12 @@ created: 2026-08-10
 
 ## Wave 0 Requirements
 
-- [ ] `Features/Identity/ClientAuthTests.cs` — ACCT-01/05
-- [ ] `Features/Account/AccountBookingsTests.cs` — ACCT-02/06
-- [ ] `Features/Account/AccountOrdersTests.cs` — ACCT-03/06
-- [ ] `Features/Account/ClientRescheduleTests.cs` — ACCT-04
-- [ ] `Features/Loyalty/LoyaltyTests.cs` — ACCT-07
-- [ ] Extend IdentitySeederTests — Client role seeded
+- [ ] `Features/Identity/ClientAuthTests.cs` — ACCT-01 (Plan 07-01)
+- [ ] Extend IdentitySeederTests — Client role seeded — ACCT-05 (Plan 07-01)
+- [ ] `Features/Account/AccountBookingsTests.cs` — ACCT-02/06 (Plan 07-02)
+- [ ] `Features/Account/AccountOrdersTests.cs` — ACCT-03/06 (Plan 07-02)
+- [ ] `Features/Account/ClientRescheduleTests.cs` — ACCT-04 (Plan 07-03)
+- [ ] `Features/Loyalty/LoyaltyTests.cs` — ACCT-07 (Plan 07-04)
 - [ ] Reuse AuthGateTests UserManager + Jwt inject pattern
 
 ---
@@ -67,6 +67,8 @@ created: 2026-08-10
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Register → login → Bookings/Orders tabs on landing-page | ACCT-01..03 | No frontend test script | Create account; confirm Navbar Account; history tabs load own data only |
+| Cancel/Reschedule from account bookings UI | ACCT-04 | No frontend test script | Confirmed upcoming → Cancel releases slot; Reschedule book-new then cancel-old |
+| Loyalty strip + checkout Apply Points | ACCT-07 | No frontend test script | Complete owned appt → balance +1; redeem 10 pts updates server totals; guest checkout omits redeem |
 
 ---
 
