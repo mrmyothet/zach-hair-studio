@@ -15,7 +15,9 @@ Each phase is a vertical slice (DB → API → UI) that is shippable and verifia
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Service Catalog** - Clients browse services (name, description, duration, price); API built on a real service layer from day one (completed 2026-07-09)
+- [x] **Phase 1: Service Catalog** - Clients browse services (name, description, duration, price); API built on a real service layer from day one
+ (completed 2026-07-09)
+
 - [x] **Phase 2: Booking Core** - Clients pick a service, see real open slots, and confirm a double-booking-safe appointment (completed 2026-07-10)
 - [x] **Phase 3: Staff Dashboard (Schedule)** - Staff view the day's/week's appointments and update status behind a staff-only auth gate (completed 2026-07-16)
 - [x] **Phase 4: Staff Management (Services & Availability)** - Staff self-serve CRUD for services and stylist availability, conflict-checked against existing bookings (completed 2026-08-09)
@@ -295,7 +297,28 @@ Plans:
   4. The API emits structured logs across requests and key operations (bookings, checkout, auth)
   5. Auth and checkout endpoints have basic rate limiting in place
 
-**Plans**: TBD
+**Plans:** 0/5 plans executed
+
+**Wave 1**
+
+- [ ] 08-01-PLAN.md — Production CORS allowlist + delete ZachHairStudio.Admin
+
+**Wave 2**
+
+- [ ] 08-02-PLAN.md — Skip Migrate in Production + pending-migration fail-fast + runbook
+
+**Wave 3**
+
+- [ ] 08-03-PLAN.md — JSON structured logging + key-op events
+
+**Wave 4**
+
+- [ ] 08-04-PLAN.md — RateLimiter on auth + checkout
+
+**Wave 5**
+
+- [ ] 08-05-PLAN.md — Responsive polish pass + VALIDATION checklist
+
 **UI hint**: yes
 
 ## Progress
@@ -312,4 +335,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
 | 6. Cart & Checkout | 4/5 | In Progress|  |
 | 7. Accounts & Retention | 5/5 | Complete    | 2026-08-10 |
-| 8. Polish & Launch Readiness | 0/TBD | Not started | - |
+| 8. Polish & Launch Readiness | 0/5 | Planned    |  |
