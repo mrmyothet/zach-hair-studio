@@ -219,7 +219,7 @@ Plans:
   4. An order is marked fulfilled only after a verified payment-provider webhook fires, never from the client's post-payment redirect alone
   5. Stylist-recommended add-ons are surfaced both on the service detail page and again at checkout
 
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 Plans:
 **Wave 1**
 
@@ -232,7 +232,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 06-04-PLAN.md — Checkout UI + SHOP-07 chips + success/cancel display-only (SHOP-02, SHOP-05, SHOP-07)
+- [x] 06-04-PLAN.md — Checkout UI + SHOP-07 chips + success/cancel display-only (SHOP-02, SHOP-05, SHOP-07)
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -288,6 +288,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
-| 6. Cart & Checkout | 3/5 | In Progress|  |
+| 6. Cart & Checkout | 4/5 | In Progress|  |
 | 7. Accounts & Retention | 0/TBD | Not started | - |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |
