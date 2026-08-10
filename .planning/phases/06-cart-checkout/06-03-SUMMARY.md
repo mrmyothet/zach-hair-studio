@@ -134,7 +134,7 @@ status: complete
 1. **Task 1: Order domain + IPaymentProvider + RED checkout tests** - `033d453` (test)
 2. **Task 2: GREEN — OrdersService CreateCheckoutAsync + OrdersController + AddOrders migration** - `9d22d04` (feat)
 
-**Plan metadata:** _(pending docs commit)_
+**Plan metadata:** `653e848` (docs: complete plan)
 
 ## Files Created/Modified
 
