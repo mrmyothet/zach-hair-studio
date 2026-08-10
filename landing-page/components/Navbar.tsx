@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { AUTH_UPDATED_EVENT, getSession } from "@/lib/auth";
 import { cartItemCount, CART_UPDATED_EVENT, fetchCart } from "@/lib/cart";
 import { cartNavLink, navLinks } from "@/lib/data";
-import { ArrowRightIcon, CartIcon } from "./icons";
+import { ArrowRightIcon, CartIcon, PersonIcon } from "./icons";
 
 function Logo() {
   return (
@@ -33,6 +34,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [hasSession, setHasSession] = useState(false);
 
   const refreshCartCount = useCallback(async () => {
     try {
@@ -41,6 +43,10 @@ export default function Navbar() {
     } catch {
       // Keep last known count on transient failures — link still navigates to /cart.
     }
+  }, []);
+
+  const refreshSession = useCallback(() => {
+    setHasSession(getSession() !== null);
   }, []);
 
   useEffect(() => {
@@ -57,6 +63,28 @@ export default function Navbar() {
     window.addEventListener(CART_UPDATED_EVENT, onCartUpdated);
     return () => window.removeEventListener(CART_UPDATED_EVENT, onCartUpdated);
   }, [refreshCartCount]);
+
+  useEffect(() => {
+    refreshSession();
+    const onAuthUpdated = () => refreshSession();
+    const onFocus = () => refreshSession();
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "zhs.client.auth" || event.key === null) {
+        refreshSession();
+      }
+    };
+    window.addEventListener(AUTH_UPDATED_EVENT, onAuthUpdated);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(AUTH_UPDATED_EVENT, onAuthUpdated);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [refreshSession]);
+
+  const accountHref = hasSession ? "/account" : "/account/login";
+  const accountLabel = hasSession ? "Account" : "Log In";
 
   return (
     <nav
@@ -81,6 +109,14 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden md:flex items-center gap-4">
+          <Link
+            href={accountHref}
+            className="relative inline-flex items-center gap-2 text-gray-300 hover:text-gold transition-colors text-sm tracking-wider uppercase min-h-11"
+          >
+            <PersonIcon className="w-5 h-5 text-gold" />
+            {accountLabel}
+          </Link>
+
           <Link
             href={cartNavLink.href}
             className="relative inline-flex items-center gap-2 text-gray-300 hover:text-gold transition-colors text-sm tracking-wider uppercase"
@@ -128,6 +164,16 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href={accountHref}
+                className="relative inline-flex items-center gap-2 text-gray-300 hover:text-gold transition-colors min-h-11"
+                onClick={() => setOpen(false)}
+              >
+                <PersonIcon className="w-5 h-5 text-gold" />
+                {accountLabel}
+              </Link>
+            </li>
             <li>
               <Link
                 href={cartNavLink.href}
