@@ -21,6 +21,19 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
+    /// <summary>
+    /// SHOP-07 — stylist-recommended add-ons for cart chips.
+    /// Query: repeated productIds=1&amp;productIds=2 (ASP.NET model-binds to int[]).
+    /// </summary>
+    [HttpGet("recommended-for-checkout")]
+    public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetRecommendedForCheckout(
+        [FromQuery] int[]? productIds)
+    {
+        var recommendations = await _productsService.GetRecommendedForCheckoutAsync(
+            productIds ?? Array.Empty<int>());
+        return Ok(recommendations);
+    }
+
     [HttpGet("{slug}", Name = nameof(GetProduct))]
     public async Task<ActionResult<ProductResponseDto>> GetProduct(string slug)
     {
