@@ -517,26 +517,31 @@ public class StockConcurrencyTests : IClassFixture<SqlServerWebApplicationFactor
 
 **If empty:** N/A — table above lists assumptions needing confirmation.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Stock restore on Stripe session failure / abandoned Pending**
    - What we know: CONTEXT locks decrement at order creation.
    - What's unclear: whether planner must ship compensating restore + optional Pending TTL.
    - Recommendation: **Must** compensate on Stripe create failure; TTL cleanup optional/deferred with explicit note in PLAN risks.
+   - RESOLVED: Compensate on Stripe create failure (restore stock + Order.Status=Failed) per Plan 03; no Pending TTL in this phase.
 
 2. **Feature folder split vs single Checkout feature**
    - Recommendation: `Carts` + `Orders` + `Payments` (three folders) — clearest PLAT-01 boundaries.
+   - RESOLVED: Three folders — `Features/Carts/`, `Features/Orders/`, `Features/Payments/` (Plans 01–05).
 
 3. **SHOP-07 recommendation source when join is empty**
    - UI-SPEC allows same-category fallback; prefer `ServiceRecommendedProduct` first.
    - Recommendation: join-based endpoint; omit chips when empty (UI-SPEC).
+   - RESOLVED: Join-only chips via `ServiceRecommendedProduct`; omit section when empty (Plan 04) — no same-category fallback.
 
 4. **Email capture**
    - UI-SPEC: Email on `/checkout` prefill Stripe `customer_email`, or collect only on Stripe.
    - Recommendation: collect Email on `/checkout` (required) so Order has contact even before webhook.
+   - RESOLVED: Email required on `/checkout` (Plan 04 Zod + Plan 03 CheckoutRequestDto validator); prefills Stripe `customer_email`.
 
 5. **Where to add Stripe.net package (Shared vs Api)**
    - Recommendation: Shared if `StripePaymentProvider` lives there; keep webhook controller in Api.
+   - RESOLVED: Stripe.net 52.2.0 on Shared (`StripePaymentProvider` lives there); webhook controller stays in Api (Plan 05).
 
 ## Environment Availability
 
