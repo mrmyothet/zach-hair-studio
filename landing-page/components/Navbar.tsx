@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { navLinks } from "@/lib/data";
-import { ArrowRightIcon } from "./icons";
+import { useCallback, useEffect, useState } from "react";
+import { cartItemCount, CART_UPDATED_EVENT, fetchCart } from "@/lib/cart";
+import { cartNavLink, navLinks } from "@/lib/data";
+import { ArrowRightIcon, CartIcon } from "./icons";
 
 function Logo() {
   return (
@@ -19,15 +20,43 @@ function Logo() {
   );
 }
 
+function CartBadge({ count }: { count: number }) {
+  if (count < 1) return null;
+  return (
+    <span className="absolute -top-1.5 -right-2 bg-gold text-charcoal text-xs font-semibold w-5 h-5 rounded-full flex items-center justify-center">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+
+  const refreshCartCount = useCallback(async () => {
+    try {
+      const cart = await fetchCart();
+      setCartCount(cartItemCount(cart));
+    } catch {
+      // Keep last known count on transient failures — link still navigates to /cart.
+    }
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    void refreshCartCount();
+    const onCartUpdated = () => {
+      void refreshCartCount();
+    };
+    window.addEventListener(CART_UPDATED_EVENT, onCartUpdated);
+    return () => window.removeEventListener(CART_UPDATED_EVENT, onCartUpdated);
+  }, [refreshCartCount]);
 
   return (
     <nav
@@ -51,13 +80,26 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <Link
-          href="/book"
-          className="hidden md:inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-charcoal font-semibold text-sm px-5 py-2.5 rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-gold/30"
-        >
-          Book Now
-          <ArrowRightIcon className="w-4 h-4" />
-        </Link>
+        <div className="hidden md:flex items-center gap-4">
+          <Link
+            href={cartNavLink.href}
+            className="relative inline-flex items-center gap-2 text-gray-300 hover:text-gold transition-colors text-sm tracking-wider uppercase"
+          >
+            <span className="relative">
+              <CartIcon className="w-5 h-5 text-gold" />
+              <CartBadge count={cartCount} />
+            </span>
+            {cartNavLink.label}
+          </Link>
+
+          <Link
+            href="/book"
+            className="inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-charcoal font-semibold text-sm px-5 py-2.5 rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-gold/30"
+          >
+            Book Now
+            <ArrowRightIcon className="w-4 h-4" />
+          </Link>
+        </div>
 
         <button
           type="button"
@@ -86,6 +128,19 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href={cartNavLink.href}
+                className="relative inline-flex items-center gap-2 text-gray-300 hover:text-gold transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <span className="relative">
+                  <CartIcon className="w-5 h-5 text-gold" />
+                  <CartBadge count={cartCount} />
+                </span>
+                {cartNavLink.label}
+              </Link>
+            </li>
             <li>
               <Link
                 href="/book"

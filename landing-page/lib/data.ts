@@ -12,6 +12,9 @@ export const navLinks: NavLink[] = [
   { label: "Contact", href: "/#contact" },
 ];
 
+/** Cart entry lives beside Book Now (not in the primary nav list) — UI-SPEC navbar cart. */
+export const cartNavLink: NavLink = { label: "Cart", href: "/cart" };
+
 export type GalleryItem = {
   src: string;
   alt: string;
