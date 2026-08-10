@@ -219,7 +219,25 @@ Plans:
   4. An order is marked fulfilled only after a verified payment-provider webhook fires, never from the client's post-payment redirect alone
   5. Stylist-recommended add-ons are surfaced both on the service detail page and again at checkout
 
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+**Wave 1**
+
+- [ ] 06-01-PLAN.md — Guest cart API: ConflictError overload, Cart/CartItem, CartsService/Controller, AddCarts migration (SHOP-01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 06-02-PLAN.md — Guest cart UI: session header, Add to Cart, Navbar badge, /cart review (SHOP-01)
+- [ ] 06-03-PLAN.md — Checkout API + fake IPaymentProvider: server totals, atomic stock, guest ClientId null (SHOP-02, SHOP-03, SHOP-04, SHOP-06)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 06-04-PLAN.md — Checkout UI + SHOP-07 chips + success/cancel display-only (SHOP-02, SHOP-05, SHOP-07)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 06-05-PLAN.md — Stripe.net + webhook fulfillment + StockConcurrencyTests + Stripe CLI human verify (SHOP-02, SHOP-04, SHOP-05)
+
 **Research flag**: yes — highest external-integration risk after Phase 2; run a focused research pass on the payment provider integration (Stripe.net), webhook-verified fulfillment, idempotency, and atomic stock-decrement mechanics before planning
 **UI hint**: yes
 
@@ -270,6 +288,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 3. Staff Dashboard (Schedule) | 5/5 | Complete    | 2026-07-16 |
 | 4. Staff Management (Services & Availability) | 7/7 | Complete    | 2026-08-09 |
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
-| 6. Cart & Checkout | 0/TBD | Not started | - |
+| 6. Cart & Checkout | 0/5 | Planned | - |
 | 7. Accounts & Retention | 0/TBD | Not started | - |
 | 8. Polish & Launch Readiness | 0/TBD | Not started | - |

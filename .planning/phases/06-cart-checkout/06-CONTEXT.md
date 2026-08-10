@@ -15,24 +15,20 @@ Client adds recommended products to a cart, reviews it on a cart page, and check
 ## Implementation Decisions
 
 ### Payment Provider
-- Stripe direct integration via Stripe.net (server-side only) — Checkout Session creation + webhook signature verification for fulfillment.
-- `IPaymentProvider` interface keeps the provider swappable; implementation behind it is Stripe.
+- **D-01:** Stripe direct integration via Stripe.net (server-side only) — Checkout Session creation + webhook signature verification for fulfillment. `IPaymentProvider` interface keeps the provider swappable; implementation behind it is Stripe.
 - Lowest fees and deepest first-party ASP.NET/Next.js integration for a single-jurisdiction physical-goods retailer (per research/SUMMARY.md).
 
 ### Cart Architecture
-- Cart/CartItem as ephemeral DB tables keyed by a client session identifier (no account).
-- Order/OrderItem as immutable snapshot tables created at checkout.
-- Two separate tables, not one status-flagged table (per research).
+- **D-02:** Cart/CartItem as ephemeral DB tables keyed by a client session identifier (no account).
+- **D-03:** Order/OrderItem as immutable snapshot tables created at checkout. Two separate tables, not one status-flagged table (per research).
 
 ### Stock Concurrency
-- Atomic conditional UPDATE on Order creation: `UPDATE Products SET Stock = Stock - @qty WHERE Id = @id AND Stock >= @qty`; 0 affected rows = insufficient stock → 409.
-- Exactly-one-winner under concurrent checkout against the last unit (mirrors Phase 2's AppointmentSlot unique-index guarantee).
-- Server-side total always recomputed from catalog prices by ProductId; never trusts client-submitted price/total (SHOP-03).
+- **D-04:** Atomic conditional UPDATE on Order creation: `UPDATE Products SET Stock = Stock - @qty WHERE Id = @id AND Stock >= @qty`; 0 affected rows = insufficient stock → 409. Exactly-one-winner under concurrent checkout against the last unit (mirrors Phase 2's AppointmentSlot unique-index guarantee).
+- **D-05:** Server-side total always recomputed from catalog prices by ProductId; never trusts client-submitted price/total (SHOP-03).
 
 ### Checkout Flow
-- Guest checkout via Stripe Checkout Session; `Order.ClientId` nullable (SHOP-06).
-- Order created with Pending status; Stripe webhook (signature-verified) flips to Fulfilled (SHOP-05) — client redirect alone never fulfills.
-- SHOP-07: stylist-recommended add-ons rendered as suggestion chips on the cart page; user adds before checkout.
+- **D-06:** Guest checkout via Stripe Checkout Session; `Order.ClientId` nullable (SHOP-06). Order created with Pending status; Stripe webhook (signature-verified) flips to Fulfilled (SHOP-05) — client redirect alone never fulfills.
+- **D-07:** SHOP-07: stylist-recommended add-ons rendered as suggestion chips on the cart page; user adds before checkout.
 
 ### Claude's Discretion
 - Exact Stripe mode (test mode vs live), webhook endpoint path, idempotency-key strategy, and cart session-key mechanism (cookie vs header) — follow codebase conventions and research guidance.
