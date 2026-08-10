@@ -7,17 +7,31 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Payments;
 
 namespace ZachHairStudio.Api.Tests;
 
-// Real SQL Server LocalDB fixture. Unlike CustomWebApplicationFactory (InMemory, which
+// Real SQL Server fixture. Unlike CustomWebApplicationFactory (InMemory, which
 // enforces no unique indexes), this migrates the actual AddBookingCore schema so the
 // unfiltered unique index (SC4 double-booking) and datetimeoffset round-trip (SC5) are
 // exercised against real SQL Server semantics. Uses a per-run unique database dropped on dispose.
+//
+// Connection override (Linux / Azure SQL / Docker): prefer
+// ConnectionStrings__DefaultConnection or TEST_SQLSERVER_CONNECTION; else LocalDB default.
 public class SqlServerWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly string _connectionString =
-        $"Server=(localdb)\\MSSQLLocalDB;Database=ZachHairStudioTests-{Guid.NewGuid()};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true";
+    private readonly string _connectionString;
+
+    public SqlServerWebApplicationFactory()
+    {
+        var overrideConnection =
+            Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? Environment.GetEnvironmentVariable("TEST_SQLSERVER_CONNECTION");
+
+        _connectionString = !string.IsNullOrWhiteSpace(overrideConnection)
+            ? AppendDatabaseName(overrideConnection!, $"ZachHairStudioTests-{Guid.NewGuid()}")
+            : $"Server=(localdb)\\MSSQLLocalDB;Database=ZachHairStudioTests-{Guid.NewGuid()};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true";
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -32,7 +46,20 @@ public class SqlServerWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<BookingDbContext>(options =>
                 options.UseSqlServer(_connectionString));
+
+            // Checkout / stock concurrency must never hit a real Stripe provider.
+            services.RemoveAll<IPaymentProvider>();
+            services.AddScoped<IPaymentProvider, FakePaymentProvider>();
         });
+    }
+
+    private static string AppendDatabaseName(string connectionString, string databaseName)
+    {
+        var builder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString)
+        {
+            InitialCatalog = databaseName,
+        };
+        return builder.ConnectionString;
     }
 
     protected override IHost CreateHost(IHostBuilder builder)
