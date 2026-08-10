@@ -21,6 +21,7 @@ public static class AppointmentExtensions
             LastName = appointment.LastName,
             Email = appointment.Email,
             Phone = appointment.Phone,
+            ClientUserId = appointment.ClientUserId,
             StatusChangedAt = appointment.StatusChangedAt,
             StatusChangedBy = appointment.StatusChangedBy,
         };

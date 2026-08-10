@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ZachHairStudio.Api.Mcp;
 using ZachHairStudio.Shared.Db;
+using ZachHairStudio.Shared.Features.Account;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Carts;
@@ -90,6 +91,7 @@ else
 }
 
 builder.Services.AddScoped<OrdersService>();
+builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<StylistsService>();
 builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon"));
 // Bridge IOptions<SalonOptions> -> plain SalonOptions so Shared-project services

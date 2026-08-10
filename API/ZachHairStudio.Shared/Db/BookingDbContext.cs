@@ -346,6 +346,13 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
             entity.Property(e => e.Phone).HasMaxLength(30);
             entity.Property(e => e.StatusChangedBy).HasMaxLength(100);
 
+            // Optional client ownership (D-08). Restrict — do not cascade-delete appointments
+            // when the ApplicationUser row is removed.
+            entity.HasOne<ApplicationUser>()
+                  .WithMany()
+                  .HasForeignKey(a => a.ClientUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasMany(a => a.Slots)
                   .WithOne(s => s.Appointment)
                   .HasForeignKey(s => s.AppointmentId)
