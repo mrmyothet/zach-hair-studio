@@ -29,4 +29,9 @@ public class ProductsService
             ? Result<ProductResponseDto>.NotFoundError($"Product '{slug}' not found.")
             : Result<ProductResponseDto>.Success(product.ToDto());
     }
+
+    // RED stub — GREEN replaces with ServiceRecommendedProduct join (SHOP-07 / D-07).
+    public Task<IEnumerable<ProductResponseDto>> GetRecommendedForCheckoutAsync(
+        IReadOnlyCollection<int> cartProductIds)
+        => throw new NotImplementedException();
 }
