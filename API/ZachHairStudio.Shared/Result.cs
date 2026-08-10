@@ -70,6 +70,21 @@ public class Result<T>
             Conflicts = conflicts,
         };
 
+    /// <summary>
+    /// Message-only conflict (e.g. insufficient stock at checkout). Keeps
+    /// <see cref="IsConflict"/> true with <see cref="Conflicts"/> left null —
+    /// Pitfall 7 / SHOP-04 path.
+    /// </summary>
+    public static Result<T> ConflictError(string message, T? data = default) =>
+        new Result<T>
+        {
+            IsSuccess = false,
+            Type = EnumRespType.Conflict,
+            Data = data,
+            Message = message,
+            Conflicts = null,
+        };
+
     public enum EnumRespType
     {
         None,
