@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Features.Appointments;
 using ZachHairStudio.Shared.Features.Availability;
+using ZachHairStudio.Shared.Features.Carts;
 using ZachHairStudio.Shared.Features.Identity;
 using ZachHairStudio.Shared.Features.Products;
 using ZachHairStudio.Shared.Features.Services;
@@ -32,6 +33,10 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
     public DbSet<Appointment> Appointments => Set<Appointment>();
 
     public DbSet<AppointmentSlot> AppointmentSlots => Set<AppointmentSlot>();
+
+    public DbSet<Cart> Carts => Set<Cart>();
+
+    public DbSet<CartItem> CartItems => Set<CartItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -348,6 +353,22 @@ public class BookingDbContext : IdentityDbContext<ApplicationUser, IdentityRole<
             // it must have NO HasFilter().
             entity.HasIndex(s => new { s.StylistId, s.SlotStart }).IsUnique();
             entity.Property(s => s.SlotStart).HasColumnType("datetimeoffset(0)");
+        });
+
+        modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.Property(e => e.SessionKey).HasMaxLength(64);
+            entity.HasIndex(e => e.SessionKey).IsUnique();
+
+            entity.HasMany(c => c.Items)
+                  .WithOne(i => i.Cart)
+                  .HasForeignKey(i => i.CartId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CartItem>(entity =>
+        {
+            entity.HasIndex(i => new { i.CartId, i.ProductId }).IsUnique();
         });
     }
 }
