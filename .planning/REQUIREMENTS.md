@@ -62,7 +62,7 @@ Requirements for the current milestone (full services-led platform, specs roadma
 - [x] **ACCT-01**: Client can create an account and log in
 - [x] **ACCT-02**: Client can view their booking history
 - [x] **ACCT-03**: Client can view their order history
-- [ ] **ACCT-04**: Client can cancel or reschedule their own upcoming appointment (self-service)
+- [x] **ACCT-04**: Client can cancel or reschedule their own upcoming appointment (self-service)
 - [x] **ACCT-05**: Client accounts and staff authentication share a single ASP.NET Core Identity setup (one schema/migration)
 - [x] **ACCT-06**: A client can access only their own bookings and orders (ownership checks prevent IDOR)
 - [ ] **ACCT-07**: Loyalty groundwork — client earns points per completed appointment, redeemable as a discount
@@ -145,7 +145,7 @@ Which phases cover which requirements. Populated during roadmap creation.
 | ACCT-01 | Phase 7 | Complete |
 | ACCT-02 | Phase 7 | Complete |
 | ACCT-03 | Phase 7 | Complete |
-| ACCT-04 | Phase 7 | Pending |
+| ACCT-04 | Phase 7 | Complete |
 | ACCT-05 | Phase 7 | Complete |
 | ACCT-06 | Phase 7 | Complete |
 | ACCT-07 | Phase 7 | Pending |
