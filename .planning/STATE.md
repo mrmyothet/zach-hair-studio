@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 06
-current_phase_name: Cart & Checkout
+current_phase: 07
+current_phase_name: Accounts & Retention
 status: executing
-stopped_at: Checkpoint Task 3 human-verify Stripe CLI UAT (06-05)
-last_updated: "2026-08-10T06:47:06.425Z"
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-08-10T10:06:16.726Z"
 last_activity: 2026-08-10
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 07 execution resumed (wave continue)
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
-  total_plans: 32
-  completed_plans: 32
+  total_plans: 36
+  completed_plans: 33
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-09)
 
 **Core value:** Booking a salon appointment is effortless — browsing services and reserving a slot is the primary, friction-free path.
-**Current focus:** Phase 06 — Cart & Checkout
+**Current focus:** Phase 07 — Accounts & Retention
 
 ## Current Position
 
-Phase: 06 (Cart & Checkout) — EXECUTING
-Plan: 5 of 5
+Phase: 07 (Accounts & Retention) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-10 — Phase 06 execution started
+Last activity: 2026-08-10 — Phase 07 execution resumed (wave continue)
 
-Progress: [██████████] 97%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ _Updated after each plan completion_
 | Phase 06 P02 | 3min | 3 tasks | 9 files |
 | Phase 06 P03 | 5min | 2 tasks | 25 files |
 | Phase 06 P04 | 5min | 3 tasks | 10 files |
+| Phase 07 P01 | 7min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,8 @@ Recent decisions affecting current work:
 - [Phase ?]: GET /api/products/recommended-for-checkout uses repeated productIds query params
 - [Phase ?]: Reuse Plan 03 GET /api/orders/{id} for success display; no new fulfillment writer
 - [Phase ?]: Success accepts orderId/order or trailing digits from session_id (fake-{id})
+- [Phase ?]: Phase 07 Plan 01: DisplayName defaults to email local-part when omitted on client register
+- [Phase ?]: Phase 07 Plan 01: landing getSession/setSession reject non-Client roles; AUTH_UPDATED_EVENT refreshes Navbar same-tab
 
 ### Pending Todos
 
@@ -210,8 +213,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-10T06:47:06.358Z
-Stopped at: Checkpoint Task 3 human-verify Stripe CLI UAT (06-05)
-Resume file: .planning/phases/06-cart-checkout/06-05-PLAN.md
+Last session: 2026-08-10T10:06:16.716Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: None
 
 Next action: Commit is local only (973b2fb) — push to origin mcp_project, then confirm PR #43's `sast (semgrep)` check-run shows conclusion=success against the new head commit (this is the third iteration on this specific check; first two attempts — becd367/f324da1 Docker fixes, then 9ae1533's nosemgrep placement — did not close it). Phase 04 remains complete — run verification (smoke test Services + Availability flows) and close out any follow-up issues.
