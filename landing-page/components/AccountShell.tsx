@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { clearSession, type AuthSession } from "@/lib/auth";
+import LoyaltyBalanceStrip from "@/components/LoyaltyBalanceStrip";
 import SectionHeading from "@/components/SectionHeading";
 
 export type AccountTab = "bookings" | "orders";
@@ -60,6 +61,8 @@ export default function AccountShell({
             </button>
           </div>
         </div>
+
+        <LoyaltyBalanceStrip />
 
         <nav
           aria-label="Account sections"

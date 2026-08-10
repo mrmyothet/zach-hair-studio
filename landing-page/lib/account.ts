@@ -151,6 +151,16 @@ export type ClaimPreview = {
   orders: ClaimOrderSummary[];
 };
 
+/** GET /api/account/loyalty — Client JWT balance (SUM of ledger deltas). */
+export async function fetchLoyaltyBalance(): Promise<number> {
+  const response = await accountFetch("/api/account/loyalty");
+  if (!response.ok) {
+    throw new AccountApiError(await extractErrorMessage(response), response.status);
+  }
+  const raw = (await response.json()) as { balance?: number; Balance?: number };
+  return raw.balance ?? raw.Balance ?? 0;
+}
+
 export async function fetchBookings(): Promise<AccountBooking[]> {
   const response = await accountFetch("/api/account/bookings");
   if (!response.ok) {

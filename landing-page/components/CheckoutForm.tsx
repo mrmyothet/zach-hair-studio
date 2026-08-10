@@ -8,8 +8,12 @@ import {
   CartApiError,
   createCheckout,
   fetchCart,
+  quoteCheckout,
   type Cart,
+  type CheckoutQuote,
 } from "@/lib/cart";
+import { fetchLoyaltyBalance } from "@/lib/account";
+import { getSession } from "@/lib/auth";
 import { AlertIcon } from "./icons";
 
 const priceFormatter = new Intl.NumberFormat("en-US", {
@@ -17,6 +21,8 @@ const priceFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 0,
 });
+
+const pointsFormatter = new Intl.NumberFormat("en-US");
 
 const inputClass =
   "w-full bg-charcoal-light border border-white/10 hover:border-gold/30 focus:border-gold rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm outline-none transition-colors";
@@ -33,6 +39,12 @@ export default function CheckoutForm() {
   const [emailTouched, setEmailTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  const [sessionPresent, setSessionPresent] = useState(false);
+  const [loyaltyBalance, setLoyaltyBalance] = useState(0);
+  const [redeemPoints, setRedeemPoints] = useState(0);
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const [quoteError, setQuoteError] = useState(false);
+  const [applyingPoints, setApplyingPoints] = useState(false);
 
   const loadCart = useCallback(async () => {
     setLoadState("loading");
@@ -50,6 +62,27 @@ export default function CheckoutForm() {
     void loadCart();
   }, [loadCart]);
 
+  useEffect(() => {
+    const session = getSession();
+    setSessionPresent(!!session);
+    if (!session) return;
+
+    setName((current) => current || session.displayName || "");
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const balance = await fetchLoyaltyBalance();
+        if (!cancelled) setLoyaltyBalance(balance);
+      } catch {
+        if (!cancelled) setLoyaltyBalance(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const emailValid = useMemo(
     () => EmailSchema.safeParse(email.trim()).success,
     [email]
@@ -59,6 +92,46 @@ export default function CheckoutForm() {
     emailTouched && !emailValid
       ? "Enter a valid email address."
       : null;
+
+  const maxRedeemBlocks = useMemo(() => {
+    if (!cart || loyaltyBalance < 10) return 0;
+    const byBalance = Math.floor(loyaltyBalance / 10);
+    // Cap by cart subtotal in $5 blocks (server still recomputes).
+    const bySubtotal = Math.floor(cart.subtotal / 5);
+    return Math.max(0, Math.min(byBalance, bySubtotal));
+  }, [cart, loyaltyBalance]);
+
+  const maxRedeemPoints = maxRedeemBlocks * 10;
+
+  useEffect(() => {
+    if (redeemPoints > maxRedeemPoints) {
+      setRedeemPoints(maxRedeemPoints);
+    }
+  }, [maxRedeemPoints, redeemPoints]);
+
+  async function handleApplyPoints() {
+    if (!cart || !sessionPresent || !emailValid || applyingPoints) return;
+
+    setApplyingPoints(true);
+    setQuoteError(false);
+    try {
+      const next = await quoteCheckout({
+        email: email.trim(),
+        name: name.trim() || undefined,
+        redeemPoints: redeemPoints > 0 ? redeemPoints : 0,
+        items: cart.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      });
+      setQuote(next);
+    } catch {
+      setQuoteError(true);
+      setQuote(null);
+    } finally {
+      setApplyingPoints(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -72,27 +145,30 @@ export default function CheckoutForm() {
       const result = await createCheckout({
         email: email.trim(),
         name: name.trim() || undefined,
+        redeemPoints:
+          sessionPresent && redeemPoints > 0 ? redeemPoints : undefined,
         items: cart.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
       });
       window.location.href = result.checkoutUrl;
-    } catch (err) {
+    } catch {
       setSubmitting(false);
       setSubmitError(true);
-      if (!(err instanceof CartApiError)) {
-        // Banner copy is fixed per UI-SPEC; keep cart intact.
-      }
     }
   }
+
+  const summarySubtotal = quote?.subtotal ?? cart?.subtotal ?? 0;
+  const summaryDiscount = quote?.loyaltyDiscount ?? 0;
+  const summaryTotal = quote?.totalAmount ?? cart?.subtotal ?? 0;
 
   return (
     <main className="min-h-screen bg-charcoal-light pt-32">
       <section className="py-16">
         <div className="max-w-5xl mx-auto px-6">
           <SectionHeading
-            eyebrow="Guest Checkout"
+            eyebrow={sessionPresent ? "Checkout" : "Guest Checkout"}
             title=""
             highlight="Checkout"
             subtitle="Almost there — one last step before you pay."
@@ -231,6 +307,110 @@ export default function CheckoutForm() {
                   />
                 </div>
 
+                {sessionPresent ? (
+                  <div className="border-t border-white/5 pt-6 space-y-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">
+                        Loyalty points
+                      </p>
+                      <p className="text-gold font-bold text-lg">
+                        {pointsFormatter.format(loyaltyBalance)}{" "}
+                        <span className="text-sm font-normal uppercase tracking-wider">
+                          pts
+                        </span>
+                      </p>
+                      <p className="text-gray-500 text-sm mt-1">
+                        Use points (10 pts = $5 off)
+                      </p>
+                    </div>
+
+                    {quoteError ? (
+                      <div
+                        role="alert"
+                        className="flex items-start gap-2 text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3"
+                      >
+                        <AlertIcon className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong className="font-semibold">
+                            Couldn&apos;t Apply Points
+                          </strong>
+                          <span className="block mt-1">
+                            We couldn&apos;t update your discount. Your points
+                            were not spent — try again.
+                          </span>
+                        </span>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label
+                        htmlFor="redeem-points"
+                        className="text-xs uppercase tracking-wider text-gray-400"
+                      >
+                        Points to use
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          aria-label="Decrease points by 10"
+                          disabled={redeemPoints <= 0 || submitting}
+                          onClick={() =>
+                            setRedeemPoints((p) => Math.max(0, p - 10))
+                          }
+                          className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-full border border-white/10 text-white hover:border-gold/40 disabled:opacity-40"
+                        >
+                          −
+                        </button>
+                        <input
+                          id="redeem-points"
+                          type="number"
+                          min={0}
+                          step={10}
+                          max={maxRedeemPoints}
+                          value={redeemPoints}
+                          onChange={(e) => {
+                            const raw = Number(e.target.value) || 0;
+                            const stepped = Math.floor(raw / 10) * 10;
+                            setRedeemPoints(
+                              Math.max(0, Math.min(maxRedeemPoints, stepped))
+                            );
+                          }}
+                          className={`${inputClass} w-24 text-center`}
+                          disabled={submitting || maxRedeemPoints === 0}
+                        />
+                        <button
+                          type="button"
+                          aria-label="Increase points by 10"
+                          disabled={
+                            redeemPoints >= maxRedeemPoints || submitting
+                          }
+                          onClick={() =>
+                            setRedeemPoints((p) =>
+                              Math.min(maxRedeemPoints, p + 10)
+                            )
+                          }
+                          className="inline-flex items-center justify-center min-h-11 min-w-11 rounded-full border border-white/10 text-white hover:border-gold/40 disabled:opacity-40"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleApplyPoints()}
+                        disabled={
+                          applyingPoints ||
+                          !emailValid ||
+                          submitting ||
+                          maxRedeemPoints === 0
+                        }
+                        className="bg-gold hover:bg-gold-dark text-charcoal font-semibold text-sm px-5 py-2.5 min-h-11 rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {applyingPoints ? "Applying…" : "Apply Points"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 <button
                   type="submit"
                   disabled={submitting || !emailValid}
@@ -267,10 +447,26 @@ export default function CheckoutForm() {
                   ))}
                 </ul>
                 <dl className="space-y-4 text-sm border-t border-white/5 pt-4">
+                  {sessionPresent && quote ? (
+                    <>
+                      <div className="flex items-center justify-between gap-4">
+                        <dt className="text-gray-500">Subtotal</dt>
+                        <dd className="text-white">
+                          {priceFormatter.format(summarySubtotal)}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <dt className="text-gray-500">Loyalty discount</dt>
+                        <dd className="text-gold font-bold">
+                          −{priceFormatter.format(summaryDiscount)}
+                        </dd>
+                      </div>
+                    </>
+                  ) : null}
                   <div className="flex items-center justify-between gap-4">
                     <dt className="text-gray-500">Total</dt>
                     <dd className="text-gold text-xl font-bold">
-                      {priceFormatter.format(cart.subtotal)}
+                      {priceFormatter.format(summaryTotal)}
                     </dd>
                   </div>
                 </dl>
