@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clearSession, getSession, type AuthSession } from "@/lib/auth";
 import { LogOutIcon } from "@/components/icons";
+import { AdminChatWidget } from "@/components/AdminChatWidget";
 
 const NAV_LINKS = [
   { href: "/schedule", label: "Schedule", ownerOnly: false },
@@ -34,6 +35,7 @@ export function DashboardNav() {
   }
 
   return (
+    <>
     <header className="border-b border-border bg-surface-alt px-4 md:px-6 py-3 flex flex-wrap items-center gap-x-6 gap-y-3 justify-between">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <h1 className="font-serif text-2xl font-semibold tracking-tight">
@@ -84,5 +86,9 @@ export function DashboardNav() {
         </button>
       </div>
     </header>
+    {/* Rendered here rather than in layout.tsx so it only appears on pages
+        behind the auth guard — the widget reads live schedule data. */}
+    {session ? <AdminChatWidget /> : null}
+    </>
   );
 }
