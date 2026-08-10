@@ -224,6 +224,52 @@ export const CheckoutResponseSchema = z.object({
 
 export type CheckoutResponse = z.infer<typeof CheckoutResponseSchema>;
 
+export const OrderItemSchema = z.object({
+  productId: z.number(),
+  productName: z.string(),
+  unitPrice: z.number(),
+  quantity: z.number(),
+  lineTotal: z.number(),
+});
+
+export const OrderSchema = z.object({
+  id: z.number(),
+  status: z.string(),
+  totalAmount: z.number(),
+  email: z.string().nullable().optional(),
+  customerName: z.string().nullable().optional(),
+  placedAtUtc: z.string(),
+  items: z.array(OrderItemSchema),
+});
+
+export type Order = z.infer<typeof OrderSchema>;
+
+/**
+ * GET /api/orders/{id} — display-only for /checkout/success (SHOP-05).
+ * Never mutates status / never calls MarkFulfilled.
+ */
+export async function fetchOrderById(orderId: number): Promise<Order | null> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/api/orders/${encodeURIComponent(String(orderId))}`,
+      { cache: "no-store" }
+    );
+  } catch {
+    return null;
+  }
+
+  if (response.status === 404 || !response.ok) {
+    return null;
+  }
+
+  try {
+    return OrderSchema.parse(await response.json());
+  } catch {
+    return null;
+  }
+}
+
 /**
  * POST /api/orders/checkout — requires X-Cart-Session-Id (Plan 03 contract).
  * Optional body sessionKey mirrors the same id; never omit the header.
