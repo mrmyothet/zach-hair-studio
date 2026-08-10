@@ -201,3 +201,71 @@ export async function updateQuantity(
 export function cartItemCount(cart: Cart): number {
   return cart.items.reduce((sum, item) => sum + item.quantity, 0);
 }
+
+export const CheckoutRequestSchema = z.object({
+  email: z.string().email(),
+  name: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.number().int().positive(),
+        quantity: z.number().int().positive(),
+      })
+    )
+    .min(1),
+});
+
+export type CheckoutRequest = z.infer<typeof CheckoutRequestSchema>;
+
+export const CheckoutResponseSchema = z.object({
+  checkoutUrl: z.string().url(),
+  orderId: z.number(),
+});
+
+export type CheckoutResponse = z.infer<typeof CheckoutResponseSchema>;
+
+/**
+ * POST /api/orders/checkout — requires X-Cart-Session-Id (Plan 03 contract).
+ * Optional body sessionKey mirrors the same id; never omit the header.
+ */
+export async function createCheckout(
+  input: CheckoutRequest
+): Promise<CheckoutResponse> {
+  const request = CheckoutRequestSchema.parse(input);
+  const sessionKey = getCartSessionId();
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/orders/checkout`, {
+      method: "POST",
+      headers: sessionHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        email: request.email,
+        name: request.name || undefined,
+        sessionKey,
+        items: request.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      }),
+    });
+  } catch {
+    throw new CartApiError(
+      "We couldn't reach our payment provider. Your cart is still saved — please try again.",
+      null
+    );
+  }
+
+  if (!response.ok) {
+    throw new CartApiError(await extractErrorMessage(response), response.status);
+  }
+
+  try {
+    return CheckoutResponseSchema.parse(await response.json());
+  } catch {
+    throw new CartApiError(
+      "The checkout service returned an unexpected response.",
+      response.status
+    );
+  }
+}

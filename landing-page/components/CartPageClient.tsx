@@ -9,10 +9,15 @@ import {
   fetchCart,
   removeCartItem,
   updateQuantity,
+  upsertCartItem,
   type Cart,
   type CartItem,
 } from "@/lib/cart";
-import { AlertIcon, MinusIcon, PlusIcon } from "./icons";
+import {
+  fetchRecommendedForCheckout,
+  type Product,
+} from "@/lib/products";
+import { AlertIcon, CheckIcon, MinusIcon, PlusIcon } from "./icons";
 
 const priceFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -161,11 +166,80 @@ function EmptyCart() {
   );
 }
 
+function SuggestionChips({
+  products,
+  addedIds,
+  busyProductId,
+  onAdd,
+}: {
+  products: Product[];
+  addedIds: Set<number>;
+  busyProductId: number | null;
+  onAdd: (product: Product) => void;
+}) {
+  if (products.length === 0) return null;
+
+  return (
+    <div className="mt-12">
+      <h3 className="text-white text-xl font-semibold">Complete Your Routine</h3>
+      <p className="text-gray-400 text-sm mt-2 mb-6">
+        Add-ons our stylists recommend with your picks.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {products.map((product) => {
+          const added = addedIds.has(product.id);
+          const outOfStock = product.stock === 0;
+          const busy = busyProductId === product.id;
+          const disabled = outOfStock || busy || added;
+
+          return (
+            <button
+              key={product.id}
+              type="button"
+              disabled={disabled}
+              onClick={() => onAdd(product)}
+              className={`rounded-full border px-5 py-2.5 text-sm transition-colors min-h-11 flex items-center gap-2 ${
+                added
+                  ? "border-gold text-gold bg-gold/10"
+                  : outOfStock
+                    ? "border-white/10 text-gray-500 opacity-40 cursor-not-allowed"
+                    : "border-white/10 text-gray-300 hover:border-gold/30"
+              }`}
+            >
+              {added ? (
+                <>
+                  <CheckIcon className="w-4 h-4 text-gold" />
+                  <span>Added</span>
+                  <span className="text-gold font-bold">
+                    {priceFormatter.format(product.price)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span>{product.name}</span>
+                  <span className="text-gold font-bold">
+                    {priceFormatter.format(product.price)}
+                  </span>
+                  <span aria-hidden="true">+</span>
+                </>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function CartPageClient() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyProductId, setBusyProductId] = useState<number | null>(null);
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [addedChipIds, setAddedChipIds] = useState<Set<number>>(
+    () => new Set()
+  );
 
   const loadCart = useCallback(async () => {
     setLoadState("loading");
@@ -182,6 +256,33 @@ export default function CartPageClient() {
   useEffect(() => {
     void loadCart();
   }, [loadCart]);
+
+  useEffect(() => {
+    if (loadState !== "ready" || !cart || cart.items.length === 0) {
+      setRecommendations([]);
+      return;
+    }
+
+    let cancelled = false;
+    const productIds = cart.items.map((item) => item.productId);
+
+    void (async () => {
+      const next = await fetchRecommendedForCheckout(productIds);
+      if (!cancelled) {
+        setRecommendations(next);
+        setAddedChipIds((prev) => {
+          const stillVisible = new Set(
+            [...prev].filter((id) => next.some((p) => p.id === id))
+          );
+          return stillVisible;
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadState, cart]);
 
   async function handleQuantity(productId: number, quantity: number) {
     if (!cart) return;
@@ -241,6 +342,22 @@ export default function CartPageClient() {
       setCart(next);
     } catch {
       setCart(previous);
+      setActionError("We couldn't update your cart. Please try again.");
+    } finally {
+      setBusyProductId(null);
+    }
+  }
+
+  async function handleChipAdd(product: Product) {
+    if (!cart || product.stock === 0) return;
+    setBusyProductId(product.id);
+    setActionError(null);
+
+    try {
+      const next = await upsertCartItem({ productId: product.id, quantity: 1 });
+      setCart(next);
+      setAddedChipIds((prev) => new Set(prev).add(product.id));
+    } catch {
       setActionError("We couldn't update your cart. Please try again.");
     } finally {
       setBusyProductId(null);
@@ -318,6 +435,13 @@ export default function CartPageClient() {
                     onRemove={handleRemove}
                   />
                 ))}
+
+                <SuggestionChips
+                  products={recommendations}
+                  addedIds={addedChipIds}
+                  busyProductId={busyProductId}
+                  onAdd={handleChipAdd}
+                />
               </div>
 
               <aside className="bg-charcoal border border-white/5 rounded-3xl p-7 lg:sticky lg:top-28">
