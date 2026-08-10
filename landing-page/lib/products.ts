@@ -58,3 +58,35 @@ export async function fetchProductBySlug(
 
   return ProductSchema.parse(await response.json());
 }
+
+/**
+ * SHOP-07 — GET /api/products/recommended-for-checkout?productIds=1&productIds=2
+ * Returns stylist join suggestions (max 4); empty array when none (omit chips).
+ */
+export async function fetchRecommendedForCheckout(
+  productIds: number[]
+): Promise<Product[]> {
+  if (productIds.length === 0) {
+    return [];
+  }
+
+  const params = new URLSearchParams();
+  for (const id of productIds) {
+    params.append("productIds", String(id));
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/products/recommended-for-checkout?${params.toString()}`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    return ProductListSchema.parse(await response.json());
+  } catch {
+    return [];
+  }
+}
