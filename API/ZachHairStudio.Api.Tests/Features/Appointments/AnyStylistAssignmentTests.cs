@@ -149,7 +149,8 @@ public class AnyStylistAssignmentTests
             slotService,
             email ?? new RecordingEmailService(),
             salonOptions,
-            new ZachHairStudio.Shared.Features.Loyalty.LoyaltyService(db));
+            new ZachHairStudio.Shared.Features.Loyalty.LoyaltyService(db),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AppointmentsService>.Instance);
     }
 
     private static BookingDbContext BuildSeededContext()

@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Availability;
 using ZachHairStudio.Shared.Features.Loyalty;
@@ -30,6 +31,7 @@ public class AppointmentsService
     private readonly IEmailService _emailService;
     private readonly SalonTimeZone _salonTimeZone;
     private readonly LoyaltyService _loyaltyService;
+    private readonly ILogger<AppointmentsService> _logger;
 
     // Confirmed -> {Completed, Cancelled, NoShow}; the three terminal statuses have no
     // outbound entries. This map is the ONLY place a status transition is decided
@@ -49,7 +51,8 @@ public class AppointmentsService
         SlotService slotService,
         IEmailService emailService,
         SalonOptions salonOptions,
-        LoyaltyService loyaltyService)
+        LoyaltyService loyaltyService,
+        ILogger<AppointmentsService> logger)
     {
         _dbContext = dbContext;
         _validator = validator;
@@ -58,6 +61,7 @@ public class AppointmentsService
         _emailService = emailService;
         _salonTimeZone = SalonTimeZone.FromOptions(salonOptions);
         _loyaltyService = loyaltyService;
+        _logger = logger;
     }
 
     public async Task<Result<AppointmentResponseDto>> CreateAsync(
@@ -106,6 +110,12 @@ public class AppointmentsService
             // Swallow: the booking is already committed and the email is best-effort.
             // ResendEmailService logs its own failures; a throwing double must not roll back.
         }
+
+        _logger.LogInformation(
+            "Appointment created {AppointmentId} stylist {StylistId} clientUserId {ClientUserId}",
+            dto.Id,
+            dto.StylistId,
+            appointment.ClientUserId);
 
         return Result<AppointmentResponseDto>.Success(dto);
     }
@@ -300,6 +310,11 @@ public class AppointmentsService
         appointment.StatusChangedBy = actorDisplayName;
 
         await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Appointment cancelled by client {AppointmentId} clientUserId {ClientUserId}",
+            appointment.Id,
+            clientUserId);
 
         return Result<AppointmentResponseDto>.Success(appointment.ToDto(service, stylist));
     }

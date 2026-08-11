@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ZachHairStudio.Shared.Features.Identity;
 using ZachHairStudio.Shared.Features.Loyalty;
 using ZachHairStudio.Shared.Features.Orders;
@@ -16,16 +17,20 @@ public class OrdersController : ControllerBase
 
     private readonly OrdersService _ordersService;
     private readonly IValidator<CheckoutRequestDto> _checkoutValidator;
+    private readonly ILogger<OrdersController> _logger;
 
     public OrdersController(
         OrdersService ordersService,
-        IValidator<CheckoutRequestDto> checkoutValidator)
+        IValidator<CheckoutRequestDto> checkoutValidator,
+        ILogger<OrdersController> logger)
     {
         _ordersService = ordersService;
         _checkoutValidator = checkoutValidator;
+        _logger = logger;
     }
 
     [HttpPost("checkout")]
+    [EnableRateLimiting("checkout")]
     public async Task<ActionResult<CheckoutResponseDto>> Checkout(
         [FromBody] CheckoutRequestDto request,
         CancellationToken cancellationToken)
@@ -98,6 +103,11 @@ public class OrdersController : ControllerBase
             });
         }
 
+        _logger.LogInformation(
+            "Checkout created order {OrderId} with {ItemCount} line(s)",
+            result.Data.OrderId,
+            request.Items?.Count ?? 0);
+
         return Created($"/api/orders/{result.Data.OrderId}", result.Data);
     }
 
@@ -105,6 +115,7 @@ public class OrdersController : ControllerBase
     /// Apply Points preview — catalog recompute + server loyalty dollars, no stock/Stripe (D-15).
     /// </summary>
     [HttpPost("checkout/quote")]
+    [EnableRateLimiting("checkout")]
     [ProducesResponseType(typeof(LoyaltyQuoteDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<LoyaltyQuoteDto>> QuoteCheckout(
@@ -142,6 +153,11 @@ public class OrdersController : ControllerBase
                 Status = StatusCodes.Status404NotFound,
             });
         }
+
+        _logger.LogInformation(
+            "Checkout quote computed for {ItemCount} line(s) redeemPoints={RedeemPoints}",
+            request.Items?.Count ?? 0,
+            request.RedeemPoints ?? 0);
 
         return Ok(result.Data);
     }
