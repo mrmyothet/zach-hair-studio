@@ -45,7 +45,7 @@ slot is the primary, friction-free path. If everything else fails, this must wor
   Program.cs fails fast on startup (`ValidateOnStart`) if `Jwt:SigningKey` is missing or under 256 bits.
 - EF Core migrations (`dotnet-ef` must be v10.x — `dotnet tool update --global dotnet-ef --version "10.*"`):
   - Add: `dotnet ef migrations add <Name> --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api`
-  - Apply: `dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api` (or just `dotnet run`, which calls `Migrate()` on boot)
+  - Apply: `dotnet ef database update --project API/ZachHairStudio.Shared --startup-project API/ZachHairStudio.Api`. **Production** must use this deploy step — the API does **not** call `db.Database.Migrate()` in Production and will refuse to start if pending migrations exist (LAUNCH-03). Development still migrates on `dotnet run` for local convenience.
   - See the `ef-migrations` skill for details.
 
 ### Frontends (`landing-page/`, `dashboard/`)
@@ -63,7 +63,7 @@ Use the `dev` skill (`.claude/skills/dev/SKILL.md`) to launch the API and both f
 
 ### Backend (`API/ZachHairStudio.slnx`, 4 projects)
 
-New backend features mirror the `Features/<Name>/` shape in `ZachHairStudio.Shared` (see the `feature-scaffold` skill, which uses this pattern as its template). `ZachHairStudio.Admin` is an unmodified `dotnet new mvc` scaffold — not wired into any active flow, ignore it.
+New backend features mirror the `Features/<Name>/` shape in `ZachHairStudio.Shared` (see the `feature-scaffold` skill, which uses this pattern as its template). The legacy `ZachHairStudio.Admin` MVC scaffold was removed in Phase 8 (LAUNCH-02) — staff UI lives in `dashboard/`.
 
 Key invariants worth knowing before touching booking logic:
 - `AppointmentSlot` has an **unfiltered** unique index on `(StylistId, SlotStart)` — this is the double-booking guarantee (`ConcurrencyTests` relies on it). Never add a `HasFilter()` to it.

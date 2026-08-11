@@ -301,23 +301,23 @@ Plans:
 
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — Production CORS allowlist + delete ZachHairStudio.Admin
+- [x] 08-01-PLAN.md — Production CORS allowlist + delete ZachHairStudio.Admin
 
 **Wave 2**
 
-- [ ] 08-02-PLAN.md — Skip Migrate in Production + pending-migration fail-fast + runbook
+- [x] 08-02-PLAN.md — Skip Migrate in Production + pending-migration fail-fast + runbook
 
 **Wave 3**
 
-- [ ] 08-03-PLAN.md — JSON structured logging + key-op events
+- [x] 08-03-PLAN.md — JSON structured logging + key-op events
 
 **Wave 4**
 
-- [ ] 08-04-PLAN.md — RateLimiter on auth + checkout
+- [x] 08-04-PLAN.md — RateLimiter on auth + checkout
 
 **Wave 5**
 
-- [ ] 08-05-PLAN.md — Responsive polish pass + VALIDATION checklist
+- [x] 08-05-PLAN.md — Responsive polish pass + VALIDATION checklist
 
 **UI hint**: yes
 

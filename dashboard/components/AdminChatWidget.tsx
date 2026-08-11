@@ -225,7 +225,7 @@ export function AdminChatWidget() {
                 type="button"
                 onClick={() => void handleSend(prompt)}
                 disabled={isTyping}
-                className="border border-border hover:border-gold-dark text-ink hover:text-gold-dark rounded-full px-3 py-1.5 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="border border-border hover:border-gold-dark text-ink hover:text-gold-dark rounded-full px-3 py-2 min-h-11 text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {prompt}
               </button>

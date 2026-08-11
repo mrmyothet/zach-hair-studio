@@ -2,29 +2,34 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ZachHairStudio.Shared.Features.Identity;
 
 namespace ZachHairStudio.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IValidator<LoginRequestDto> _loginValidator;
     private readonly IValidator<RegisterRequestDto> _registerValidator;
     private readonly JwtTokenService _tokenService;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         IValidator<LoginRequestDto> loginValidator,
         IValidator<RegisterRequestDto> registerValidator,
-        JwtTokenService tokenService)
+        JwtTokenService tokenService,
+        ILogger<AuthController> logger)
     {
         _userManager = userManager;
         _loginValidator = loginValidator;
         _registerValidator = registerValidator;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
     [HttpPost("login")]
@@ -57,6 +62,11 @@ public class AuthController : ControllerBase
 
         var roles = await _userManager.GetRolesAsync(user);
         var (token, expiresAt) = _tokenService.CreateToken(user, roles);
+
+        _logger.LogInformation(
+            "Auth login succeeded for user {UserId} email {EmailHint}",
+            user.Id,
+            TruncateEmail(user.Email));
 
         return Ok(new LoginResponseDto
         {
@@ -121,6 +131,11 @@ public class AuthController : ControllerBase
         var roles = await _userManager.GetRolesAsync(user);
         var (token, expiresAt) = _tokenService.CreateToken(user, roles);
 
+        _logger.LogInformation(
+            "Auth register succeeded for user {UserId} email {EmailHint}",
+            user.Id,
+            TruncateEmail(user.Email));
+
         return Ok(new LoginResponseDto
         {
             Token = token,
@@ -128,5 +143,23 @@ public class AuthController : ControllerBase
             DisplayName = user.DisplayName,
             Role = roles.FirstOrDefault() ?? string.Empty,
         });
+    }
+
+    /// <summary>LAUNCH-04 / D-07 — never log full email; keep a short hint only.</summary>
+    private static string TruncateEmail(string? email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            return "(none)";
+        }
+
+        var at = email.IndexOf('@');
+        if (at <= 0)
+        {
+            return email[..Math.Min(3, email.Length)] + "***";
+        }
+
+        var local = email[..Math.Min(2, at)];
+        return local + "***@" + email[(at + 1)..];
     }
 }
