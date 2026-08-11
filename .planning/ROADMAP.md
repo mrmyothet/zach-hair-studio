@@ -297,7 +297,7 @@ Plans:
   4. The API emits structured logs across requests and key operations (bookings, checkout, auth)
   5. Auth and checkout endpoints have basic rate limiting in place
 
-**Plans:** 0/5 plans executed
+**Plans:** 5/5 plans executed
 
 **Wave 1**
 
@@ -335,4 +335,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 | 5. Product Catalog | 2/2 | Complete    | 2026-08-09 |
 | 6. Cart & Checkout | 4/5 | In Progress|  |
 | 7. Accounts & Retention | 5/5 | Complete    | 2026-08-10 |
-| 8. Polish & Launch Readiness | 0/5 | Planned    |  |
+| 8. Polish & Launch Readiness | 5/5 | In Progress|  |
