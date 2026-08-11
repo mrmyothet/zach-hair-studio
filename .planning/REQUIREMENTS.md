@@ -69,11 +69,11 @@ Requirements for the current milestone (full services-led platform, specs roadma
 
 ### Polish & Launch Readiness (P8)
 
-- [ ] **LAUNCH-01**: Public site and dashboard pass a responsive/mobile and visual-polish review
-- [ ] **LAUNCH-02**: CORS is restricted to known origins in production (no `AllowAnyOrigin`)
-- [ ] **LAUNCH-03**: Production SQL Server is configured and schema is applied via a controlled migration path (not startup `db.Database.Migrate()`)
-- [ ] **LAUNCH-04**: The API emits structured logs across requests and key operations
-- [ ] **LAUNCH-05**: Sensitive endpoints (auth, checkout) have basic hardening (rate limiting)
+- [x] **LAUNCH-01**: Public site and dashboard pass a responsive/mobile and visual-polish review
+- [x] **LAUNCH-02**: CORS is restricted to known origins in production (no `AllowAnyOrigin`)
+- [x] **LAUNCH-03**: Production SQL Server is configured and schema is applied via a controlled migration path (not startup `db.Database.Migrate()`)
+- [x] **LAUNCH-04**: The API emits structured logs across requests and key operations
+- [x] **LAUNCH-05**: Sensitive endpoints (auth, checkout) have basic hardening (rate limiting)
 
 ## v2 Requirements
 
@@ -149,11 +149,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | ACCT-05 | Phase 7 | Complete |
 | ACCT-06 | Phase 7 | Complete |
 | ACCT-07 | Phase 7 | Complete |
-| LAUNCH-01 | Phase 8 | Pending |
-| LAUNCH-02 | Phase 8 | Pending |
-| LAUNCH-03 | Phase 8 | Pending |
-| LAUNCH-04 | Phase 8 | Pending |
-| LAUNCH-05 | Phase 8 | Pending |
+| LAUNCH-01 | Phase 8 | Complete |
+| LAUNCH-02 | Phase 8 | Complete |
+| LAUNCH-03 | Phase 8 | Complete |
+| LAUNCH-04 | Phase 8 | Complete |
+| LAUNCH-05 | Phase 8 | Complete |
 
 **Coverage:**
 
