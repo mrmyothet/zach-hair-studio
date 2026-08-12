@@ -142,6 +142,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
+- **Real AI Salon Assistant verification (blocking quick-task completion).** Quick task `260810-w7m` is implemented, but final backend build/tests and dashboard production build were not runnable on 2026-08-10 because the session safety classifier rejected command execution as temporarily unavailable. Resume from its SUMMARY.md.
 - **REQUIREMENTS.md doc-sync (non-blocking).** CAT-01/CAT-02 were still marked `[ ]` Pending at Phase 1 verification despite being functionally complete — noted in `01-VERIFICATION.md` as a documentation-sync item, not a code gap.
 
 ### Blockers/Concerns

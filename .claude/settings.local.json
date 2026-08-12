@@ -24,7 +24,12 @@
       "mcp__playwright__browser_resize",
       "mcp__playwright__browser_type",
       "Skill(gsd-fast)",
-      "Skill(gsd-fast:*)"
+      "Skill(gsd-fast:*)",
+      "PowerShell(Stop-Process -Id 17284 -Force -Confirm:$false)",
+      "PowerShell(npx -y openapi-typescript http://localhost:5236/openapi/v1.json -o lib/api/schema.d.ts)",
+      "PowerShell(Remove-Item -Recurse -Force \"lib\" -Confirm:$false)",
+      "PowerShell(Remove-Item -Force \"dashboard\\\\lib\\\\adminChat.test.mjs\" -Confirm:$false)",
+      "PowerShell($assembly = [System.Reflection.Assembly]::LoadFrom\\(\"$env:USERPROFILE\\\\.nuget\\\\packages\\\\openai\\\\2.12.0\\\\lib\\\\net10.0\\\\OpenAI.dll\"\\); $factory = $assembly.GetType\\('OpenAI.Chat.OpenAIChatModelFactory'\\); $factory.GetMethods\\(\\) | Where-Object { $_.Name -in @\\('ChatCompletion','ChatTokenUsage','ChatToolCall'\\) } | ForEach-Object { \"METHOD $\\($_.Name\\)\"; $_.GetParameters\\(\\) | ForEach-Object { \"  $\\($_.ParameterType.FullName\\) $\\($_.Name\\) optional=$\\($_.IsOptional\\) default=$\\($_.DefaultValue\\)\" } }; $toolCall = $assembly.GetType\\('OpenAI.Chat.ChatToolCall'\\); $toolCall.GetMethods\\(\\) | Where-Object { $_.Name -eq 'CreateFunctionToolCall' } | ForEach-Object { \"METHOD $\\($_.Name\\)\"; $_.GetParameters\\(\\) | ForEach-Object { \"  $\\($_.ParameterType.FullName\\) $\\($_.Name\\) optional=$\\($_.IsOptional\\) default=$\\($_.DefaultValue\\)\" } })"
     ],
     "deny": [
       "Read(.env)",

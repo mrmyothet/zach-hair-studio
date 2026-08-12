@@ -4,6 +4,93 @@
  */
 
 export interface paths {
+    "/api/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChatRequest"];
+                    "text/json": components["schemas"]["ChatRequest"];
+                    "application/*+json": components["schemas"]["ChatRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ChatResponse"];
+                        "application/json": components["schemas"]["ChatResponse"];
+                        "text/json": components["schemas"]["ChatResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ValidationProblemDetails"];
+                        "application/json": components["schemas"]["ValidationProblemDetails"];
+                        "text/json": components["schemas"]["ValidationProblemDetails"];
+                    };
+                };
+                /** @description Bad Gateway */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Gateway Timeout */
+                504: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/Appointments/slots": {
         parameters: {
             query?: never;
@@ -300,8 +387,8 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description OK */
-                200: {
+                /** @description No Content */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -309,6 +396,59 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProductResponseDto"][];
+                        "application/json": components["schemas"]["ProductResponseDto"][];
+                        "text/json": components["schemas"]["ProductResponseDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Products/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -768,6 +908,16 @@ export interface components {
             workingHours?: components["schemas"]["WorkingHoursSegmentDto"][];
             timeOff?: components["schemas"]["TimeOffResponseDto"][];
         };
+        ChatHistoryMessage: {
+            role: string;
+            content: string;
+        };
+        ChatRequest: {
+            messages: components["schemas"]["ChatHistoryMessage"][];
+        };
+        ChatResponse: {
+            reply: string;
+        };
         DayOfWeek: number;
         /** Format: binary */
         IFormFile: string;
@@ -796,6 +946,20 @@ export interface components {
             status?: null | number | string;
             detail?: null | string;
             instance?: null | string;
+        };
+        ProductResponseDto: {
+            /** Format: int32 */
+            id?: number | string;
+            slug?: string;
+            name?: string;
+            shortDescription?: string;
+            longDescription?: string;
+            category?: string;
+            /** Format: double */
+            price?: number | string;
+            /** Format: int32 */
+            stock?: number | string;
+            imageUrl?: null | string;
         };
         ServiceCreateDto: {
             slug: string;
@@ -827,6 +991,7 @@ export interface components {
             isActive?: null | boolean;
             /** Format: int32 */
             displayOrder?: number | string;
+            recommendedProducts?: null | components["schemas"]["ProductResponseDto"][];
         };
         ServiceUpdateDto: {
             slug: string;
@@ -890,6 +1055,17 @@ export interface components {
             endsAt?: string;
             reason?: null | string;
         };
+        ValidationProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number | string;
+            detail?: null | string;
+            instance?: null | string;
+            errors?: {
+                [key: string]: string[];
+            };
+        };
         WorkingHoursReplaceDto: {
             segments?: components["schemas"]["WorkingHoursSegmentDto"][];
         };
@@ -909,6 +1085,30 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    GetProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": components["schemas"]["ProductResponseDto"];
+                    "application/json": components["schemas"]["ProductResponseDto"];
+                    "text/json": components["schemas"]["ProductResponseDto"];
+                };
+            };
+        };
+    };
     GetService: {
         parameters: {
             query?: never;

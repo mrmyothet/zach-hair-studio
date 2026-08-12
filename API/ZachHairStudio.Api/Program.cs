@@ -7,6 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using OpenAI;
+using OpenAI.Chat;
+using System.ClientModel;
+using ZachHairStudio.Api.Features.Chat;
 using ZachHairStudio.Api.Mcp;
 using ZachHairStudio.Shared.Db;
 using ZachHairStudio.Shared.Features.Appointments;
@@ -57,6 +61,33 @@ builder.Services.Configure<SalonOptions>(builder.Configuration.GetSection("Salon
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SalonOptions>>().Value);
 builder.Services.AddScoped<SlotService>();
 builder.Services.AddScoped<AvailabilityService>();
+
+builder.Services.AddOptions<HuggingFaceOptions>()
+    .Bind(builder.Configuration.GetSection("HuggingFace"))
+    .Validate(options => Uri.TryCreate(options.Endpoint, UriKind.Absolute, out _),
+        "HuggingFace:Endpoint must be an absolute URI.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Model),
+        "HuggingFace:Model is required.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.ApiKey),
+        "HuggingFace:ApiKey is required. Set it with dotnet user-secrets or HuggingFace__ApiKey.")
+    .Validate(options => options.RequestTimeoutSeconds is >= 5 and <= 300,
+        "HuggingFace:RequestTimeoutSeconds must be between 5 and 300.")
+    .Validate(options => options.MaxToolRounds is >= 1 and <= 10,
+        "HuggingFace:MaxToolRounds must be between 1 and 10.")
+    .ValidateOnStart();
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<HuggingFaceOptions>>().Value);
+builder.Services.AddSingleton(sp =>
+{
+    var options = sp.GetRequiredService<HuggingFaceOptions>();
+    return new ChatClient(
+        options.Model,
+        new ApiKeyCredential(options.ApiKey),
+        new OpenAIClientOptions { Endpoint = new Uri(options.Endpoint) });
+});
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+builder.Services.AddSingleton<IChatCompletionClient, OpenAIChatCompletionClient>();
+builder.Services.AddScoped<SalonChatTools>();
+builder.Services.AddScoped<ISalonChatAgent, SalonChatAgent>();
 
 // Stateless HTTP transport shares the ASP.NET Core per-request DI scope, which is what
 // lets the scoped SlotService (and its scoped BookingDbContext) resolve correctly per

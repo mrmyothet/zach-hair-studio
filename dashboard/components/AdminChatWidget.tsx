@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   type ChatMessage,
-  type ChatSession,
   STARTER_PROMPTS,
   createMessage,
   sendChatMessage,
@@ -101,9 +100,6 @@ export function AdminChatWidget() {
   const messageListRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
-  // Slot-filling state across turns (e.g. "which service?" -> "Scalp Treatment").
-  // A ref, not state: it's never rendered, only read/written around the send call.
-  const sessionRef = useRef<ChatSession>({});
 
   useEffect(() => {
     if (!open) return;
@@ -133,21 +129,18 @@ export function AdminChatWidget() {
     const text = (overrideText ?? input).trim();
     if (!text || isTyping) return;
 
-    setMessages((prev) => [...prev, createMessage("user", text)]);
+    const conversation = [...messages, createMessage("user", text)];
+    setMessages(conversation);
     setInput("");
     setIsTyping(true);
 
     try {
-      const { reply, session } = await sendChatMessage(text, sessionRef.current);
-      sessionRef.current = session;
+      const reply = await sendChatMessage(conversation);
       setMessages((prev) => [...prev, createMessage("assistant", reply)]);
     } catch (error) {
       // A 401 has already redirected to /login via handleUnauthorized; anything
       // else surfaces the server's reason rather than a generic apology.
       if (error instanceof ApiError && error.isUnauthorized) return;
-      // A failed turn shouldn't leave the assistant stuck "awaiting" an answer
-      // that was never captured.
-      sessionRef.current = {};
       const detail =
         error instanceof ApiError
           ? error.message
