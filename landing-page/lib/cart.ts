@@ -271,14 +271,25 @@ export const OrderSchema = z.object({
 export type Order = z.infer<typeof OrderSchema>;
 
 /**
- * GET /api/orders/{id} — display-only for /checkout/success (SHOP-05).
+ * GET /api/orders/{id}?session= — display-only for /checkout/success (SHOP-05).
  * Never mutates status / never calls MarkFulfilled.
+ *
+ * ACCT-06: the payment-session id is a required second factor. Without it the
+ * order id alone would be an enumerable handle to another customer's PII.
  */
-export async function fetchOrderById(orderId: number): Promise<Order | null> {
+export async function fetchOrderById(
+  orderId: number,
+  sessionId: string
+): Promise<Order | null> {
+  if (!sessionId) {
+    return null;
+  }
+
   let response: Response;
   try {
     response = await fetch(
-      `${API_BASE_URL}/api/orders/${encodeURIComponent(String(orderId))}`,
+      `${API_BASE_URL}/api/orders/${encodeURIComponent(String(orderId))}` +
+        `?session=${encodeURIComponent(sessionId)}`,
       { cache: "no-store" }
     );
   } catch {

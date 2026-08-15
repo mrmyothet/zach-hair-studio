@@ -75,10 +75,26 @@ public class StripeWebhookController : ControllerBase
                 session.Id,
                 cancellationToken);
 
+            if (result.IsNotFound())
+            {
+                // Transient: the webhook can outrun the checkout transaction's commit,
+                // so the order row may not be visible yet. 5xx asks Stripe to redeliver —
+                // the one failure mode a retry actually fixes.
+                _logger.LogError(
+                    "Webhook could not find an order for session {SessionId}; asking Stripe to retry: {Message}",
+                    session.Id,
+                    result.Message);
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+
             if (!result.IsSuccess)
             {
-                _logger.LogWarning(
-                    "Webhook MarkFulfilledAsync for session {SessionId} did not succeed: {Message}",
+                // Terminal (e.g. Cancelled/Failed): no redelivery can change this state.
+                // Ack so Stripe stops retrying, and log at Error — a paid order that
+                // cannot be fulfilled needs a human, not another delivery attempt.
+                _logger.LogError(
+                    "Webhook cannot fulfill session {SessionId} — terminal state, manual review required: {Message}",
                     session.Id,
                     result.Message);
             }

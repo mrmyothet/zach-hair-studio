@@ -19,13 +19,26 @@ public class StripePaymentProvider : IPaymentProvider
         _sessionService = new SessionService(stripeClient);
     }
 
+    /// <summary>
+    /// SHOP-02: the success page resolves the order from <c>orderId</c>. A Stripe
+    /// session id is random, so it can never carry the order id — always append it
+    /// explicitly. <c>session_id</c> is kept for order/session correlation.
+    /// </summary>
+    public static string BuildSuccessUrl(string configuredUrl, int orderId)
+    {
+        var withSession = configuredUrl.Contains("{CHECKOUT_SESSION_ID}", StringComparison.Ordinal)
+            ? configuredUrl
+            : $"{configuredUrl.TrimEnd('/')}?session_id={{CHECKOUT_SESSION_ID}}";
+
+        var separator = withSession.Contains('?', StringComparison.Ordinal) ? '&' : '?';
+        return $"{withSession}{separator}orderId={orderId}";
+    }
+
     public async Task<CheckoutSessionResult> CreateCheckoutSessionAsync(
         CheckoutSessionRequest request,
         CancellationToken cancellationToken = default)
     {
-        var successUrl = _options.SuccessUrl.Contains("{CHECKOUT_SESSION_ID}", StringComparison.Ordinal)
-            ? _options.SuccessUrl
-            : $"{_options.SuccessUrl.TrimEnd('/')}?session_id={{CHECKOUT_SESSION_ID}}";
+        var successUrl = BuildSuccessUrl(_options.SuccessUrl, request.OrderId);
 
         var createOptions = new SessionCreateOptions
         {

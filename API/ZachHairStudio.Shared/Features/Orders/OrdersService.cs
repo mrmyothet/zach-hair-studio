@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using ZachHairStudio.Shared.Db;
@@ -267,16 +269,33 @@ public class OrdersService
         return Result<Order>.Success(order);
     }
 
+    /// <summary>
+    /// ACCT-06: guest read for /checkout/success. The order id alone is enumerable,
+    /// so the unguessable payment-session id is required as a second factor. A wrong
+    /// or missing session yields NotFound — never a distinguishable "exists but
+    /// forbidden", which would leak which order ids are real.
+    /// Authenticated users are served by the owner-scoped /api/account/orders/{id}.
+    /// </summary>
     public async Task<Result<OrderResponseDto>> GetByIdAsync(
         int orderId,
+        string? sessionId,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(sessionId))
+        {
+            return Result<OrderResponseDto>.NotFoundError($"Order {orderId} not found.");
+        }
+
         var order = await _dbContext.Orders
             .AsNoTracking()
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
 
-        if (order is null)
+        if (order is null
+            || string.IsNullOrEmpty(order.StripeSessionId)
+            || !CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(order.StripeSessionId),
+                Encoding.UTF8.GetBytes(sessionId)))
         {
             return Result<OrderResponseDto>.NotFoundError($"Order {orderId} not found.");
         }

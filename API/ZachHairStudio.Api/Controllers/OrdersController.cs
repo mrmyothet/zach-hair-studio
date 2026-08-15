@@ -162,10 +162,19 @@ public class OrdersController : ControllerBase
         return Ok(result.Data);
     }
 
+    /// <summary>
+    /// ACCT-06: guest order read for /checkout/success. Anonymous by design — the
+    /// payment-session id from the provider redirect is the capability, since a guest
+    /// has no account to authorize against. Logged-in clients use the owner-scoped
+    /// GET /api/account/orders/{id} instead.
+    /// </summary>
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<OrderResponseDto>> GetById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<OrderResponseDto>> GetById(
+        int id,
+        [FromQuery(Name = "session")] string? session,
+        CancellationToken cancellationToken)
     {
-        var result = await _ordersService.GetByIdAsync(id, cancellationToken);
+        var result = await _ordersService.GetByIdAsync(id, session, cancellationToken);
         if (result.IsNotFound())
         {
             return NotFound(new ProblemDetails

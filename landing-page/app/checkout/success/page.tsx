@@ -24,36 +24,24 @@ type Props = {
   }>;
 };
 
-function parseOrderId(params: {
-  orderId?: string;
-  order?: string;
-  session_id?: string;
-}): number | null {
+// SHOP-02 — the order id must arrive as an explicit param. Never derive it from
+// session_id: a Stripe id is random, so digits found in it belong to no order.
+function parseOrderId(params: { orderId?: string; order?: string }): number | null {
   const raw = params.orderId ?? params.order;
-  if (raw && /^\d+$/.test(raw)) {
-    return Number(raw);
-  }
-
-  // FakePaymentProvider uses session ids like "fake-{orderId}"; Stripe may only
-  // pass session_id — parse a trailing numeric id when present.
-  const session = params.session_id;
-  if (session) {
-    const match = session.match(/(\d+)$/);
-    if (match) return Number(match[1]);
-  }
-
-  return null;
+  return raw && /^\d+$/.test(raw) ? Number(raw) : null;
 }
 
 export default async function CheckoutSuccessPage({ searchParams }: Props) {
   const params = await searchParams;
   const orderId = parseOrderId(params);
-  if (orderId === null) {
+  // ACCT-06 — session_id is the guest's capability for this order, not decoration.
+  const sessionId = params.session_id;
+  if (orderId === null || !sessionId) {
     notFound();
   }
 
   // SHOP-05 / D-06 — display/poll GET only; never mutate order status from this page.
-  const order = await fetchOrderById(orderId);
+  const order = await fetchOrderById(orderId, sessionId);
   if (!order) {
     notFound();
   }
