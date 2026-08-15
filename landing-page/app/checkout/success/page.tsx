@@ -34,12 +34,14 @@ function parseOrderId(params: { orderId?: string; order?: string }): number | nu
 export default async function CheckoutSuccessPage({ searchParams }: Props) {
   const params = await searchParams;
   const orderId = parseOrderId(params);
-  if (orderId === null) {
+  // ACCT-06 — session_id is the guest's capability for this order, not decoration.
+  const sessionId = params.session_id;
+  if (orderId === null || !sessionId) {
     notFound();
   }
 
   // SHOP-05 / D-06 — display/poll GET only; never mutate order status from this page.
-  const order = await fetchOrderById(orderId);
+  const order = await fetchOrderById(orderId, sessionId);
   if (!order) {
     notFound();
   }
