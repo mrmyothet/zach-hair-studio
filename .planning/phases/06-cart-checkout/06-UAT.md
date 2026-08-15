@@ -1,194 +1,78 @@
 ---
-status: complete
+status: testing
 phase: 06-cart-checkout
-source: 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md, 06-04-SUMMARY.md, 06-05-SUMMARY.md
-started: 2026-08-14T00:00:00Z
-updated: 2026-08-14T00:40:00Z
+source: 06-VERIFICATION.md
+started: 2026-08-15T04:00:00Z
+updated: 2026-08-15T04:00:00Z
+supersedes: prior 2026-08-14 session (30/30) — invalidated, see note
 ---
+
+## Note on the superseded session
+
+The previous UAT recorded 30/30 pass on 2026-08-14. It is **not** valid evidence for this
+phase and was replaced rather than resumed:
+
+- It predates commits `5cebf63`, `674806e`, `c1530ad`, which changed the checkout return
+  path, the guest order read, and webhook retry behavior.
+- Its test 8 (Stripe end-to-end) was a confirmed false positive. Dev/Testing binds
+  `FakePaymentProvider`, whose `fake-{orderId}` session id satisfied a since-deleted regex.
+  That provider redirects to `https://example.test/checkout/{orderId}` and never reaches
+  `/checkout/success` at all.
+- Its test 30 (stock concurrency on SQL Server) was marked pass but cannot execute on this
+  Linux host — `SqlServerWebApplicationFactory` throws
+  `PlatformNotSupportedException: LocalDB is not supported on this platform`.
+
+Only the items below remain. Everything else in Phase 6 is verified by code inspection plus
+41 passing SQLite-backed tests (see `06-VERIFICATION.md`).
 
 ## Current Test
 
-[testing complete]
+number: 1
+name: Last-unit concurrency against real SQL Server
+expected: |
+  On a host with a reachable SQL Server, set TEST_SQLSERVER_CONNECTION (or
+  ConnectionStrings__DefaultConnection) and run:
+    dotnet test API/ZachHairStudio.Api.Tests/ --filter FullyQualifiedName~StockConcurrencyTests
+  TwoParallelCheckoutsForLastUnit_ExactlyOneSuccessAndOne409 passes: exactly one 2xx,
+  exactly one 409, and Products.Stock ends at 0 — never negative.
+awaiting: user response
 
 ## Tests
 
-### 1. Cold Start Smoke Test
-expected: Kill any running server. Start API from scratch — boots without errors, AddCarts/AddOrders migrations apply, and a primary query (GET /api/products) returns live data. Landing page loads.
-result: pass
+### 1. Last-unit concurrency against real SQL Server
+expected: With TEST_SQLSERVER_CONNECTION pointed at a live SQL Server, StockConcurrencyTests passes — exactly one 2xx, one 409, final Stock == 0 and never negative.
+result: [pending]
+blocks: SC3 / SHOP-04
+why_human: Depends on real SQL Server row-locking under two genuinely parallel transactions. SQLite cannot substitute — it serializes writes, so a green run there would prove nothing. No code change needed; the factory already honors TEST_SQLSERVER_CONNECTION.
 
-### 2. Add to Cart from Product Detail
-expected: On a product detail page, the aside shows Add to Cart with a quantity stepper. Adding updates the navbar cart count immediately (no refresh).
-result: pass
-coverage_id: 06-02/D1
+### 2. Real Stripe test-mode end-to-end
+expected: With Stripe:SecretKey (sk_test_) and Stripe:WebhookSecret in user-secrets, API + landing-page running, and `stripe listen --forward-to localhost:5236/api/stripe/webhook` active — add a product, check out, pay with 4242 4242 4242 4242. Stripe shows a real hosted Checkout page with correct line items; the browser returns to /checkout/success?session_id=cs_...&orderId=N showing "Order Received" with the right order; the DB order flips to Fulfilled exactly once.
+result: [pending]
+blocks: SHOP-02 runtime
+why_human: StripePaymentProvider.CreateCheckoutSessionAsync is never executed by any test — Testing and all test factories bind FakePaymentProvider. There is zero automated evidence that Stripe accepts the SessionCreateOptions payload or that Session.Url/Session.Id come back usable.
 
-### 3. Cart Page Line Items
-expected: /cart lists each line with server-computed unit price and line total, working quantity steppers, Remove per line, an Order Summary, and Proceed to Checkout.
-result: pass
-coverage_id: 06-02/D2
+### 3. Webhook-only fulfillment (negative check)
+expected: With `stripe listen` STOPPED, complete a test-mode payment and land on /checkout/success. The page renders "Order Received" but the DB order stays Pending. Starting `stripe listen` and replaying the event then flips it to Fulfilled.
+result: [pending]
+blocks: SC4 runtime confirmation
+why_human: Static analysis already proves MarkFulfilledAsync is the only Fulfilled writer and the success page is GET-only. Proving the redirect alone cannot fulfill requires observing the real redirect with the webhook suppressed.
 
-### 4. Cart Badge and Out-of-Stock CTA
-expected: Navbar cart badge appears when count >= 1 and disappears at 0. On an out-of-stock product, Add to Cart is disabled.
-result: pass
-coverage_id: 06-02/D5
+### 4. Guest checkout visual/UX walkthrough
+expected: Product detail Add to Cart → navbar badge → /cart line items, quantity steppers, Remove, "Complete Your Routine" chips → Proceed to Checkout → /checkout email form → redirect. Each step matches 06-UI-SPEC styling and empty/error/loading states; the chips section is omitted entirely when there are no recommendations.
+result: [pending]
+why_human: Visual appearance and responsive layout cannot be verified by grep. landing-page has no node_modules on this host, so neither tsc nor a build could run.
 
-### 5. Complete Your Routine Recommendations
-expected: On /cart, recommendation chips load for services tied to cart products; the section is omitted entirely when there are none. Clicking a chip adds it to the cart (Added / out-of-stock states visible).
-result: pass
-coverage_id: 06-04/D2
-
-### 6. Checkout Form Validation and Redirect
-expected: /checkout requires a valid email before submit. Valid submit redirects to the payment provider checkout URL. A failed create shows "Couldn't Start Checkout" and the form re-enables.
-result: pass
-coverage_id: 06-04/D4
-
-### 7. Stripe Checkout Session (test mode)
-expected: With Stripe:SecretKey set to a sk_test_ key, checkout redirects to a real Stripe-hosted Checkout page showing the correct line items and totals in the salon's currency.
-result: pass
-coverage_id: 06-05/D1
-
-### 8. Stripe End-to-End Fulfillment
-expected: With `stripe listen --forward-to .../api/stripe/webhook` running, pay with test card 4242 4242 4242 4242. Stripe redirects back to a success page that shows the order (not a 404), and the order flips Pending → Fulfilled exactly once with stock decremented.
-result: pass
-coverage_id: 06-05/D5
-
-### 9. Anonymous cart upsert/get with server-enriched prices
-expected: Anonymous client can upsert/get cart lines under X-Cart-Session-Id with server-enriched UnitPrice/LineTotal from Products.Price
-result: pass
-source: automated
-coverage_id: 06-01/D1
-
-### 10. CartItem stores no money columns
-expected: CartItem persists ProductId and Quantity only — no Price/Total columns
-result: pass
-source: automated
-coverage_id: 06-01/D2
-
-### 11. Unknown cart session returns empty list
-expected: GET cart for unknown/empty session returns empty items list (not null, not 404)
-result: pass
-source: automated
-coverage_id: 06-01/D3
-
-### 12. CartsController has no DbContext dependency
-expected: CartsController does not depend on BookingDbContext (PLAT-01)
-result: pass
-source: automated
-coverage_id: 06-01/D4
-
-### 13. AddCarts migration shape
-expected: AddCarts migration creates Carts/CartItems with unique SessionKey; AppointmentSlot unique index remains unfiltered
-result: pass
-source: automated
-coverage_id: 06-01/D5
-
-### 14. Result.ConflictError message overload
-expected: Message-only Result.ConflictError overload compiles and IsConflict() is true
-result: pass
-source: automated
-coverage_id: 06-01/D6
-
-### 15. Empty cart state
-expected: Empty cart renders Your Cart Is Empty with Browse Products CTA
-result: pass
-source: automated
-coverage_id: 06-02/D3
-
-### 16. Cart load failure banner
-expected: Cart load failure shows Couldn't Load Your Cart rose banner with Try Again
-result: pass
-source: automated
-coverage_id: 06-02/D4
-
-### 17. Upsert body carries no client money fields
-expected: Upsert request body is productId+quantity only (no client money fields) — T-06-04
-result: pass
-source: automated
-coverage_id: 06-02/D6
-
-### 18. Guest checkout returns provider URL
-expected: Anonymous POST /api/orders/checkout with X-Cart-Session-Id creates Pending guest order and returns FakePaymentProvider checkoutUrl
-result: pass
-source: automated
-coverage_id: 06-03/D1
-
-### 19. Server price authority on orders
-expected: Order totals and OrderItem UnitPrice/LineTotal come from catalog Price (DTO has no money fields)
-result: pass
-source: automated
-coverage_id: 06-03/D2
-
-### 20. Insufficient stock is a Conflict
-expected: Insufficient stock returns Conflict and leaves Stock unchanged (atomic UPDATE path)
-result: pass
-source: automated
-coverage_id: 06-03/D3
-
-### 21. Guest order has null ClientId
-expected: Guest Order.ClientId is null on successful checkout
-result: pass
-source: automated
-coverage_id: 06-03/D4
-
-### 22. MarkFulfilledAsync is real and idempotent
-expected: MarkFulfilledAsync is thin idempotent Pending→Fulfilled (not a stub); already Fulfilled is success no-op
-result: pass
-source: automated
-coverage_id: 06-03/D5
-
-### 23. Provider failure restores stock
-expected: Payment provider failure after commit restores stock and marks Order Failed
-result: pass
-source: automated
-coverage_id: 06-03/D6
-
-### 24. Checkout recommendations query
-expected: GetRecommendedForCheckoutAsync joins ServiceRecommendedProduct, excludes in-cart, Take(4), empty when no join
-result: pass
-source: automated
-coverage_id: 06-04/D1
-
-### 25. createCheckout sends session header
-expected: createCheckout POSTs /api/orders/checkout with required X-Cart-Session-Id header
-result: pass
-source: automated
-coverage_id: 06-04/D3
-
-### 26. Success page never fulfills
-expected: /checkout/success shows Order Received via GET only; never fulfills; invalid ref → notFound()
-result: pass
-source: automated
-coverage_id: 06-04/D5
-
-### 27. Cancel page
-expected: /checkout/cancel shows Checkout Cancelled + Return to Cart
-result: pass
-source: automated
-coverage_id: 06-04/D6
-
-### 28. Webhook signature verification
-expected: POST /api/stripe/webhook rejects bad/missing Stripe-Signature with 400; paid checkout.session.completed fulfills once
-result: pass
-source: automated
-coverage_id: 06-05/D2
-
-### 29. Fulfillment idempotency
-expected: MarkFulfilledAsync Pending→Fulfilled is idempotent no-op when already Fulfilled
-result: pass
-source: automated
-coverage_id: 06-05/D3
-
-### 30. Stock concurrency on SQL Server
-expected: Two parallel last-unit checkouts → one success + one 409; Stock==0 on SQL Server
-result: pass
-source: automated
-coverage_id: 06-05/D4
+### 5. Cancel path from the Stripe hosted page
+expected: Begin checkout, then abandon on Stripe's hosted page. The browser returns to the configured CancelUrl (http://localhost:3000/cart), the cart still holds its items, and the order is not Fulfilled.
+result: [pending]
+why_human: Requires the real Stripe hosted page's cancel affordance.
 
 ## Summary
 
-total: 30
-passed: 30
+total: 5
+passed: 0
 issues: 0
-pending: 0
+pending: 5
 skipped: 0
 blocked: 0
 
